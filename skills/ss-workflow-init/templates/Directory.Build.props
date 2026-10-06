@@ -1,0 +1,8 @@
+<Project>
+  <!-- ss-workflow: single version source for every project in this repository.
+       Only /ss-workflow-release and hotfix branches change these values. -->
+  <PropertyGroup>
+    <Version>{{INITIAL_VERSION}}</Version>
+    <Product>{{PROJECT_NAME}}</Product>
+  </PropertyGroup>
+</Project>
