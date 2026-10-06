@@ -197,8 +197,12 @@ created: 2026-09-07
 
 - 在 develop 上建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)
 - 與 developer 討論細部的需求規格，寫入 `## Spec`
-- developer 確認規格沒有問題後，將 status 改為 `ready` 並 commit
-- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow-merge`)
+- developer 確認規格沒有問題後，將 status 改為 `ready` 並 commit (有 remote 時一併 push develop)
+  - 討論中斷時可選擇「保留 draft」先 commit，避免遺失；之後用 `/ss-workflow-new-req REQ-xxxx` 接續
+  - commit 前再 fetch 一次，若流水號被其他 session 用掉則重新編號
+- 輸入包含多個可獨立實作的需求時，提議拆成多個 request；與既有 request 重複時先提醒
+- 此 skill 只寫 request，不實作
+- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow-merge`)，request 檔一樣建立在 develop
 
 ## skill: `/ss-workflow-check-req`
 
