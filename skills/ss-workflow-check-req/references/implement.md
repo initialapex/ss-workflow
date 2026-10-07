@@ -26,8 +26,11 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
 3. Run `setup-command` if the worktree needs it. Then try `build-command` once before
    you change anything, to know the baseline. If the
    code does not compile before your changes, tell the developer before you continue.
-4. Write a short implementation plan (the steps, and the files or projects affected)
-   and show it to the developer. Wait for an answer only if the plan needs a decision
+4. If `## Spec` has no "Architecture" part, stop. Propose one, and ask the developer to
+   confirm it. Write it into `## Spec`, and record the decision in `## Notes` with the
+   date.
+5. Write a short implementation plan (the steps, and the files or projects affected)
+   that follows the "Architecture" part of the spec, and show it to the developer. Wait for an answer only if the plan needs a decision
    that the spec does not cover. Otherwise, start.
 
 ## Step 2: Implement
@@ -35,6 +38,9 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
 - Work through the acceptance criteria. Stay inside the request's scope. If you find
   something worth doing outside the scope, record it in `## Notes` as a follow-up, and
   suggest `/ss-workflow-new-req` for it at the end.
+- Build what the "Architecture" part of the spec describes. Do not change the
+  architecture on your own. If it does not fit the code as you find it, that is an
+  error in the spec: see the next point.
 - **If the spec is unclear or turns out to be wrong, stop and ask.** Do not guess.
   When the developer decides, update `## Spec`, and record the decision and its reason
   in `## Notes` with the date.
@@ -77,6 +83,7 @@ a new request.
    ```markdown
    ### Implementation summary (yyyy-MM-dd)
    - What changed: ...
+   - Architecture: as in the spec / changed with the developer's decision of <date>
    - Build in the worktree: passed / failed (<reason>) / could not run (<reason>) / not configured
    - Verify: <commands, test projects, and scripts to run in the root checkout>
    - Review by hand: <what the developer needs to look at or try, and how to start it>

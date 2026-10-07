@@ -243,7 +243,11 @@ created: 2026-09-07
 - 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在某個 `req/` branch 上 (接續該 draft)
 - 從 develop 開 `req/REQ-<id>-<slug>` branch 並立即 push (同時占住流水號)，在上面建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)
 - 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論後 commit + push
-  - Spec 內含 Goal / Scope / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查或 Review 人工檢查) / Out of scope / Open questions
+  - Spec 內含 Goal / Scope / Architecture / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查或 Review 人工檢查) / Out of scope / Open questions
+  - 開工前要講定的範圍: developer 或使用者看得到、用得到的東西 (UI、指令、檔案格式、對外 API，寫在 Scope)，以及軟體架構 (寫在 Architecture: 新增或修改的模組 / 元件、各自的責任、呼叫關係、資料流、重要的資料結構與狀態、新的相依)；更細的實作細節留給實作，除非 developer 想談
+  - Architecture 不可省略: 不需要架構決定的變更也要用一句話寫明，並指出放在既有結構的哪裡；由 AI 依現有程式碼提出，有多種合理結構時列出取捨並推薦，由 developer 確認
+  - `## Original` 只有需求或困擾、沒有做法時先探索: 先問問題本身 (誰需要、現在怎麼做、哪裡不好、有什麼限制)，再提出兩到三個做法 (對使用者如何運作、架構概要、影響範圍、代價與風險) 並推薦一個，developer 選定後才起草 Spec
+  - developer 答不出來時: AI 提出預設值與理由，developer 接受後寫入 Spec，並在 `## Notes` 記為 Assumption，留待 Review 再確認；不留在 Open questions，也不自行默默決定
 - developer 確認規格沒有問題後，將 status 改為 `ready`，把 `req/` branch `--no-ff` merge 回 develop 並刪除該 branch；之後由其他 session 認領
   - `merge-method` 為 `remote` 或 develop 不允許直接 push 時，改發 merge-request
   - 保留 draft: commit + push 後根目錄切回 develop，`req/` branch 留著；之後用 `/ss-workflow-new-req REQ-xxxx` 接續
@@ -273,6 +277,7 @@ created: 2026-09-07
   - 只在 request 的 worktree 內修改，不改根目錄的檔案、不切換根目錄的 branch (唯一例外: 上述 developer 同意的修復，把根目錄切回 develop)
   - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
   - 動手前先讀 root `AGENTS.md` 的「Toolchain」與 source 資料夾的「Project rules」；新檔案要依「Project rules」加入 build
+  - 依 Spec 的 Architecture 實作，不自行更改架構；Spec 沒有 Architecture 時先提出並由 developer 確認；implementation summary 註明架構是否照 Spec
   - 規格不清楚或有誤時停下來問，不自行猜測；規格異動要更新 `## Spec` 並在 `## Notes` 記錄原因
   - 每個 commit 帶 `Refs: REQ-xxxx` 並 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary (改了什麼、worktree 內 build 結果、Verify 要跑什麼、Review 要人工看什麼)

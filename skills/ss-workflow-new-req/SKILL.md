@@ -120,12 +120,25 @@ Do not ask the developer questions that the repository already answers.
 
 ## Step 6: Discuss and write the spec
 
-Draft `## Spec` with these parts, with the subheadings in `reqs-language`:
+### What the spec settles
+
+The spec settles the following before any code is written:
+
+- Everything that the developer or a user sees or uses: the UI, commands and their
+  options, file formats, and the public API. These go into "Scope".
+- The software architecture. It goes into "Architecture".
+
+Everything below that level is left to the implementation, for example the names of
+private functions and the layout of a single file. Settle such a detail in the spec
+only if the developer wants to.
+
+`## Spec` has these parts, with the subheadings in `reqs-language`:
 
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes: behavior, UI, API, data, and the projects affected |
+| Scope | The concrete changes: behavior, UI, commands, file formats, API, data, and the projects affected |
+| Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. If the change needs no architectural decision, say so in one sentence and name the place it goes into. Do not leave this part out. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify) or by hand (Review). |
 | Out of scope | What this request deliberately does not cover |
@@ -134,7 +147,39 @@ Draft `## Spec` with these parts, with the subheadings in `reqs-language`:
 For `type: hotfix`, also state the affected released version and the hotfix version
 (the next patch version after the latest tag on the main branch).
 
-Then go through these rounds with the developer:
+### How to start
+
+Look at `## Original`:
+
+- It says what to build: draft the spec, and go to "Rounds".
+- It only describes a need or a problem, without a way to solve it: explore first.
+  1. Ask about the problem itself, and only what the repository does not answer: who
+     needs this, what they do today, what is wrong with that, and which limits apply
+     (compatibility, performance, hardware, time).
+  2. Propose two or three ways to solve it, from what you read in the code. For each
+     one, say how it works for the user, its architecture in a few lines, what it
+     affects, and its cost and risks. Recommend one, and say why. Ask with
+     AskUserQuestion, with the recommended one first.
+  3. Draft the spec from the way that the developer chose or changed.
+
+### Architecture
+
+Propose the architecture yourself, from the existing code. Do not ask the developer to
+design it. If more than one structure is reasonable, show the alternatives with their
+trade-offs, and recommend one. The developer confirms the architecture, like the rest
+of the spec.
+
+### When the developer does not know
+
+If the developer cannot answer a question, do not leave it in "Open questions", and do
+not decide it silently. Propose a default, and say why. If the developer accepts it,
+write it into the spec, and record it in `## Notes` as
+`Assumption (yyyy-MM-dd): <what>, because <why>`, so that it is checked again in the
+Review.
+
+### Rounds
+
+Go through these rounds with the developer:
 
 1. Show the draft spec, and ask only the questions whose answers change what gets
    built. Use AskUserQuestion when the answer is a choice between options. Ask in plain
@@ -150,7 +195,8 @@ Record the decisions that explain *why* in `## Notes`, with the date.
 
 ## Step 7: Approval
 
-When "Open questions" is empty, show the final spec and ask with AskUserQuestion:
+When "Open questions" is empty and "Architecture" is filled in, show the final spec
+and ask with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
