@@ -186,6 +186,11 @@ cd "$A"
 git checkout -q develop
 no_ "checkout of a branch that a worktree still holds is refused" git checkout -q feat/REQ-0002-add-farewell
 yes_ "checkout of the reviewed branch works once its worktree is gone" git checkout -q feat/REQ-0001-add-greeting
+# check-req: resuming a request while the root checkout is still on its branch
+no_ "worktree add is refused for the branch that the root checkout is on" git worktree add -q "$WT1" feat/REQ-0001-add-greeting
+git checkout -q develop
+yes_ "worktree add works once the root checkout is back on develop" git worktree add -q "$WT1" feat/REQ-0001-add-greeting
+git worktree remove "$WT1"; git checkout -q feat/REQ-0001-add-greeting
 # develop moves on meanwhile (another request merged elsewhere)
 ( cd "$B" && git pull -q --ff-only 2>/dev/null && echo "other" > src/other.txt && git add -A 2>/dev/null && git commit -q -m "feat: other work" && git push -q 2>/dev/null )
 git fetch -q

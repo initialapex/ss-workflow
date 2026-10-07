@@ -71,7 +71,9 @@ hand.
 | Merge into `develop` (for a hotfix: into the main branch and `develop`) | If the status is not `done`, set `status: review`, and add a dated line to `## Notes` that says the developer chose to merge from the status it had, without restarting the review. Commit `chore(reqs): mark REQ-0012 for review`, and push. Leave the root checkout on this branch, and hand over to the merge: invoke the `ss-workflow-merge` skill for this branch. If you cannot invoke it, read `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-merge/SKILL.md` and the guide for the branch kind, and follow them. That skill still says so when no Verify result or no passed Review is recorded, and asks before it merges. |
 
 If the developer chooses neither, change nothing and stop. Say that the root checkout
-stays on this branch, and that `git checkout develop` frees it.
+stays on this branch, and that `git checkout develop` frees it. For an `in-progress`
+request, also say that `/ss-workflow-check-req REQ-0012` offers to free it and to
+continue the implementation in a worktree.
 
 Choosing the request, on `develop`:
 

@@ -32,6 +32,9 @@ Supporting files:
 - One invocation handles one request. Never implement two requests in one worktree.
 - A request is implemented only inside its own worktree. This skill never changes
   files in the root checkout, and never switches the root checkout to another branch.
+  The one exception is a repair that the developer approves: switching the root
+  checkout back to `develop` when it holds the branch of a request that is not in
+  review (see [references/anomalies.md](references/anomalies.md)).
 - In a worktree, write code and try to compile it. Do not run tests, scripts, or
   executables there.
 - Never force-push, and never rebase a branch that has been pushed.
@@ -78,6 +81,7 @@ Build the list of requests without checking anything out.
 5. For each request branch, also collect:
    - whether it exists locally, on the remote, or both
    - its worktree path, from `git worktree list`
+   - whether the root checkout is on it
    - the unpushed commits: `git log origin/<branch>..<branch> --oneline`
    - whether it is merged: `git merge-base --is-ancestor <branch> <develop-ref>`
 6. Show a table sorted by status, then priority, then id:
@@ -107,7 +111,9 @@ Candidates are the requests with the effective status `ready`, sorted by `priori
     with Step 6, using the worktree path.
   - `in-progress` without a worktree: the request was reopened by a review, or its
     worktree was lost. Ask whether to continue it. If yes, recreate the worktree
-    (`git worktree add <worktree path> <branch>`), and continue with Step 6.
+    (`git worktree add <worktree path> <branch>`), and continue with Step 6. Git
+    refuses this while the root checkout is on that branch: apply the repair from
+    [references/anomalies.md](references/anomalies.md) first.
   - `review`: say that the implementation is finished, and point to
     `/ss-workflow-review`.
   - A draft: say that it needs approval through `/ss-workflow-new-req` first.

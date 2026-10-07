@@ -265,11 +265,12 @@ created: 2026-09-07
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`
   - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意
   - `in-progress` 但沒有 worktree (被 review 退回，或 worktree 遺失): developer 同意後重建 worktree 繼續實作
+  - 根目錄停在 `in-progress` / `ready` 的 request branch 上 (退回重做或認領被中斷後沒切回 develop，或手動 checkout): git 不允許為根目錄所在的 branch 建立 worktree，所以先確認根目錄沒有未 commit 的變更，developer 同意後把根目錄切回 develop，再重建 worktree
 - 在 request worktree 上執行: 表示要再啟動實作
   - `in-progress`: 找出上次停在哪裡 (含 `## Notes` 內的 review feedback)，繼續實作
   - `review` / `done`: 實作已完成，這個 worktree 不該存在；確認沒有遺漏後刪除，並提示下一步
 - 實作原則
-  - 只在 request 的 worktree 內修改，不改根目錄的檔案、不切換根目錄的 branch
+  - 只在 request 的 worktree 內修改，不改根目錄的檔案、不切換根目錄的 branch (唯一例外: 上述 developer 同意的修復，把根目錄切回 develop)
   - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
   - 動手前先讀 root `AGENTS.md` 的「Toolchain」與 source 資料夾的「Project rules」；新檔案要依「Project rules」加入 build
   - 規格不清楚或有誤時停下來問，不自行猜測；規格異動要更新 `## Spec` 並在 `## Notes` 記錄原因
