@@ -53,11 +53,17 @@ Report and offer to fix:
 - Missing folders, or missing AGENTS.md / CLAUDE.md files.
 - Missing `develop` or main branch.
 - `.gitignore` missing entries from the ss-workflow block.
-- Request files with invalid frontmatter or an unknown `status`.
-- `in-progress` / `review` requests whose `branch` exists neither locally nor on the
-  remote.
-- Request files with `status: done` that are not in `reqs/done/`.
+- The root checkout is not on `develop`. Say which activity holds it: a `req/*` branch
+  is a spec discussion, a request branch is a review, a `release/*` branch is a
+  release.
+- Request files on `develop` with invalid frontmatter or an unknown `status`.
+- Request files on `develop` with `status: done` that are not in `reqs/done/`.
 - Worktrees from `git worktree list` whose branch has already been merged into
-  `develop`.
+  `develop`, or whose request is already in `review`.
+- `req/*` branches whose request is already on `develop`.
 
-Do not fix anything without the developer's approval. Each fix is its own commit.
+For the state of the individual requests and their branches, point to the overview of
+`/ss-workflow-check-req`.
+
+Do not fix anything without the developer's approval. Each fix is its own commit, and
+changes to request files on `develop` go through a `req/` branch.

@@ -181,4 +181,6 @@ Summarize in the discussion language:
 - Created, moved, and merged files, plus the commit list (`git log --oneline`)
 - What the developer still needs to fill in, such as the spec in
   `docs/{{PROJECT_SLUG}}-spec.md` and the README description
+- The optional `verify-command` setting in root `AGENTS.md`, for a verification script
+  that `/ss-workflow-review` runs after the build and the tests
 - Next step: `/ss-workflow-new-req` to create the first request

@@ -24,7 +24,11 @@ merge-method: {{MERGE_METHOD}}
 version-source: {{VERSION_SOURCE}}
 build-command: {{BUILD_COMMAND}}
 test-command: {{TEST_COMMAND}}
+verify-command:
 ```
+
+`verify-command` is optional: an extra verification script that `/ss-workflow-review`
+runs after the build and the tests, for example `pwsh scripts/verify.ps1`.
 
 <!-- ss-workflow:managed id=working-agreement -->
 ## Working agreement
@@ -35,7 +39,22 @@ test-command: {{TEST_COMMAND}}
 - All work starts from a request in `reqs/`. Do not implement features or fixes that
   have no request. If the developer asks for something directly, offer to create a
   request first with `/ss-workflow-new-req`.
-- Before you finish a task, run `build-command` and, if tests exist, `test-command`.
+- Where each kind of work happens:
+
+  | Work | Where | Skill |
+  |------|-------|-------|
+  | Spec discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow-new-req` |
+  | Implementation | A worktree, on the request branch | `/ss-workflow-check-req` |
+  | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch | `/ss-workflow-review` |
+  | Merge and release | Root checkout | `/ss-workflow-merge`, `/ss-workflow-release` |
+
+- The root checkout is the repository's primary working tree. Its home branch is
+  `develop`. A skill that switches it to another branch first checks that it is on
+  `develop` with no uncommitted changes to tracked files, and returns it to `develop`
+  when it is done. Only one of these activities uses the root checkout at a time.
+- In a worktree, write code and try to compile it with `build-command`. Do not run
+  tests, scripts, or executables there. If the build cannot run in the worktree, note
+  that in the request and leave it to Verify.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=layout -->
@@ -62,9 +81,15 @@ The repository follows gitflow. `main-branch` and `develop` are long-lived.
 
 | Branch | Created from | Merges into | Name example | Worktree |
 |--------|--------------|-------------|--------------|----------|
-| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `develop` | `develop` | `feat/REQ-0012-gui-button` | Yes, under `.claude/worktrees/` |
+| Spec discussion `req/*` | `develop` | `develop` | `req/REQ-0012-gui-button` | No |
+| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `develop` | `develop` | `feat/REQ-0012-gui-button` | During implementation only, under `.claude/worktrees/` |
 | `release/*` | `develop` | `main-branch` and `develop` | `release/v1.0.0-beta1` | No |
-| `hotfix/*` | `main-branch` | `main-branch` and `develop` | `hotfix/v1.0.1` | Yes, under `.claude/worktrees/` |
+| `hotfix/*` | `main-branch` | `main-branch` and `develop` | `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
+
+- A `req/*` branch only changes one request file. It is merged into `develop` when
+  the developer approves the spec.
+- Creating a request or hotfix branch claims the request. When the implementation is
+  finished, its worktree is removed and the branch is kept for Verify and Review.
 
 - `main-branch` receives commits only when a version is released. Every merge into it
   gets a tag that matches the release or hotfix name (for example `v1.0.0-beta1`).

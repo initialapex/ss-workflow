@@ -14,5 +14,6 @@ Test projects for the projects in `src/`.
 - Tests must not depend on machine-specific paths, network access, or execution
   order.
 - Add every test project to `{{SOLUTION_FILE}}`.
-- Run: `{{TEST_COMMAND}}`
+- Run: `{{TEST_COMMAND}}`. Tests run during Verify, in the root checkout. In a
+  worktree, write the tests but do not run them.
 <!-- /ss-workflow:managed -->
