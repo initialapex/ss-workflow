@@ -391,11 +391,18 @@ created: 2026-09-07
 - 若在 release branch 上使用此 skill，表示接續先前的 release
   - develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否納入這次 release
 - 一次只進行一個 release；已有 release branch 時不再建立新的
+- 版本號格式: `vX.Y.Z-{alpha/beta/rc}{R}`
+  - X / Y / Z (MAJOR / MINOR / PATCH) 為 0 到 99 的整數，最多兩位數，不補零
+  - 正式版本沒有後綴: `v1.0.0`；prerelease 使用後綴，階段只有 `alpha` / `beta` / `rc`，R 從 1 開始、直接接在階段後面: `v1.0.0-alpha1`、`v1.0.0-beta2`、`v1.0.0-rc1`
+  - 同一個 X.Y.Z 的順序: `alpha` < `beta` < `rc` < 正式版；同階段依 R 的數值比較 (`alpha2` < `alpha10`)，不以文字比較
+  - 階段不回頭: 出過 `rc1` 之後，同一個 X.Y.Z 不再有 `beta3`
 - 版本號推薦規則
+  - 要遞增的位數已經是 99 時: 改推薦進位到上一位 (`1.4.99` → `1.5.0`) 並說明原因；MAJOR 已是 99 時沒有合法的下一版，交給 developer 決定
   - 尚無 tag (第一次 release): 使用 version-source 目前的版本
   - 1.0.0 以上: breaking → MAJOR、`feat` → MINOR、其他 → PATCH
   - 1.0.0 以下: breaking 與 `feat` → MINOR、其他 → PATCH；升到 1.0.0 由 developer 決定，不主動推薦
-  - 上一個 tag 是 prerelease (e.g. `1.0.0-beta1`): 候選為 `beta2` / `rc1` / 正式版
+  - 上一個 tag 是 prerelease (e.g. `1.0.0-beta1`): 候選為同階段的下一個 (`beta2`) / 下一階段的第一個 (`rc1`) / 正式版
+  - 上一個 tag 是正式版: 推薦正式版，另提供 prerelease 作為替代，階段由 developer 選擇 (`alpha1` / `beta1` / `rc1` 都可以)
   - 可直接帶版本號 `/ss-workflow-release 1.0.0-beta1` 跳過推薦
 - 未完成工作的判定
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及未合併的 hotfix

@@ -145,7 +145,8 @@ only if the developer wants to.
 | Open questions | Anything not decided yet. This part must be empty before `ready`. |
 
 For `type: hotfix`, also state the affected released version and the hotfix version
-(the next patch version after the latest tag on the main branch).
+(the next patch version after the latest tag on the main branch, in the form that
+"Versioning" in the root `AGENTS.md` describes).
 
 ### How to start
 

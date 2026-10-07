@@ -159,8 +159,13 @@ Merge commits are the exception to the header format. They are always created wi
 <!-- ss-workflow:managed id=versioning -->
 ## Versioning
 
-- Versions follow SemVer: `MAJOR.MINOR.PATCH[-prerelease]`, for example `1.2.0` or
-  `1.0.0-beta1`.
+- A version is `X.Y.Z` for a final version, or `X.Y.Z-<stage><R>` for a prerelease,
+  for example `1.2.0` or `1.0.0-beta1`. `X`, `Y`, and `Z` are MAJOR, MINOR, and PATCH,
+  each from 0 to 99. `<stage>` is `alpha`, `beta`, or `rc`, and `<R>` counts from 1. A
+  final version has no suffix.
+- For the same `X.Y.Z`, the order is `alpha` < `beta` < `rc` < final, and within one
+  stage by `<R>` as a number.
+- The tag is the version with a leading `v`: `v1.2.0`, `v1.0.0-alpha1`.
 - The single version source is `version-source`. Do not set the product version
   anywhere else. If the toolchain forces a second place to carry it, list that place
   in the "Toolchain" section, so that a release updates it too.

@@ -1,7 +1,22 @@
 # Version rules
 
-Versions follow SemVer: `MAJOR.MINOR.PATCH`, with an optional prerelease part such as
-`-beta1` or `-rc1`. The tag is the version with a leading `v`.
+## Format
+
+A version is `X.Y.Z` for a final version, or `X.Y.Z-<stage><R>` for a prerelease.
+
+| Part | Rule |
+|------|------|
+| `X`, `Y`, `Z` | MAJOR, MINOR, and PATCH. Each is a whole number from 0 to 99, without leading zeros. |
+| `<stage>` | `alpha`, `beta`, or `rc`, in lowercase |
+| `<R>` | A whole number from 1, without leading zeros. It follows the stage directly, with no separator: `alpha1`, `beta2`, `rc1`. |
+
+A final version has no suffix: `1.0.0`. The tag is the version with a leading `v`:
+`v1.0.0`, `v1.0.0-alpha1`.
+
+Order: compare `X`, then `Y`, then `Z`, as numbers. For the same `X.Y.Z`, the order is
+`alpha` < `beta` < `rc` < final, and within one stage by `<R>` as a number, so
+`1.0.0-alpha2` < `1.0.0-alpha10` < `1.0.0-beta1` < `1.0.0-rc1` < `1.0.0`. Compare in
+this way, and not as text: as text, `alpha10` would sort before `alpha2`.
 
 ## Recommending the version
 
@@ -39,15 +54,21 @@ Then raise the last version:
 Below `1.0.0`, a breaking change does not raise MAJOR. Going to `1.0.0` is the
 developer's decision: offer it as an option, and do not recommend it on your own.
 
+A part cannot go above 99. If the part to raise is already 99, recommend raising the
+next higher part instead (`1.4.99` → `1.5.0`), and say why. If MAJOR is 99 and would
+have to be raised, there is no valid next version: say so, and ask the developer.
+
 ### Prereleases
 
 - If the last tag is a prerelease (`1.0.0-beta1`), the release is still heading for
-  the same base version. Offer these candidates: the next prerelease of the same kind
-  (`1.0.0-beta2`), the next stage (`1.0.0-rc1`), and the final version (`1.0.0`).
-  Recommend the next prerelease of the same kind, unless the developer said that the
-  version is ready.
+  the same `X.Y.Z`. Offer these candidates: the next prerelease of the same stage
+  (`1.0.0-beta2`), the first prerelease of the next stage (`alpha` → `beta1`, `beta` →
+  `rc1`), and the final version (`1.0.0`). Recommend the next prerelease of the same
+  stage, unless the developer said that the version is ready. A stage never goes
+  back: after `rc1`, there is no `beta3` of the same `X.Y.Z`.
 - If the last tag is a final version, recommend a final version. Offer a prerelease of
-  it (`1.5.0-beta1`) as an alternative.
+  it as an alternative, for example `1.5.0-beta1`. The developer chooses the stage:
+  `alpha1`, `beta1`, and `rc1` are all valid starts.
 
 ### If `version-source` is already ahead
 
@@ -58,10 +79,11 @@ exists for it, someone already chose the next version. Recommend that one.
 
 A version is valid when all of these hold:
 
-- It matches `MAJOR.MINOR.PATCH` or `MAJOR.MINOR.PATCH-<prerelease>`, with no leading
-  `v` and no leading zeros.
-- It is higher than the last version by SemVer ordering. A prerelease is lower than
-  its final version: `1.0.0-rc1` < `1.0.0`.
+- It has the form from "Format": `X.Y.Z` or `X.Y.Z-<stage><R>`, with no leading `v`.
+  `X`, `Y`, and `Z` are from 0 to 99, the stage is `alpha`, `beta`, or `rc`, and `<R>`
+  is 1 or higher. Other suffixes (`-preview1`, `-beta.1`, `-beta`) are not valid.
+- It is higher than the last version, by the order from "Format". A prerelease is
+  lower than its final version: `1.0.0-rc1` < `1.0.0`.
 - The tag `v<version>` exists neither locally (`git tag -l`) nor on the remote
   (`git ls-remote --tags origin`).
 - No branch `release/v<version>` exists.
