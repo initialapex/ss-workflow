@@ -9,6 +9,20 @@
 - AGENTS 相關給 AI 看的文件使用英文
 - 以上為預設，在初始化問答時，讓 developer 選擇
 
+## 專案形式
+
+工作流本身不相依任何一種專案形式，Visual Studio / Keil / ESP32 或其他類型都適用。
+
+- 專案類型由 developer 在初始化時說明 (自由描述，e.g.「Visual Studio solution，old-style C# 專案，用 MSBuild 建置」、「Keil MDK-ARM」、「ESP-IDF」)
+- 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在專案的 AGENTS.md，plugin 不內建任何 toolchain 的範本或指令
+  - Workflow settings: `project-file` (主要的 solution / workspace / build 檔)、`version-source` (版本號所在的檔案與欄位，可為 `none`)、`setup-command`、`build-command`、`test-command`、`verify-command`
+  - root `AGENTS.md` 的「Toolchain」章節: 需要安裝的工具、不在 `PATH` 上的工具如何找到、已知限制
+  - source 資料夾 `AGENTS.md` 的「Project rules」章節: 新檔案 / 專案如何加入 build、哪些是產生的檔案不可手改、build 輸出位置、命名慣例
+  - `.gitignore` 的 toolchain 相關項目
+- AI 依偵測到的內容與對該 toolchain 的了解提出建議值，由 developer 確認或修正；不確定時直接詢問，不猜指令
+- 指令可以留空 (e.g. 只能在 IDE 內 build 的專案): 該步驟會被略過並回報「未設定」，skill 不會自行編造指令
+- init 不建立專案檔、build 檔或版本檔，這些由 developer 或第一個 request 產生
+
 ## 發佈方式 (Claude Code plugin)
 
 整套 skills 包成一個 Claude Code plugin，本 repo 同時是 plugin 本體與 marketplace:
@@ -61,15 +75,18 @@ ss-workflow/
 - 語言設定 (見「環境設定」)，包含 reqs / docs 使用的語言
 - 主分支名稱: `master` 或 `main`
 - remote 平台: GitHub (`gh`) / GitLab (`glab`) / 無
-- 專案類型 (目前以 Visual Studio 為例)；非 VS 專案時，`tests/`, `samples/` 是否保留
+- 專案類型與 toolchain (見「專案形式」): 主要專案檔、setup / build / test 指令、版本號來源、工具注意事項、專案規則、ignore 項目
+- 資料夾: source 資料夾 (預設 `src/`)、是否保留 `tests/` / `samples/` / `external/`、toolchain 需要的其他頂層資料夾
 - merge 方式 (`merge-method`): 每次詢問 / local merge / 發 merge-request
 - 現有專案: 說明轉換的方法，由 developer 確認或答覆需調整的部分
 
 問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的 `verify-command` (`/ss-workflow-review` 在 build 與測試之後額外執行的驗證 script)，init 不詢問，由 developer 需要時自行填入
 
+轉換既有專案時，是否把程式碼搬進標準結構由 developer 決定；許多 toolchain 依賴檔案位置，這時可以選擇「維持現有結構」，只加入工作流需要的檔案
+
 ### 檔案結構
 
-整理檔案結構如下:
+`reqs/`、`docs/` 與 agent 檔案是工作流必要的部分；程式碼相關的資料夾依初始化問答決定，以下為預設的標準結構:
 
 ```
 repo/
@@ -80,18 +97,17 @@ repo/
 ├─ .gitignore
 ├─ .claude/
 │   └── settings.json        (extraKnownMarketplaces, enabledPlugins)
-├─ Directory.Build.props     (集中管理版本號，src / tests / samples 的專案都會繼承)
-├─ src/ (Source Code 目錄)
+├─ src/ (Source Code 目錄，名稱可在初始化時調整)
 │   ├── CLAUDE.md
 │   ├── AGENTS.md
-│   ├── VisualStudioSolution.sln
+│   ├── <主要專案檔>          (e.g. Visual Studio 的 .sln；依專案形式而定，可能沒有)
 │   ├── project1-folder/
 │   │   ├── README.md
-│   │   └── project1.csproj
+│   │   └── <專案檔與原始碼>
 │   ...
 │   └── projectX-folder/
 │       ├── README.md
-│       └── projectX.csproj
+│       └── <專案檔與原始碼>
 ├─ reqs/ (需求檔)
 │   ├── CLAUDE.md
 │   ├── AGENTS.md
@@ -103,11 +119,11 @@ repo/
 │   ├── <xxxx>-spec.md
 │   ...
 ├─ external/ (放置 submodule)
-├─ tests/ (Test Project 目錄)
+├─ tests/ (自動化測試，可選)
 │   ├── CLAUDE.md
 │   ├── AGENTS.md
 │   └── <test-project>-folder/
-├─ samples/ (Sample/Demo Project 目錄)
+├─ samples/ (Sample/Demo Project 目錄，可選)
 │   ├── CLAUDE.md
 │   ├── AGENTS.md
 │   └── <demo-project>-folder/
@@ -117,19 +133,17 @@ repo/
 
 根目錄 `CLAUDE.md` / `AGENTS.md` 去限制整個 repo 內的工作流運作，並註記每個資料夾內運作的規則 (含 gitflow、commit 規範、`ss-workflow-version`)；在 repo 初始化的時候，會以問答的方式 step-by-step，讓 developer 完成檔案內所需的資訊。若是現有的專案，了解現有專案的架構後，與 developer 問答轉換的方法是否可接受，若需要調整的部分，developer 需要自行答覆
 
-- `bin/` 資料夾也會放在此
-- `.gitignore` 使用 Visual Studio 範本 (`bin/`, `obj/`, `.vs/` ...)，並確認包含根目錄的 `bin/`
-- 版本號集中在 `Directory.Build.props` 管理，release 時只需修改一處
+- build 輸出資料夾 (e.g. `bin/`) 若放在此，要加入 `.gitignore`
+- `.gitignore` 包含 ss-workflow 需要的項目 (`.claude/worktrees/` 等)，以及初始化問答決定的 toolchain 項目；已有 `.gitignore` 時保留並補上缺少的項目
+- 版本號只放在 `version-source` 一處，release 時只需修改一處；toolchain 若強制要有第二個位置，記錄在「Toolchain」章節
 
 #### src
 
-放置專案檔案，目前是以 `Visual Studio` 為例，底下會有自己的 `CLAUDE.md` / `AGENTS.md`
-每個專案都要有描述自己專案的 `README.md`
+放置專案檔案，底下會有自己的 `CLAUDE.md` / `AGENTS.md`
+每個專案 (或模組) 都要有描述自己的 `README.md`
 
-- Solution file (`.sln`) 放在 `src/` 內，與各專案資料夾同一層 (符合 Visual Studio 原本的階層設計)
-  - `tests/` 與 `samples/` 的專案也加入這個 solution，以相對路徑參考 (e.g. `..\tests\MyLib.Tests\MyLib.Tests.csproj`)
-  - build / test 指令: `dotnet build src/<Solution>.sln`、`dotnet test src/<Solution>.sln`
-- `Directory.Build.props` 留在 repo 根目錄，這樣 `src/`、`tests/`、`samples/` 的專案都會繼承同一個版本號
+- 主要專案檔預設放在 source 資料夾內，與各專案資料夾同一層 (e.g. Visual Studio 的 `.sln` 放在 `src/`，符合它原本的階層設計)
+- `AGENTS.md` 分成兩部分: 通用規則 (由工作流維護)，以及「Project rules」(初始化時依專案形式寫入，之後由 developer 維護)
 
 #### reqs
 
@@ -214,7 +228,7 @@ created: 2026-09-07
 #### tests
 
 - 測試 src 的測試專案放置於此
-- 目前是以 Visual Studio 為例，若其他類型的專案不需要用到此資料夾，可刪除 (在初始化問答的時候可提問)
+- 專案沒有可由指令執行的自動化測試時，不需要此資料夾 (在初始化問答的時候提問)
 
 #### samples
 
@@ -254,7 +268,8 @@ created: 2026-09-07
   - `review` / `done`: 實作已完成，這個 worktree 不該存在；確認沒有遺漏後刪除，並提示下一步
 - 實作原則
   - 只在 request 的 worktree 內修改，不改根目錄的檔案、不切換根目錄的 branch
-  - worktree 內只嘗試 `build-command` (編譯)，不跑測試 / script / 執行檔；環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
+  - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
+  - 動手前先讀 root `AGENTS.md` 的「Toolchain」與 source 資料夾的「Project rules」；新檔案要依「Project rules」加入 build
   - 規格不清楚或有誤時停下來問，不自行猜測；規格異動要更新 `## Spec` 並在 `## Notes` 記錄原因
   - 每個 commit 帶 `Refs: REQ-xxxx` 並 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary (改了什麼、worktree 內 build 結果、Verify 要跑什麼、Review 要人工看什麼)
@@ -272,7 +287,7 @@ created: 2026-09-07
 - 流程
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
   2. 根目錄 checkout request branch，並把 develop (hotfix 為 master) 的新 commit merge 進來
-  3. Verify: 依序執行 `build-command`、`test-command`、Workflow settings 的 `verify-command` (選填)、request 內指定的 script；能由這些檢查證明的 acceptance criteria 打勾；結果寫入 `## Notes`
+  3. Verify: 依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果寫入 `## Notes`
   4. Review: 列出需要人工確認的項目，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
   5. 詢問結果
      - Review 通過: 其餘 criteria 打勾、記錄結果、根目錄切回 develop，提示 `/ss-workflow-merge REQ-xxxx` 結案
@@ -345,7 +360,7 @@ created: 2026-09-07
   - 檢查適合的版本號推薦給使用者 (依上一個 tag 與 develop 上的 commit type)，使用者同意後，從 develop 建立 release branch
   - release branch 建立後，檢查是否有未完成需求 (`reqs/` 下非 `done` 的 request)、未完成 worktree；若有未完成，讓 developer 決定是否 release?
     - 若不同意，先處理完需求， developer 要在 release branch 再下一次此 skill
-  - 若同意 release ，則去檢查 `Directory.Build.props` (以及 `src/` `samples/` 內未繼承的專案) 的版本號是否與 release branch 相符
+  - 若同意 release ，則去檢查 `version-source` (以及「Toolchain」章節列出的其他位置、source / samples / tests 內另外設定版本的地方) 的版本號是否與 release branch 相符
     - 若不相符作相對應的修改並 commit
   - 若相符則直接啟用 release merge 規則 (見 `/ss-workflow-merge`)
 - 若在 release branch 上使用此 skill，表示接續先前的 release
@@ -361,7 +376,9 @@ created: 2026-09-07
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及未合併的 hotfix
   - 尚未開始 (`req/` branch 上的 draft、`ready`): 只列出，不阻擋 release
   - developer 的選項: 不含這些直接 release / 先完成 (根目錄切回 develop 處理，完成後回 release branch 再下一次) / 取消 release (刪除 release branch)
-- 版本號檢查範圍: version-source、`src/` `samples/` `tests/` 內另外設定版本的地方 (`<AssemblyVersion>` 等用 `X.Y.Z.0`)、README / docs 內標示目前版本的地方、既有的 `CHANGELOG.md` (沒有則不建立)
+- 版本號檢查範圍: version-source、「Toolchain」章節列出的其他位置、source / samples / tests 內另外設定版本的地方、README / docs 內標示目前版本的地方、既有的 `CHANGELOG.md` (沒有則不建立)
+  - 版本號的寫法依專案形式而定，沿用該欄位原本的格式 (e.g. 只能放四段數字的欄位寫成 `X.Y.Z.0`)
+  - `version-source` 為 `none` 時不改檔案，版本只以 git tag 表示
 - release branch 上只做 release 相關的變更 (版本號、release notes、阻擋 release 的修正)，新功能一律走 request
 
 ## Git commit
