@@ -1,6 +1,7 @@
 # Target layout and templates
 
-All templates are in `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-init/templates/`.
+All templates are in the `templates/` folder of this skill. `SKILL.md` gives its full
+path under "Ground rules".
 
 The workflow needs the files marked **(workflow)**. Everything else follows the
 answers from the questionnaire, because it depends on the project type.

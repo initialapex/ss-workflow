@@ -5,7 +5,8 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 ## 1. Compare versions
 
 - Repo version: the `ss-workflow-version:` value in root `AGENTS.md`.
-- Plugin version: `version` in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`.
+- Plugin version: `version` in the plugin's `.claude-plugin/plugin.json`. `SKILL.md`
+  gives the full path of that file at its top.
 
 | Result | Action |
 |--------|--------|

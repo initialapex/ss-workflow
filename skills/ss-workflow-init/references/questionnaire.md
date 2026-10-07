@@ -98,6 +98,6 @@ confirm or correct it. Do not create files before this confirmation.
 
 | Placeholder | Value |
 |-------------|-------|
-| `{{SS_WORKFLOW_VERSION}}` | `version` from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` |
+| `{{SS_WORKFLOW_VERSION}}` | The plugin version: `version` in the plugin's `.claude-plugin/plugin.json`. `SKILL.md` gives the full path of that file at its top. |
 | `{{INIT_DATE}}` | Today's date, `yyyy-MM-dd` |
 | `{{SUBPROJECT_NAME}}` | Folder name of the project or module, used in `project-README.md` |
