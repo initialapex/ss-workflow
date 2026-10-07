@@ -58,6 +58,10 @@ unchanged in its `## Original` section.
   two sessions cannot claim the same request.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
+- You can change code by hand during a review. `/ss-workflow-review` lists every
+  uncommitted change, new files included, and asks you what each one is: part of the
+  request (committed), a generated file (added to `.gitignore`), or unwanted
+  (discarded). A Verify result only counts when it ran on a clean working tree.
 - A code review is optional. `/ss-workflow-review` offers it after Verify passed, and
   runs Claude Code's `/code-review` on the changes of the request only
   (`origin/develop...<request branch>`). You can also ask for it later in the same

@@ -30,7 +30,53 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
   the review is open.
 - Report results as they are. A failed or skipped check is never recorded as passed.
 - Only the developer decides that the Review passed.
+- What passes must be what is committed. A Verify result counts only when it ran on a
+  working tree without uncommitted changes (see "Uncommitted changes").
+- A commit that records a result stages only the request file (`git add reqs/<file>`).
+  Do not use `git add -A` or `git commit -a` for it.
 - Never force-push, and never rebase a pushed branch.
+
+## Uncommitted changes
+
+During a review, the developer may change code by hand, and the build, the tests, and
+the application may write files. Run `git status --porcelain`, which also lists
+untracked files, at these points:
+
+- when you continue an open review (Step 1)
+- before each run of Verify (Step 4)
+- before the code review (Step 5), because it reads commits only
+- before you act on the outcome (Step 7)
+
+Commit your own pending changes to the request file first, so that the list holds
+other changes only. If the output is then empty, go on. Otherwise:
+
+1. Show the list. Say for each entry what you think it is: a change that you made, a
+   change by the developer, or a generated file.
+2. Every entry needs a decision. Nothing is left undecided, and nothing is committed
+   that the developer has not seen in the list. Ask the developer:
+
+| Decision | Action |
+|----------|--------|
+| It belongs to the request | Commit it (step 3). This includes new files: a source file that is not tracked breaks the build for everyone else. |
+| It is a generated or local file | Add a pattern for it to `.gitignore`, and commit that as `chore: ignore <what>`, with `Refs: REQ-xxxx`. |
+| It is not wanted | Discard it: `git restore <path>` for a tracked file, and delete an untracked one. Do this only after the developer confirms, because it cannot be undone. |
+| Keep it uncommitted for now | The developer is still trying something. This is allowed only while the review stays open (see below). |
+
+3. Commit what belongs to the request as a normal commit: `fix: …` or the type that
+   fits, with `Refs: REQ-xxxx`. If the diff does not tell you what a change by the
+   developer is for, ask. Stage with `git add -A` when no entry is kept uncommitted.
+   Otherwise, stage the paths by name. Push. Add a line to `## Notes` under
+   `### Review (yyyy-MM-dd)`: `Changed by the developer: <commit> <what>`.
+4. If a commit changed the code after the last Verify, run Verify again (Step 4).
+
+While changes are kept uncommitted:
+
+- Verify may run, so that the developer sees the result, but the result does not
+  count. Record it with the line
+  `- Working tree: uncommitted changes in <paths>; this run does not count`.
+- The code review does not cover them. Say so.
+- The outcomes "Review passed" and "Rework needed" are not available. "Still
+  reviewing" is.
 
 ## Step 1: Preconditions and target
 
@@ -45,7 +91,7 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
 | Current branch | Action |
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes to tracked files. If it does, stop and report them. Choose the request (below), then continue with Step 2. |
-| A request or `hotfix/*` branch whose request file says `review` | A review is open here. If `$ARGUMENTS` is empty or names this request, continue it at Step 3. Otherwise, say that the root checkout is busy with this review, and ask whether to pause it first. To pause: commit and push the notes, check that there are no uncommitted changes, and run `git checkout develop`. |
+| A request or `hotfix/*` branch whose request file says `review` | A review is open here. If `$ARGUMENTS` is empty or names this request, check for uncommitted changes (see "Uncommitted changes"), and continue the review at Step 3. Otherwise, say that the root checkout is busy with this review, and ask whether to pause it first. To pause: commit and push the notes, check that there are no uncommitted changes, and run `git checkout develop`. |
 | A request or `hotfix/*` branch whose request file says anything else | The workflow does not define this state. Continue with "Undefined state" below. |
 | Any other branch | The root checkout is busy: a `req/*` branch means a spec discussion, and a `release/*` branch means a release. Say which one, and stop. |
 
@@ -120,7 +166,8 @@ Show the developer a short overview: the request, the change
 
 ## Step 4: Verify
 
-Run these in order, and keep the output of each:
+Check for uncommitted changes first (see "Uncommitted changes"). Then run these in
+order, and keep the output of each:
 
 1. `setup-command`, if the checkout needs preparation after the branch switch
 2. `build-command`
@@ -154,6 +201,7 @@ Record the result in `## Notes`:
 
 ```markdown
 ### Verify (yyyy-MM-dd)
+- Working tree: clean
 - build: passed
 - tests: passed (132 passed, 0 failed)
 - verify script: not configured
@@ -179,23 +227,25 @@ or the Review, and it ticks no acceptance criteria.
 2. If the developer skips it, add `### Code review (yyyy-MM-dd)` with `- Skipped` to
    `## Notes`. It is committed with the next commit of the request file. Continue with
    Step 6.
-3. The scope is `<base>...<branch>`: three dots, so that only the changes of this
+3. Check for uncommitted changes (see "Uncommitted changes"). The code review reads
+   commits only, so a change that is not committed is not reviewed.
+4. The scope is `<base>...<branch>`: three dots, so that only the changes of this
    request are read, and not what `develop` gained in the meantime. `<base>` is the
    ref that Step 2 merged from: `origin/develop` with a remote, `develop` without one,
    and the main branch in the same way for a hotfix. Do not run the code review
    without a scope. Its default scope is the commits that are not pushed yet, and in
    this workflow every commit is pushed.
-4. Invoke the `code-review` skill with that scope as its argument, for example
+5. Invoke the `code-review` skill with that scope as its argument, for example
    `origin/develop...feat/REQ-0012-gui-button`. Do not pass `--fix` or `--comment`:
    fixes are made by the rules below. The code review may run in the background. Wait
    for its findings before you go on.
-5. If you cannot invoke it, do not read the diff yourself and call that a code review.
+6. If you cannot invoke it, do not read the diff yourself and call that a code review.
    Say that it is not available, show the command that the developer can type
    (`/code-review <base>...<branch>`), and record `- Not available` as in step 2.
-6. Never start the cloud review (`ultra`) yourself. If the developer wants it, show
+7. Never start the cloud review (`ultra`) yourself. If the developer wants it, show
    the command for them to type: `/code-review ultra develop`, or with the main branch
    for a hotfix. Its findings are handled like the others.
-7. Show the findings to the developer. Check each one against the code before you act
+8. Show the findings to the developer. Check each one against the code before you act
    on it:
 
 | Kind of finding | Action |
@@ -205,7 +255,7 @@ or the Review, and it ticks no acceptance criteria.
 | A problem in code that this request did not change | Leave the code alone. Record it as a follow-up, and suggest `/ss-workflow-new-req` for it. |
 | Not a problem, or you are not sure | Say why, and let the developer decide. Do not drop a finding silently. |
 
-8. Record the result in `## Notes`:
+9. Record the result in `## Notes`:
 
    ```markdown
    ### Code review (yyyy-MM-dd)
@@ -218,8 +268,8 @@ or the Review, and it ticks no acceptance criteria.
 
    Commit and push: `docs(reqs): record code review result of REQ-0012`, with
    `Refs: REQ-0012`.
-9. If a fix changed the code, run Verify again (Step 4). Run the code review again
-   only if the developer asks.
+10. If a fix changed the code, run Verify again (Step 4). Run the code review again
+    only if the developer asks.
 
 ## Step 6: Review
 
@@ -240,19 +290,19 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | Tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and the branch has no commit after it that changes files outside `reqs/`. If it does not count, run Verify again (Step 4) before you record anything. Then tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the request branch, with normal commits, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-check-req REQ-0012` continues the implementation in a worktree. |
-| Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Say that the root checkout stays busy until the review is continued with `/ss-workflow-review`, or paused by switching back to `develop`. |
+| Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow-review`, or paused by switching back to `develop`. |
 | Drop the request | Point to `/ss-workflow-merge`, which closes a request without merging it. |
 
 If the findings change the spec, update `## Spec` together with the developer, and say
 so in the commit body.
 
-Before you switch the root checkout back to `develop`, check that
-`git status --porcelain` shows no changes to tracked files. If Verify or the
-application left changes in tracked files (generated files, snapshots, settings), show
-them and ask whether to commit or to discard them.
+Before you act on "Review passed" or "Rework needed", check for uncommitted changes
+(see "Uncommitted changes"). Both switch the root checkout back to `develop`, and
+`git status --porcelain` must be empty before that, untracked files included. After
+"Rework needed", a change that is not committed would not reach the worktree.
 
 ## Step 8: Report
 

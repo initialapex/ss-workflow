@@ -315,7 +315,13 @@ created: 2026-09-07
 - 原則
   - 失敗或跳過的檢查不會記成通過；Review 是否通過只由 developer 決定
   - Verify 失敗時區分小問題 (當場修)、大問題 (退回) 與環境問題 (如實回報)；無法判斷時詢問 developer
-  - 切回 develop 前，若 Verify 或執行程式改動了被追蹤的檔案，先讓 developer 決定 commit 或捨棄
+  - 未 commit 的變更 (developer 手動修改、build / 測試 / 程式產生的檔案): 通過的內容必須等於 commit 的內容
+    - 檢查時機 (`git status --porcelain`，含 untracked 檔案): 接續 review 時、每次 Verify 前、code review 前、處理結果前
+    - 清單上每一項都要由 developer 決定，不留未決定的，也不 commit developer 沒看過的: 屬於 request (commit 成 `fix:` 等一般 commit，含新增的檔案，並在 `## Notes` 記「Changed by the developer」)、產生的或本機檔案 (加入 `.gitignore`，另一個 `chore:` commit)、不要的 (developer 確認後捨棄)、先留著繼續試
+    - 沒有「先留著」的項目時用 `git add -A`，否則依路徑 stage；記錄結果的 commit 只 stage request 檔
+    - 先留著的期間: Verify 可以跑但不算數 (記錄註明含未 commit 的修改)、code review 不涵蓋、不能選「Review 通過」或「需要大改」
+    - Verify 只有在乾淨的工作目錄上跑才算數；最後一次 Verify 之後有改到 `reqs/` 以外檔案的 commit 時，要重跑 Verify 才能記 Review 通過
+    - 切回 develop 前 `git status --porcelain` 必須是空的 (含 untracked)
 
 ## skill: `/ss-workflow-merge`
 
