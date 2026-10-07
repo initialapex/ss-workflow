@@ -57,6 +57,7 @@ later through requests.
 |----------|---------|-------------|
 | Remote platform | Detected from `git remote -v`; otherwise "None for now" | `{{REMOTE_PLATFORM}}` (`github` / `gitlab` / `none`) |
 | Remote URL (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
+| How to merge finished branches (only when there is a remote platform) | "Ask every time" | `{{MERGE_METHOD}}` (`ask` / `local` / `remote`); `local` when there is no remote platform |
 | Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, if the developer can give the marketplace source (`owner/repo` or a git URL) | `{{MARKETPLACE_SOURCE}}`; empty means skip Step 8 |
 
 For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and `none` otherwise.

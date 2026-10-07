@@ -157,7 +157,7 @@ created: 2026-09-07
 | `ready`       | developer 確認規格，等待認領       | develop，`/ss-workflow-new-req` (commit)    |
 | `in-progress` | 已認領，在 worktree 實作中         | develop，`/ss-workflow-check-req` (commit + push) |
 | `review`      | 實作完成，等待 developer review    | request branch (worktree)                   |
-| `done`        | 已 merge 回 develop                | `/ss-workflow-merge`，移到 `reqs/done/`     |
+| `done`        | 已關閉，檔案在 `reqs/done/`        | request branch 的最後一個 commit (merge 前)，`/ss-workflow-merge` |
 
 - 認領 (lock):
   - 在 develop 上將 status 改為 `in-progress` 並寫入 `branch`，commit 後 push
@@ -232,18 +232,33 @@ created: 2026-09-07
 若發現有 remote 端: e.g. github, gitlab，讓使用者選擇是否要發 merge-request 到 remote，由 remote 端 merge；對應到此，在 merge 之前都要先去 fetch remote，並用 `gh pr view` / `glab mr view` 檢查，因為有可能是已經發過 merge-request，也合併完了
 合併完成後，刪除 local / remote branch 與 worktree
 
+- 共通規則
+  - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
+  - 一律 `--no-ff`，不 squash、不 rebase 已 push 的 branch、不 force-push
+  - merge commit message: `Merge <source> into <target>` (不套用 `<type>(<scope>)` 格式)，body 帶 request title 與 `Refs: REQ-xxxx`
+  - merge 到 develop / master 的動作都在主 checkout 執行，主 checkout 有未 commit 的變更時停止
+  - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
+  - 選擇發 merge-request 時，skill 發完就停止；remote 合併後 developer 再下一次 `/ss-workflow-merge` 收尾 (刪除 worktree / branch)
+  - 放棄 request: 在 develop 上將 request 標為 `done` 並註明原因，branch 有未合併的 commit，需另外確認才刪除
+
 - request
   - 所有 reqs 都在 develop 開分支出去，完成後 merge 回 develop
   - request branch(worktree)種類可能會有: feat, fix, docs ... 等類型
   - branch(worktree) name 範例: `feat/REQ-0012-gui-button`
   - request 實作都開在 worktree 實作
-  - merge 後將 request status 改為 `done`，並 `git mv` 到 `reqs/done/`
+  - 只 merge 有效狀態為 `review` 的 request
+  - merge 前先把 develop 的新 commit merge 進 request branch，在 branch 上解衝突並重新 build + test
+  - 關閉 request (status 改為 `done`、`git mv` 到 `reqs/done/`) 是 request branch 上的最後一個 commit，隨著 merge 一起進 develop
+    - 發 merge-request 的情況下，branch 上為 `done` 但尚未合併 = 「merge pending」；remote review 要求修改時，在 worktree 下 `/ss-workflow-check-req` 重新開啟
 
 - release
   - 會從 develop 開分支出去，完成後 merge 回 master 與 develop
   - branch name 範例: release/v1.0.0-beta1
   - 不開 worktree
   - 合併回 master 後，依照 branch name 建立 tag: e.g. v1.0.0-beta1
+  - merge 前檢查: version-source 的版本與 branch 相符、tag 尚未存在、build + test 通過
+  - push master 與 tag 等於對外釋出，push 前再確認一次，並用 `git push --atomic` 一次推送 master / develop / tag
+  - 完成後可選擇是否在平台上建立 release (`gh release create` / `glab release create`)
   - release 流程使用 `/ss-workflow-release`
 
 - hotfix
@@ -251,10 +266,13 @@ created: 2026-09-07
   - branch name 範例: hotfix/v1.0.1
   - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow-check-req` 認領)
   - 合併回 master 後，依照 branch name 建立 tag: e.g. v1.0.1
+  - merge 回 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
+  - 若有進行中的 release branch，詢問是否也 merge 進去
+  - request 檔在 develop 上關閉 (hotfix branch 上沒有 request 檔)
 
 - master (持續存在)
   - 主要是在有新版要釋出時，才會有新的 commit
-  - 例外: v1.0.0 釋出之前為快速疊代期，允許 develop 直接 merge 到 master，並建立 `v0.x.y` tag
+  - 例外: v1.0.0 釋出之前為快速疊代期，允許 develop 直接 merge 到 master，並建立 `v0.x.y` tag (由 `/ss-workflow-merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
 
 - develop (持續存在)
   - 主要是開發 branch，所有變動大部分都會在這邊

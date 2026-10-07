@@ -65,7 +65,7 @@ The frontmatter is the only source of truth for a request's state.
 | `ready` | The developer approved the spec; waiting to be claimed | `develop` (commit) | `/ss-workflow-new-req` |
 | `in-progress` | Claimed; being implemented in a worktree | `develop` (commit + push) | `/ss-workflow-check-req` |
 | `review` | Implementation finished; waiting for developer review | Request branch | `/ss-workflow-check-req` |
-| `done` | Merged into `develop`; the file is in `reqs/done/` | `develop` | `/ss-workflow-merge` |
+| `done` | Closed; the file is in `reqs/done/` | Request branch, as its last commit right before the merge | `/ss-workflow-merge` |
 
 Rules:
 
@@ -81,6 +81,8 @@ Rules:
 - While a request is being worked on, its branch holds the newer copy of the request
   file. `develop` keeps showing `in-progress` until the merge; the status on the
   request branch (`in-progress` or `review`) is the effective one.
+- A request that is `done` on its branch while the branch is not merged yet is
+  waiting for its merge request on the remote ("merge pending").
 - `type: hotfix` requests branch from the main branch instead of `develop`. See the
   root `AGENTS.md` section "Branching model". The request file is not on the hotfix
   branch, so every status change of a hotfix request is committed on `develop`.

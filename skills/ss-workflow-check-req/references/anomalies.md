@@ -22,6 +22,7 @@ says "effective".
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
 | The branch is already merged into `develop`, but the request is not `done` or not in `reqs/done/` | It was merged by hand or on the remote | Point to `/ss-workflow-merge`. It detects the finished merge and closes the request (status, `git mv`, and cleanup). |
+| Effective status `done` on the request branch, and the branch is not merged | Not an anomaly: the merge is pending on the remote | Show it as "merge pending" with the merge request URL. No repair. |
 | `status: done`, but the file is still in `reqs/` | The close step was interrupted | Run `git mv` to move the file to `reqs/done/`. Commit `chore(reqs): archive REQ-xxxx`. |
 | A file in `reqs/done/` with a status other than `done` | The file was moved by hand | Ask which one is right, the location or the status. Then fix the other one. |
 | Effective status `review`, with commits after the review commit | Work continued without reopening the request | Report it. Ask whether the request is still in review or was reopened. |

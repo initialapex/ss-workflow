@@ -59,6 +59,8 @@ Supporting files:
    holds the newer copy of the file, so read it from there:
    `git show <branch>:reqs/<file>`, or from `origin/<branch>` when there is no local
    branch. `hotfix` requests are the exception: their status only lives on `develop`.
+   A request that is `done` on its branch while the branch is not merged is shown as
+   "merge pending".
 4. For each request with a `branch`, also collect:
    - whether the local branch exists and whether the remote branch exists
    - the worktree path, from `git worktree list`
@@ -155,7 +157,8 @@ From here on, every file path and every command belongs to the worktree. Continu
 |--------|--------|
 | `in-progress` | Resume. Find where the work stopped (`git status`, `git log develop..HEAD --oneline`, the unchecked acceptance criteria, and `## Notes`). Summarize it for the developer. Continue with [references/implement.md](references/implement.md) from its Step 2. |
 | `review` | Show the review summary from `## Notes` and the commits since `develop`. Then ask the question below. |
-| `done`, or the branch is already merged into `develop` | Say that the request is finished and that this worktree is stale. `/ss-workflow-merge` or `/ss-workflow-init` (health check) cleans it up. |
+| `done`, and the branch is not merged into `develop` | `/ss-workflow-merge` closed the request on this branch, and the merge is pending, usually as an open merge request on the remote. Show its state (`gh pr view` / `glab mr view`). Ask whether the developer is still waiting, or whether the remote review asked for changes. For changes: move the file back with `git mv reqs/done/<file> reqs/<file>`, set `status: in-progress`, add the feedback to `## Notes`, commit `chore(reqs): reopen REQ-0012 after review`, push, and continue with [references/implement.md](references/implement.md) from its Step 2. |
+| The branch is already merged into `develop` | Say that the request is finished and that this worktree is stale. `/ss-workflow-merge` cleans it up. |
 | `draft` / `ready` on a branch | This is an anomaly. See [references/anomalies.md](references/anomalies.md). |
 
 Question for a request in `review` (AskUserQuestion):

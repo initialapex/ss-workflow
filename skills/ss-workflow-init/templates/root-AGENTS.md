@@ -20,6 +20,7 @@ project-kind: {{PROJECT_KIND}}
 main-branch: {{MAIN_BRANCH}}
 remote-platform: {{REMOTE_PLATFORM}}
 remote-cli: {{REMOTE_CLI}}
+merge-method: {{MERGE_METHOD}}
 version-source: {{VERSION_SOURCE}}
 build-command: {{BUILD_COMMAND}}
 test-command: {{TEST_COMMAND}}
@@ -73,6 +74,8 @@ The repository follows gitflow. `main-branch` and `develop` are long-lived.
 - Never force-push `main-branch` or `develop`. Never rewrite published history.
 - Before any merge, run `git fetch`. If a remote exists, check whether the merge
   request was already merged there (`remote-cli`: `gh pr view` / `glab mr view`).
+- `merge-method` decides how branches are merged: `local` (merge locally, then push),
+  `remote` (open a merge request on the remote), or `ask` (ask every time).
 - Use `/ss-workflow-merge` to merge and `/ss-workflow-release` to release; do not merge
   long-lived branches by hand.
 <!-- /ss-workflow:managed -->
@@ -102,6 +105,9 @@ Commit messages are always in English.
 
 Commit often while you implement. Each commit is one reason for change, not a
 bundle of unrelated files. On request branches, push after every commit.
+
+Merge commits are the exception to the header format. They are always created with
+`--no-ff` and use the subject `Merge <source branch> into <target branch>`.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=versioning -->
