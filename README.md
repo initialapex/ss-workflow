@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-blue">
+  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -33,7 +33,7 @@ and skills merge and release it by the same rules every time.
 - It works locally, or with merge requests on GitHub or GitLab.
 
 > [!WARNING]
-> **Status: 0.3.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.4.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
