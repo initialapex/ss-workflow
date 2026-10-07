@@ -286,6 +286,21 @@ created: 2026-09-07
   - 若同意 release ，則去檢查 `Directory.Build.props` (以及 `src/` `samples/` 內未繼承的專案) 的版本號是否與 release branch 相符
     - 若不相符作相對應的修改並 commit
   - 若相符則直接啟用 release merge 規則 (見 `/ss-workflow-merge`)
+- 若在 release branch 上使用此 skill，表示接續先前的 release
+  - develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否納入這次 release
+- 一次只進行一個 release；已有 release branch 時不再建立新的
+- 版本號推薦規則
+  - 尚無 tag (第一次 release): 使用 version-source 目前的版本
+  - 1.0.0 以上: breaking → MAJOR、`feat` → MINOR、其他 → PATCH
+  - 1.0.0 以下: breaking 與 `feat` → MINOR、其他 → PATCH；升到 1.0.0 由 developer 決定，不主動推薦
+  - 上一個 tag 是 prerelease (e.g. `1.0.0-beta1`): 候選為 `beta2` / `rc1` / 正式版
+  - 可直接帶版本號 `/ss-workflow-release 1.0.0-beta1` 跳過推薦
+- 未完成工作的判定
+  - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及未合併的 hotfix
+  - 尚未開始 (`draft` / `ready`): 只列出，不阻擋 release
+  - developer 的選項: 不含這些直接 release / 先完成 (主 checkout 切回 develop 處理，完成後回 release branch 再下一次) / 取消 release (刪除 release branch)
+- 版本號檢查範圍: version-source、`src/` `samples/` `tests/` 內另外設定版本的地方 (`<AssemblyVersion>` 等用 `X.Y.Z.0`)、README / docs 內標示目前版本的地方、既有的 `CHANGELOG.md` (沒有則不建立)
+- release branch 上只做 release 相關的變更 (版本號、release notes、阻擋 release 的修正)，新功能一律走 request
 
 ## Git commit
 
