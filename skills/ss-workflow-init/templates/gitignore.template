@@ -1,0 +1,17 @@
+# --- ss-workflow (required; keep this block) ---
+# Request worktrees created by /ss-workflow-check-req
+.claude/worktrees/
+# Personal Claude Code settings
+.claude/settings.local.json
+CLAUDE.local.md
+# --- end ss-workflow ---
+
+# --- Project toolchain ---
+{{IGNORE_PATTERNS}}
+
+# --- OS and editors ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp

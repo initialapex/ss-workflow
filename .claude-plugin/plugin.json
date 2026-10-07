@@ -1,0 +1,11 @@
+{
+  "name": "ss-workflow",
+  "displayName": "SS Workflow",
+  "version": "0.3.0",
+  "description": "Request-driven gitflow workflow skills: project init, new/check request, review, merge, and release",
+  "author": {
+    "name": "Scott Chang"
+  },
+  "license": "MIT",
+  "keywords": ["workflow", "gitflow", "requests", "worktree", "review"]
+}

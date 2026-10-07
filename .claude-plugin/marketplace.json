@@ -1,0 +1,14 @@
+{
+  "name": "ss-workflow",
+  "description": "Marketplace for the ss-workflow plugin",
+  "owner": {
+    "name": "Scott Chang"
+  },
+  "plugins": [
+    {
+      "name": "ss-workflow",
+      "source": "./",
+      "description": "Request-driven gitflow workflow skills: project init, new/check request, review, merge, and release"
+    }
+  ]
+}
