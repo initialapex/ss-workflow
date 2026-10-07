@@ -1,10 +1,10 @@
 ---
-name: ss-workflow-review
+name: review
 description: Verify and review an implemented request of an ss-workflow repository in the root checkout. Checks out the request branch, runs the build, the tests and the verification scripts (Verify), offers a code review of the request's changes, then guides the developer through the manual check (Review), applies small fixes, or sends the request back for rework. Use when the developer wants to start, continue, or finish the review of a request that is waiting in the review status.
 argument-hint: "[REQ-id]"
 ---
 
-# ss-workflow-review
+# review
 
 Verify and review one request in the root checkout, on its request branch.
 
@@ -13,7 +13,7 @@ Verify and review one request in the root checkout, on its request branch.
   the request's changes for bugs.
 - **Review**: the developer checks the result by hand, and you guide them.
 
-The request is closed later, when the developer runs `/ss-workflow-merge`. This skill
+The request is closed later, when the developer runs `/ss-workflow:merge`. This skill
 never merges. In one case it hands over to that skill: when the developer chooses to
 merge from an undefined state (Step 1).
 
@@ -81,7 +81,7 @@ While changes are kept uncommitted:
 ## Step 1: Preconditions and target
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and point to
-   `/ss-workflow-init`.
+   `/ss-workflow:init`.
 2. If this is a linked worktree (`git rev-parse --git-dir` and `--git-common-dir`
    give different paths), stop. Explain that Verify and Review run in the root
    checkout.
@@ -116,18 +116,18 @@ hand.
 | Option | Action |
 |--------|--------|
 | Restart the review | Make the request `review` again on this branch. If its file is in `reqs/done/`, move it back (`git mv reqs/done/<file> reqs/<file>`). Set `status: review`, and add a dated line to `## Notes` that says the review was restarted, and from which status. Commit `chore(reqs): restart review of REQ-0012`, and push. Continue with Step 2. Verify and Review then run from the start: earlier results in `## Notes` do not count. |
-| Merge into `develop` (for a hotfix: into the main branch and `develop`) | If the status is not `done`, set `status: review`, and add a dated line to `## Notes` that says the developer chose to merge from the status it had, without restarting the review. Commit `chore(reqs): mark REQ-0012 for review`, and push. Leave the root checkout on this branch, and hand over to the merge: invoke the `ss-workflow-merge` skill for this branch. If you cannot invoke it, read `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-merge/SKILL.md` and the guide for the branch kind, and follow them. That skill still says so when no Verify result or no passed Review is recorded, and asks before it merges. |
+| Merge into `develop` (for a hotfix: into the main branch and `develop`) | If the status is not `done`, set `status: review`, and add a dated line to `## Notes` that says the developer chose to merge from the status it had, without restarting the review. Commit `chore(reqs): mark REQ-0012 for review`, and push. Leave the root checkout on this branch, and hand over to the merge: invoke the `ss-workflow:merge` skill for this branch. If you cannot invoke it, read `${CLAUDE_PLUGIN_ROOT}/skills/merge/SKILL.md` and the guide for the branch kind, and follow them. That skill still says so when no Verify result or no passed Review is recorded, and asks before it merges. |
 
 If the developer chooses neither, change nothing and stop. Say that the root checkout
 stays on this branch, and that `git checkout develop` frees it. For an `in-progress`
-request, also say that `/ss-workflow-check-req REQ-0012` offers to free it and to
+request, also say that `/ss-workflow:check-req REQ-0012` offers to free it and to
 continue the implementation in a worktree.
 
 Choosing the request, on `develop`:
 
 - `$ARGUMENTS` names a request: use it, if its effective status is `review`. If it is
   `in-progress`, the implementation is not finished: point to
-  `/ss-workflow-check-req`. If it is `ready` or a draft, say so.
+  `/ss-workflow:check-req`. If it is `ready` or a draft, say so.
 - Otherwise, list the requests with the effective status `review`. A request has it
   when its request branch (a branch whose name contains `REQ-<id>-`, or the `hotfix/*`
   branch that carries its file) holds a request file with `status: review`. Show each
@@ -252,7 +252,7 @@ or the Review, and it ticks no acceptance criteria.
 |-----------------|--------|
 | A real problem with a small, localized fix | Fix it here, on the request branch. Commit it as a normal commit (`fix: …`, with `Refs: REQ-xxxx`) and push. |
 | A real problem that needs a large change or a spec decision | Do not fix it here. Propose to send the request back (Step 7, "Rework needed"). |
-| A problem in code that this request did not change | Leave the code alone. Record it as a follow-up, and suggest `/ss-workflow-new-req` for it. |
+| A problem in code that this request did not change | Leave the code alone. Record it as a follow-up, and suggest `/ss-workflow:new-req` for it. |
 | Not a problem, or you are not sure | Say why, and let the developer decide. Do not drop a finding silently. |
 
 9. Record the result in `## Notes`:
@@ -290,11 +290,11 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and the branch has no commit after it that changes files outside `reqs/`. If it does not count, run Verify again (Step 4) before you record anything. Then tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and the branch has no commit after it that changes files outside `reqs/`. If it does not count, run Verify again (Step 4) before you record anything. Then tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the request branch, with normal commits, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
-| Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-check-req REQ-0012` continues the implementation in a worktree. |
-| Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow-review`, or paused by switching back to `develop`. |
-| Drop the request | Point to `/ss-workflow-merge`, which closes a request without merging it. |
+| Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
+| Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |
+| Drop the request | Point to `/ss-workflow:merge`, which closes a request without merging it. |
 
 If the findings change the spec, update `## Spec` together with the developer, and say
 so in the commit body.
@@ -313,6 +313,6 @@ Tell the developer, in `discussion-language`:
   or not available
 - The Review outcome, and the fixes made during the review
 - The status of the request, and which branch the root checkout is on
-- The next step: `/ss-workflow-merge REQ-0012` after a passed review,
-  `/ss-workflow-check-req REQ-0012` after "Rework needed", or `/ss-workflow-review`
+- The next step: `/ss-workflow:merge REQ-0012` after a passed review,
+  `/ss-workflow:check-req REQ-0012` after "Rework needed", or `/ss-workflow:review`
   to continue

@@ -1,11 +1,11 @@
 ---
-name: ss-workflow-init
+name: init
 description: Initialize the current directory as an ss-workflow repository (gitflow branches, reqs/ request tracking, AGENTS.md/CLAUDE.md, README, folder layout), convert an existing project to that layout, or upgrade a repo initialized by an older ss-workflow version. Use only when the developer explicitly asks to initialize, convert, or upgrade the workflow.
 argument-hint: "[--upgrade]"
 disable-model-invocation: true
 ---
 
-# ss-workflow-init
+# init
 
 Turn the current working directory into an ss-workflow repository. Work step by step,
 ask the developer before every change that is hard to undo, and never lose existing
@@ -35,7 +35,7 @@ Supporting files (read them when the step that needs them comes up):
 - Commit messages are English and follow the convention in
   `templates/root-AGENTS.md` (section "Commit convention"). Make several small commits,
   not one large commit.
-- Templates live in `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-init/templates/`. Read each
+- Templates live in `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/`. Read each
   template, replace every `{{PLACEHOLDER}}`, and write the result. Before writing a
   file, check that no `{{` remains in it.
 - Keep the `<!-- ss-workflow:managed ... -->` / `<!-- /ss-workflow:managed -->` markers
@@ -171,7 +171,7 @@ developer can run them, and do not handwrite the JSON.
 - If a remote exists, ask whether to push `{{MAIN_BRANCH}}` and `develop`
   (`git push -u origin <branch>`).
 - If no remote exists, mention that the workflow works locally, and that claiming
-  requests (`/ss-workflow-check-req`) is safer with a remote.
+  requests (`/ss-workflow:check-req`) is safer with a remote.
 
 ## Step 10: Report
 
@@ -182,5 +182,5 @@ Summarize in the discussion language:
 - What the developer still needs to fill in, such as the spec in
   `docs/{{PROJECT_SLUG}}-spec.md` and the README description
 - The optional `verify-command` setting in root `AGENTS.md`, for a verification script
-  that `/ss-workflow-review` runs after the build and the tests
-- Next step: `/ss-workflow-new-req` to create the first request
+  that `/ss-workflow:review` runs after the build and the tests
+- Next step: `/ss-workflow:new-req` to create the first request

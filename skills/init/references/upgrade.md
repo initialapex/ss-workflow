@@ -64,7 +64,7 @@ Report and offer to fix:
 - `req/*` branches whose request is already on `develop`.
 
 For the state of the individual requests and their branches, point to the overview of
-`/ss-workflow-check-req`.
+`/ss-workflow:check-req`.
 
 Do not fix anything without the developer's approval. Each fix is its own commit, and
 changes to request files on `develop` go through a `req/` branch.

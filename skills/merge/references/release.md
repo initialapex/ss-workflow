@@ -4,7 +4,7 @@ A `release/v<version>` branch merges into the main branch and into `develop`, an
 merge commit on the main branch gets the tag `v<version>`. Release branches have no
 worktree: all of this runs in the root checkout.
 
-`/ss-workflow-release` prepares the branch (the version number, the open-request
+`/ss-workflow:release` prepares the branch (the version number, the open-request
 check). This guide only merges it.
 
 ## Prepare (both methods)
@@ -13,7 +13,7 @@ check). This guide only merges it.
    The version is the tag name without the `v`.
 2. The root checkout is on the release branch, and `git status --porcelain` is empty.
 3. `version-source` contains exactly this version. If it does not, stop and point to
-   `/ss-workflow-release`. Skip this step if `version-source` is `none`.
+   `/ss-workflow:release`. Skip this step if `version-source` is `none`.
 4. The tag does not exist yet: check `git tag -l <tag>`, and with a remote
    `git ls-remote --tags origin <tag>`. If it exists, stop and report it.
 5. Run `build-command` and `test-command`, plus `verify-command` if it is set. They
@@ -66,7 +66,7 @@ check). This guide only merges it.
 2. Create the merge request from `release/<tag>` into the main branch, with the title
    `Release <tag>` and a body that lists the requests closed since the last tag.
 3. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
-   Stop here. The developer runs `/ss-workflow-merge` again after it is merged.
+   Stop here. The developer runs `/ss-workflow:merge` again after it is merged.
 4. When it is merged on the remote:
    - `git checkout <main branch>`, then `git pull --ff-only`.
    - Tag the merge commit on the main branch and push the tag:
@@ -100,7 +100,7 @@ when `version-source` is `none`.
 1. The root checkout is on `develop`, is clean, and the build and the tests pass.
 2. Ask whether to tag this state. The tag is `v` plus the version in `version-source`.
    If that tag already exists, the version must be raised first: point to
-   `/ss-workflow-release`. When `version-source` is `none`, ask the developer for the
+   `/ss-workflow:release`. When `version-source` is `none`, ask the developer for the
    tag.
 3. Merge and return:
 

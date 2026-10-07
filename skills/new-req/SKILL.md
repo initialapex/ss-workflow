@@ -1,10 +1,10 @@
 ---
-name: ss-workflow-new-req
+name: new-req
 description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens a req/ branch in the root checkout, writes the request file, discusses its spec with the developer, and merges it into develop as ready once the developer approves. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
 argument-hint: "[requirement.md | REQ-id | short description]"
 ---
 
-# ss-workflow-new-req
+# new-req
 
 Discuss one request on its own `req/REQ-<id>-<slug>` branch in the root checkout. When
 the developer approves the spec, merge the branch into `develop`, where the request
@@ -32,7 +32,7 @@ Input: `$ARGUMENTS`
 ## Step 1: Preconditions
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and tell the developer to
-   run `/ss-workflow-init` first.
+   run `/ss-workflow:init` first.
 2. If this is a linked worktree (`git rev-parse --git-dir` and `--git-common-dir`
    give different paths), stop. Explain that spec discussions run in the root
    checkout.
@@ -202,7 +202,7 @@ and ask with AskUserQuestion:
 | Option | Action |
 |--------|--------|
 | Approve (Recommended) | Continue with Step 8. |
-| Keep as draft | Commit and push what is there. Switch the root checkout back to `develop`. The `req/` branch stays, and the developer continues later with `/ss-workflow-new-req REQ-0012`. Then go to Step 9. |
+| Keep as draft | Commit and push what is there. Switch the root checkout back to `develop`. The `req/` branch stays, and the developer continues later with `/ss-workflow:new-req REQ-0012`. Then go to Step 9. |
 | Keep discussing | Go back to Step 6. |
 | Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` with a remote), and go to Step 9. Nothing reaches `develop`. |
 
@@ -247,5 +247,5 @@ Tell the developer, in `discussion-language`:
 - Where it is: on `develop` (`ready`), on its `req/` branch (draft), in an open merge
   request, or discarded
 - That the root checkout is back on `develop`
-- The next step for a `ready` request: any session can run `/ss-workflow-check-req`
+- The next step for a `ready` request: any session can run `/ss-workflow:check-req`
   to claim it and implement it in a worktree

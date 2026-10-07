@@ -40,7 +40,7 @@ The workflow itself does not depend on the project type. The settings from
 | `setup-command` | What a fresh checkout or worktree needs before it can build | Nothing is needed |
 | `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
 | `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
-| `verify-command` | An extra verification script that `/ss-workflow-review` runs after the build and the tests | No extra script |
+| `verify-command` | An extra verification script that `/ss-workflow:review` runs after the build and the tests | No extra script |
 
 ## Toolchain
 
@@ -57,15 +57,15 @@ The workflow itself does not depend on the project type. The settings from
 - Request files (`reqs/`) use `reqs-language`; developer docs (`docs/`) use `docs-language`.
 - All work starts from a request in `reqs/`. Do not implement features or fixes that
   have no request. If the developer asks for something directly, offer to create a
-  request first with `/ss-workflow-new-req`.
+  request first with `/ss-workflow:new-req`.
 - Where each kind of work happens:
 
   | Work | Where | Skill |
   |------|-------|-------|
-  | Spec discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow-new-req` |
-  | Implementation | A worktree, on the request branch | `/ss-workflow-check-req` |
-  | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch | `/ss-workflow-review` |
-  | Merge and release | Root checkout | `/ss-workflow-merge`, `/ss-workflow-release` |
+  | Spec discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
+  | Implementation | A worktree, on the request branch | `/ss-workflow:check-req` |
+  | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch | `/ss-workflow:review` |
+  | Merge and release | Root checkout | `/ss-workflow:merge`, `/ss-workflow:release` |
 
 - The root checkout is the repository's primary working tree. Its home branch is
   `develop`. A skill that switches it to another branch first checks that it is on
@@ -122,7 +122,7 @@ The repository follows gitflow. `main-branch` and `develop` are long-lived.
   request was already merged there (`remote-cli`: `gh pr view` / `glab mr view`).
 - `merge-method` decides how branches are merged: `local` (merge locally, then push),
   `remote` (open a merge request on the remote), or `ask` (ask every time).
-- Use `/ss-workflow-merge` to merge and `/ss-workflow-release` to release; do not merge
+- Use `/ss-workflow:merge` to merge and `/ss-workflow:release` to release; do not merge
   long-lived branches by hand.
 <!-- /ss-workflow:managed -->
 
@@ -170,7 +170,7 @@ Merge commits are the exception to the header format. They are always created wi
   anywhere else. If the toolchain forces a second place to carry it, list that place
   in the "Toolchain" section, so that a release updates it too.
 - If `version-source` is `none`, the version only exists as the git tag.
-- Only `/ss-workflow-release` and hotfix branches change the version.
+- Only `/ss-workflow:release` and hotfix branches change the version.
 <!-- /ss-workflow:managed -->
 
 ## Project notes

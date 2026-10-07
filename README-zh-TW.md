@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-blue">
+  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -25,7 +25,7 @@
 - 可以只在 local 使用，也可以搭配 GitHub 或 GitLab 的 merge request。
 
 > [!WARNING]
-> **狀態：0.3.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.4.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -66,34 +66,34 @@
 把 `<owner>/ss-workflow` 換成 GitHub repo；其他平台請用完整的 git URL。
 
 > [!TIP]
-> 想讓專案的所有成員都取得這個 plugin，可以讓 `/ss-workflow-init` 把 marketplace 註冊到專案的 `.claude/settings.json`。
+> 想讓專案的所有成員都取得這個 plugin，可以讓 `/ss-workflow:init` 把 marketplace 註冊到專案的 `.claude/settings.json`。
 
 ### 快速開始
 
 ```text
-/ss-workflow-init                      設定 repo（回答問題）
-/ss-workflow-new-req 加入深色主題      建立 request 並確認規格
-/ss-workflow-check-req                 認領並在 worktree 實作
-/ss-workflow-review                    在根目錄驗證和 review
-/ss-workflow-merge                     驗收：關閉 request 並 merge 進 develop
-/ss-workflow-release                   釋出新版本
+/ss-workflow:init                      設定 repo（回答問題）
+/ss-workflow:new-req 加入深色主題      建立 request 並確認規格
+/ss-workflow:check-req                 認領並在 worktree 實作
+/ss-workflow:review                    在根目錄驗證和 review
+/ss-workflow:merge                     驗收：關閉 request 並 merge 進 develop
+/ss-workflow:release                   釋出新版本
 ```
 
 ## Skills
 
 | Skill | 使用時機 | 在哪裡執行 | 做什麼 |
 |-------|----------|------------|--------|
-| `/ss-workflow-init` | 每個 repo 一次，plugin 更新後再跑一次 | 根目錄 | 建立檔案結構、git branch、`AGENTS.md` / `CLAUDE.md` 和 README。也能轉換既有專案，或升級由舊版建立的 repo。 |
-| `/ss-workflow-new-req` | 有新功能、修正或其他變更 | 根目錄，`req/` branch | 撰寫 request 檔，跟你討論規格，你確認後以 `ready` 狀態 merge 進 `develop`。 |
-| `/ss-workflow-check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和認領在根目錄；實作在 worktree | 列出所有 request、修復異常狀態、建立 branch 和 worktree 來認領一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
-| `/ss-workflow-review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
-| `/ss-workflow-merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 關閉 request 並 merge 它的 branch，為 release 和 hotfix 建立 tag，並刪除 branch。 |
-| `/ss-workflow-release` | 要釋出新版本 | 根目錄 | 推薦版本號、建立 release branch、檢查未完成的工作、設定版本號，然後交給 release merge。 |
+| `/ss-workflow:init` | 每個 repo 一次，plugin 更新後再跑一次 | 根目錄 | 建立檔案結構、git branch、`AGENTS.md` / `CLAUDE.md` 和 README。也能轉換既有專案，或升級由舊版建立的 repo。 |
+| `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，`req/` branch | 撰寫 request 檔，跟你討論規格，你確認後以 `ready` 狀態 merge 進 `develop`。 |
+| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和認領在根目錄；實作在 worktree | 列出所有 request、修復異常狀態、建立 branch 和 worktree 來認領一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
+| `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
+| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 關閉 request 並 merge 它的 branch，為 release 和 hotfix 建立 tag，並刪除 branch。 |
+| `/ss-workflow:release` | 要釋出新版本 | 根目錄 | 推薦版本號、建立 release branch、檢查未完成的工作、設定版本號，然後交給 release merge。 |
 
 > [!NOTE]
 > 根目錄指的是 repo 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
 
-每個 skill 都屬於 `ss-workflow` plugin，完整名稱是 `/ss-workflow:ss-workflow-init`，其餘類推。沒有其他 skill 使用相同名稱時，Claude Code 也接受上表的短名稱。
+每個 skill 都屬於 `ss-workflow` plugin，所以名稱以 `/ss-workflow:` 開頭。請一律輸入這個前綴：後面的名稱很短也很常見，其中像 `/init` 本身就是 Claude Code 的內建指令。
 
 ## Request 的流程
 
@@ -108,19 +108,19 @@ flowchart LR
 
 | Status | 意義 | 在哪裡進行 | 由誰設定 |
 |--------|------|------------|----------|
-| `draft` | 規格討論中 | 根目錄，`req/REQ-…` branch | `/ss-workflow-new-req` |
-| `ready` | 你已確認規格，request 在 `develop` 上等待認領 | （無） | `/ss-workflow-new-req` |
-| `in-progress` | 已認領，實作中 | worktree，request branch | `/ss-workflow-check-req` |
-| `review` | 實作完成，worktree 已刪除、branch 保留；等待或正在 Verify 和 Review | 根目錄，request branch | `/ss-workflow-check-req`，接著 `/ss-workflow-review` |
-| `done` | 已關閉，檔案在 `reqs/done/` | 根目錄 | `/ss-workflow-merge` |
+| `draft` | 規格討論中 | 根目錄，`req/REQ-…` branch | `/ss-workflow:new-req` |
+| `ready` | 你已確認規格，request 在 `develop` 上等待認領 | （無） | `/ss-workflow:new-req` |
+| `in-progress` | 已認領，實作中 | worktree，request branch | `/ss-workflow:check-req` |
+| `review` | 實作完成，worktree 已刪除、branch 保留；等待或正在 Verify 和 Review | 根目錄，request branch | `/ss-workflow:check-req`，接著 `/ss-workflow:review` |
+| `done` | 已關閉，檔案在 `reqs/done/` | 根目錄 | `/ss-workflow:merge` |
 
 一個 request 就是一個 Markdown 檔，例如 `reqs/REQ-0012-20260907-gui-button.md`。狀態只記錄在它的 YAML frontmatter 裡，你原始提供的內容會原封不動保留在 `## Original` 區段。
 
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
 - 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
-- Review 期間你可以手動修改程式碼。`/ss-workflow-review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
-- Code review 是可選的。`/ss-workflow-review` 在 Verify 通過後會問你要不要跑，並用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
+- Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
+- Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
 
 ## Branching model
 
@@ -176,7 +176,7 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ```
 
 > [!IMPORTANT]
-> Plugin 更新不會改動 init 在你專案裡產生的檔案。更新之後，請在專案裡再執行一次 `/ss-workflow-init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
+> Plugin 更新不會改動 init 在你專案裡產生的檔案。更新之後，請在專案裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
 
 ## 開發這個 plugin
 
@@ -185,12 +185,12 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ├─ plugin.json               plugin manifest；"version" 是唯一的版本來源
 └─ marketplace.json          讓這個 repo 同時是自己的 marketplace
 skills/
-├─ ss-workflow-init/         SKILL.md、references/、templates/
-├─ ss-workflow-new-req/      SKILL.md
-├─ ss-workflow-check-req/    SKILL.md、references/
-├─ ss-workflow-review/       SKILL.md
-├─ ss-workflow-merge/        SKILL.md、references/
-└─ ss-workflow-release/      SKILL.md、references/
+├─ init/                     SKILL.md、references/、templates/
+├─ new-req/                  SKILL.md
+├─ check-req/                SKILL.md、references/
+├─ review/                   SKILL.md
+├─ merge/                    SKILL.md、references/
+└─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 ss-workflow-skill.md         設計規格
 ```

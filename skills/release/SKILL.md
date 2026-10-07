@@ -1,13 +1,13 @@
 ---
-name: ss-workflow-release
+name: release
 description: Release a new version of an ss-workflow repository. On develop it recommends the next version number, creates the release branch, checks for unfinished requests and worktrees, sets the version number everywhere, and hands over to the release merge (main branch, develop, tag). On a release branch it continues a release that was started earlier. Use when the developer asks to release, publish, or cut a new version.
 argument-hint: "[version, e.g. 1.2.0 or 1.0.0-beta1]"
 ---
 
-# ss-workflow-release
+# release
 
 Prepare a release on a `release/v<version>` branch, then hand it over to the release
-merge rules of `/ss-workflow-merge`.
+merge rules of `/ss-workflow:merge`.
 
 Input: `$ARGUMENTS` (optional version; skips the recommendation)
 
@@ -39,7 +39,7 @@ Supporting file:
 ## Step 1: Preconditions (on `develop`)
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and point to
-   `/ss-workflow-init`.
+   `/ss-workflow:init`.
 2. `git status --porcelain` must show no changes to tracked files. If it does, stop
    and report them.
 3. If a remote exists, run `git fetch --prune --tags` and `git pull --ff-only`.
@@ -98,7 +98,7 @@ Step 4, there is nothing to do here.
 Collect the following:
 
 - The requests in `reqs/` (not `reqs/done/`), with their effective status. Read the
-  status of a claimed request from its request branch, as `/ss-workflow-check-req`
+  status of a claimed request from its request branch, as `/ss-workflow:check-req`
   does in its overview.
 - The drafts: the `req/*` branches
 - The worktrees from `git worktree list`, other than the root checkout
@@ -119,10 +119,10 @@ Otherwise, show both groups and ask the developer with AskUserQuestion:
 | Option | Action |
 |--------|--------|
 | Release without them | Continue with Step 7. List these requests in the final report as "not part of this release". |
-| Finish them first | Stop here. Explain the way back: switch the root checkout to `develop` (`git checkout develop`), finish the requests with `/ss-workflow-check-req`, `/ss-workflow-review`, and `/ss-workflow-merge`, then run `git checkout release/v<version>` and `/ss-workflow-release` again. Step 5 then offers to include the new commits. |
+| Finish them first | Stop here. Explain the way back: switch the root checkout to `develop` (`git checkout develop`), finish the requests with `/ss-workflow:check-req`, `/ss-workflow:review`, and `/ss-workflow:merge`, then run `git checkout release/v<version>` and `/ss-workflow:release` again. Step 5 then offers to include the new commits. |
 | Cancel the release | Confirm it once more. Then run `git checkout develop`, delete the release branch (`git branch -D`, and `git push origin --delete` with a remote), and stop. |
 
-An open hotfix must be merged before the release: point to `/ss-workflow-merge`, and
+An open hotfix must be merged before the release: point to `/ss-workflow:merge`, and
 treat it like "Finish them first".
 
 ## Step 7: Set the version
@@ -151,9 +151,9 @@ step again.
 
 ## Step 9: Hand over to the merge
 
-Continue directly with the release merge. Invoke the `ss-workflow-merge` skill for
+Continue directly with the release merge. Invoke the `ss-workflow:merge` skill for
 this branch. If you cannot invoke it, read
-`${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-merge/SKILL.md` and its
+`${CLAUDE_PLUGIN_ROOT}/skills/merge/SKILL.md` and its
 `references/release.md`, and follow them.
 
 That skill asks the developer for the go-ahead, merges into the main branch and

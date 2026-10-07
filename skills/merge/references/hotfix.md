@@ -16,7 +16,7 @@ original copy with `status: ready`.
    a remote, run `git pull --ff-only`.
 3. **Status**: the request file on this branch must say `status: review`. If it says
    `in-progress`, switch back to `develop`, stop, and point to
-   `/ss-workflow-check-req`. If it says `done`, the request was already closed by an
+   `/ss-workflow:check-req`. If it says `done`, the request was already closed by an
    earlier run: skip to "Merge locally" or "Finish".
 4. `version-source` on the hotfix branch contains exactly this version. If it does
    not, set it and commit `chore(release): bump version to <version>`. Skip this step
@@ -27,7 +27,7 @@ original copy with `status: ready`.
    branch into the hotfix branch and resolve the conflicts here.
 7. If step 4 or step 6 changed anything, run `build-command` and `test-command`, plus
    `verify-command` if it is set. They must pass. If they fail, stop, and point to
-   `/ss-workflow-review`.
+   `/ss-workflow:review`.
 8. **Close the request on the branch**:
    - Set `status: done`.
    - Add a dated line to `## Notes`: `Released as <tag> (yyyy-MM-dd)`.
@@ -88,7 +88,7 @@ original copy with `status: ready`.
    Review results from the request, and `Refs: REQ-0012`.
 2. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the root checkout back to `develop`, and stop. The developer runs
-   `/ss-workflow-merge` again after it is merged.
+   `/ss-workflow:merge` again after it is merged.
 3. When it is merged on the remote:
    - `git checkout <main branch>`, then `git pull --ff-only`.
    - `git tag -a <tag> -m "Hotfix <tag>"`, then `git push origin <tag>`.

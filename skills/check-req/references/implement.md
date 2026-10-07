@@ -5,7 +5,7 @@ Everything here happens inside the request's worktree, on the request branch.
 **What may run in a worktree:** `setup-command`, if the worktree needs preparation,
 and `build-command`, to compile. Nothing else: no tests, no scripts, no executables,
 no sample applications, no flashing or deploying. Those belong to Verify, which the
-developer starts later in the root checkout with `/ss-workflow-review`.
+developer starts later in the root checkout with `/ss-workflow:review`.
 
 Both commands come from "Workflow settings" in the root `AGENTS.md`, and they depend
 on the project's toolchain. Read the "Toolchain" section there, and the "Project
@@ -37,7 +37,7 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
 
 - Work through the acceptance criteria. Stay inside the request's scope. If you find
   something worth doing outside the scope, record it in `## Notes` as a follow-up, and
-  suggest `/ss-workflow-new-req` for it at the end.
+  suggest `/ss-workflow:new-req` for it at the end.
 - Build what the "Architecture" part of the spec describes. Do not change the
   architecture on your own. If it does not fit the code as you find it, that is an
   error in the spec: see the next point.
@@ -113,14 +113,14 @@ a new request.
 
    If the folder cannot be deleted because it is in use (this session's working
    directory, an editor, or Visual Studio), say so. The developer can close those
-   programs and delete it later, and `/ss-workflow-check-req` reports a leftover
+   programs and delete it later, and `/ss-workflow:check-req` reports a leftover
    worktree in its overview. Do not use `--force` without asking.
 5. Report to the developer, in `discussion-language`:
    - What was implemented, criterion by criterion
    - The build result in the worktree
    - That nothing was tested or run yet
    - That the worktree is removed, and the branch `<branch>` holds the work
-   - The next step: `/ss-workflow-review REQ-0012` in the root checkout starts Verify
+   - The next step: `/ss-workflow:review REQ-0012` in the root checkout starts Verify
      and Review
 
 Do not merge. The request now waits in `review` until the developer starts the review.
