@@ -2,7 +2,7 @@
   "name": "ss-workflow",
   "description": "Marketplace for the ss-workflow plugin",
   "owner": {
-    "name": "initialapex"
+    "name": "Scott Chang"
   },
   "plugins": [
     {

@@ -161,4 +161,4 @@ The design decisions behind the skills are recorded in
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

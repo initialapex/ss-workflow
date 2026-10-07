@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Request-driven gitflow workflow skills: project init, new/check request, merge, and release",
   "author": {
-    "name": "initialapex"
+    "name": "Scott Chang"
   },
   "license": "MIT",
   "keywords": ["workflow", "gitflow", "requests", "worktree", "visual-studio"]

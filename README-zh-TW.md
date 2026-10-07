@@ -139,4 +139,4 @@ claude --plugin-dir /path/to/ss-workflow
 
 ## 授權
 
-MIT
+MIT，詳見 [LICENSE](LICENSE)。
