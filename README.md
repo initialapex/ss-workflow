@@ -18,7 +18,7 @@ and skills merge and release it by the same rules every time.
 | `/ss-workflow-init` | Once per repository, and again after a plugin update | Root checkout | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
 | `/ss-workflow-new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
 | `/ss-workflow-check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; a worktree for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branch and worktree, and implements it. Then it marks the request for review and removes the worktree. |
-| `/ss-workflow-review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
+| `/ss-workflow-review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow-merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
 | `/ss-workflow-release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
 
@@ -58,6 +58,10 @@ unchanged in its `## Original` section.
   two sessions cannot claim the same request.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
+- A code review is optional. `/ss-workflow-review` offers it after Verify passed, and
+  runs Claude Code's `/code-review` on the changes of the request only
+  (`origin/develop...<request branch>`). You can also ask for it later in the same
+  review. Its result is recorded in the request's `## Notes`.
 
 ## Branching model
 

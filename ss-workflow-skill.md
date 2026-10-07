@@ -295,8 +295,14 @@ created: 2026-09-07
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
   2. 根目錄 checkout request branch，並把 develop (hotfix 為 master) 的新 commit merge 進來
   3. Verify: 依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果寫入 `## Notes`
-  4. Review: 列出需要人工確認的項目，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
-  5. 詢問結果
+  4. Code review (可選): Verify 通過後詢問 developer 是否執行；以 `<base>...<branch>` (有 remote 時 base 為 `origin/develop`，hotfix 為 master) 為範圍呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更
+     - 不帶範圍不可執行: `/code-review` 預設只看尚未 push 的 commit，而這個工作流每個 commit 都會 push
+     - 發現的問題先對照程式碼確認: 小問題當場修 (修完重跑 Verify)、大問題提議退回、不屬於這個 request 的記為 follow-up、不確定的交給 developer 決定
+     - 結果 (含 skipped / not available) 寫入 `## Notes`；不打勾 acceptance criteria；不帶 `--fix` / `--comment`
+     - 無法呼叫時不以自行讀 diff 代替；雲端的 `ultra` 只能由 developer 自己輸入，skill 只列出指令
+     - Review 期間 developer 也可以隨時要求執行
+  5. Review: 列出需要人工確認的項目，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
+  6. 詢問結果
      - Review 通過: 其餘 criteria 打勾、記錄結果、根目錄切回 develop，提示 `/ss-workflow-merge REQ-xxxx` 結案
      - 小修: 直接在根目錄的 request branch 上修正並 commit，重跑 Verify
      - 需要大改: feedback 寫入 `## Notes`、status 退回 `in-progress`、根目錄切回 develop，提示 `/ss-workflow-check-req REQ-xxxx` 在 worktree 繼續

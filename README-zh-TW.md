@@ -13,7 +13,7 @@
 | `/ss-workflow-init` | 每個 repo 一次，plugin 更新後再跑一次 | 根目錄 | 建立檔案結構、git branch、`AGENTS.md` / `CLAUDE.md` 和 README。也能轉換既有專案，或升級由舊版建立的 repo。 |
 | `/ss-workflow-new-req` | 有新功能、修正或其他變更 | 根目錄，`req/` branch | 撰寫 request 檔，跟你討論規格，你確認後以 `ready` 狀態 merge 進 `develop`。 |
 | `/ss-workflow-check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和認領在根目錄；實作在 worktree | 列出所有 request、修復異常狀態、建立 branch 和 worktree 來認領一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
-| `/ss-workflow-review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行 build、測試和驗證 script。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
+| `/ss-workflow-review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
 | `/ss-workflow-merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 關閉 request 並 merge 它的 branch，為 release 和 hotfix 建立 tag，並刪除 branch。 |
 | `/ss-workflow-release` | 要釋出新版本 | 根目錄 | 推薦版本號、建立 release branch、檢查未完成的工作、設定版本號，然後交給 release merge。 |
 
@@ -45,6 +45,7 @@ flowchart LR
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
 - 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
+- Code review 是可選的。`/ss-workflow-review` 在 Verify 通過後會問你要不要跑，並用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
 
 ## Branching model
 

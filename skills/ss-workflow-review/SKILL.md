@@ -1,6 +1,6 @@
 ---
 name: ss-workflow-review
-description: Verify and review an implemented request of an ss-workflow repository in the root checkout. Checks out the request branch, runs the build, the tests and the verification scripts (Verify), then guides the developer through the manual check (Review), applies small fixes, or sends the request back for rework. Use when the developer wants to start, continue, or finish the review of a request that is waiting in the review status.
+description: Verify and review an implemented request of an ss-workflow repository in the root checkout. Checks out the request branch, runs the build, the tests and the verification scripts (Verify), offers a code review of the request's changes, then guides the developer through the manual check (Review), applies small fixes, or sends the request back for rework. Use when the developer wants to start, continue, or finish the review of a request that is waiting in the review status.
 argument-hint: "[REQ-id]"
 ---
 
@@ -9,6 +9,8 @@ argument-hint: "[REQ-id]"
 Verify and review one request in the root checkout, on its request branch.
 
 - **Verify**: you run the build, the test projects, and the verification scripts.
+- **Code review** (optional): if the developer wants it, the `code-review` skill reads
+  the request's changes for bugs.
 - **Review**: the developer checks the result by hand, and you guide them.
 
 The request is closed later, when the developer runs `/ss-workflow-merge`. This skill
@@ -143,7 +145,7 @@ If a check fails:
 | Kind of problem | Action |
 |-----------------|--------|
 | Small: a localized fix that changes neither the design nor the spec | Fix it here, on the request branch. Commit it as a normal commit (`fix: …`, with `Refs: REQ-xxxx`) and push. Run the failed check again, and then all checks once more at the end. |
-| Large: the approach is wrong, a part is missing, or the fix needs a spec decision | Do not fix it here. Show the developer what failed, and propose to send the request back (Step 6, "Rework needed"). |
+| Large: the approach is wrong, a part is missing, or the fix needs a spec decision | Do not fix it here. Show the developer what failed, and propose to send the request back (Step 7, "Rework needed"). |
 | Caused by the environment, not by the request (a missing tool, a flaky test that also fails on `develop`) | Report it as such. Ask the developer how to treat it. Do not record it as passed. |
 
 If you are not sure whether a problem is small or large, ask the developer.
@@ -162,9 +164,64 @@ Record the result in `## Notes`:
 Commit and push: `docs(reqs): record verify result of REQ-0012`, with `Refs: REQ-0012`.
 
 Report the Verify result to the developer before the Review starts. If Verify did not
-pass and the problems were not fixed, do not start the Review: go to Step 6.
+pass and the problems were not fixed, do not start the code review or the Review: go
+to Step 7.
 
-## Step 5: Review
+## Step 5: Code review (optional)
+
+A code review reads the changes of this request for bugs. It does not replace Verify
+or the Review, and it ticks no acceptance criteria.
+
+1. Ask the developer with AskUserQuestion whether to run a code review now: "Run a
+   code review" or "Skip". Do not ask when `## Notes` already records a code review
+   and the branch has no code commits after it: say so, and continue with Step 6.
+   The developer can still ask for another one.
+2. If the developer skips it, add `### Code review (yyyy-MM-dd)` with `- Skipped` to
+   `## Notes`. It is committed with the next commit of the request file. Continue with
+   Step 6.
+3. The scope is `<base>...<branch>`: three dots, so that only the changes of this
+   request are read, and not what `develop` gained in the meantime. `<base>` is the
+   ref that Step 2 merged from: `origin/develop` with a remote, `develop` without one,
+   and the main branch in the same way for a hotfix. Do not run the code review
+   without a scope. Its default scope is the commits that are not pushed yet, and in
+   this workflow every commit is pushed.
+4. Invoke the `code-review` skill with that scope as its argument, for example
+   `origin/develop...feat/REQ-0012-gui-button`. Do not pass `--fix` or `--comment`:
+   fixes are made by the rules below. The code review may run in the background. Wait
+   for its findings before you go on.
+5. If you cannot invoke it, do not read the diff yourself and call that a code review.
+   Say that it is not available, show the command that the developer can type
+   (`/code-review <base>...<branch>`), and record `- Not available` as in step 2.
+6. Never start the cloud review (`ultra`) yourself. If the developer wants it, show
+   the command for them to type: `/code-review ultra develop`, or with the main branch
+   for a hotfix. Its findings are handled like the others.
+7. Show the findings to the developer. Check each one against the code before you act
+   on it:
+
+| Kind of finding | Action |
+|-----------------|--------|
+| A real problem with a small, localized fix | Fix it here, on the request branch. Commit it as a normal commit (`fix: …`, with `Refs: REQ-xxxx`) and push. |
+| A real problem that needs a large change or a spec decision | Do not fix it here. Propose to send the request back (Step 7, "Rework needed"). |
+| A problem in code that this request did not change | Leave the code alone. Record it as a follow-up, and suggest `/ss-workflow-new-req` for it. |
+| Not a problem, or you are not sure | Say why, and let the developer decide. Do not drop a finding silently. |
+
+8. Record the result in `## Notes`:
+
+   ```markdown
+   ### Code review (yyyy-MM-dd)
+   - Scope: origin/develop...feat/REQ-0012-gui-button
+   - Findings: 3
+   - Fixed: <commits, or "none">
+   - Not fixed: <finding and reason, or "none">
+   - Follow-ups: <findings outside this request, or "none">
+   ```
+
+   Commit and push: `docs(reqs): record code review result of REQ-0012`, with
+   `Refs: REQ-0012`.
+9. If a fix changed the code, run Verify again (Step 4). Run the code review again
+   only if the developer asks.
+
+## Step 6: Review
 
 Guide the developer through the manual check:
 
@@ -175,15 +232,16 @@ Guide the developer through the manual check:
 3. If the developer asks, start the application or the sample for them, or run extra
    commands. This is the place where running things is allowed.
 4. Wait for the developer's findings. Do not assume a result.
+5. If the developer asks for a code review at this point, run Step 5 from its step 3.
 
-## Step 6: Outcome
+## Step 7: Outcome
 
 Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
 | Review passed | Tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-merge REQ-0012` closes the request. Do not merge on your own. |
-| Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the request branch, with normal commits, and push. Run Verify again (Step 4), then return to Step 5 for the points that changed. |
+| Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the request branch, with normal commits, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow-check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Say that the root checkout stays busy until the review is continued with `/ss-workflow-review`, or paused by switching back to `develop`. |
 | Drop the request | Point to `/ss-workflow-merge`, which closes a request without merging it. |
@@ -196,11 +254,13 @@ Before you switch the root checkout back to `develop`, check that
 application left changes in tracked files (generated files, snapshots, settings), show
 them and ask whether to commit or to discard them.
 
-## Step 7: Report
+## Step 8: Report
 
 Tell the developer, in `discussion-language`:
 
 - The Verify result, check by check
+- The code review: its findings and what was done with each, or that it was skipped
+  or not available
 - The Review outcome, and the fixes made during the review
 - The status of the request, and which branch the root checkout is on
 - The next step: `/ss-workflow-merge REQ-0012` after a passed review,
