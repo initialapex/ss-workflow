@@ -1,24 +1,31 @@
-# src/
+# {{SOURCE_DIR}}/
 
-Source projects of {{PROJECT_NAME}}.
+Source code of {{PROJECT_NAME}}.
 
 <!-- ss-workflow:managed id=src-rules -->
 ## Rules
 
-- One folder per project. The folder name equals the project name, for example
-  `src/MyLib/MyLib.csproj`.
-- Every project folder has a `README.md` that covers what the project is for, its main
-  types or entry points, and how it relates to the other projects. Update the README
-  when the project's responsibilities change.
-- The solution file is `{{SOLUTION_FILE}}`, in this folder next to the project
-  folders. Add every new project to it. The projects in `tests/` and `samples/`
-  belong to the same solution, with relative paths.
-- Do not set `<Version>`, `<VersionPrefix>`, or `<VersionSuffix>` in project files.
-  The version comes from `Directory.Build.props` at the repository root.
-- Shared build settings belong in `Directory.Build.props`, not in individual
-  project files.
-- Reference other projects with `<ProjectReference>`; never reference build output
-  in `bin/`.
-- Third-party binaries go to `external/`, not into `src/`.
-- Build: `{{BUILD_COMMAND}}`
+- The main project file, if the project has one, is `project-file` in the root
+  `AGENTS.md`. It lives in this folder.
+- One folder per project or module. Every such folder has a `README.md` that covers
+  what it is for, its main entry points, and how it relates to the others. Update the
+  README when its responsibilities change.
+- The product version is set only in `version-source` (root `AGENTS.md`). Do not set
+  it anywhere else.
+- Third-party code and binaries go to `external/`, not into this folder.
+- Never commit build output.
+- Build with `build-command` from the root `AGENTS.md`. If a fresh checkout or
+  worktree needs preparation first, run `setup-command`.
+- Follow "Project rules" below. They hold what is specific to this project's
+  toolchain.
 <!-- /ss-workflow:managed -->
+
+## Project rules
+
+<!-- Written during initialization, and maintained by the developer. ss-workflow
+     upgrades never modify this section. It says what an agent must know to change
+     this project correctly: how new files and projects are registered with the build,
+     which files are generated and must not be edited, where build output goes, and
+     the naming conventions. -->
+
+{{PROJECT_RULES}}

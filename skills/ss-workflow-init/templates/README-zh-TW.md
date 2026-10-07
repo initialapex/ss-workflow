@@ -2,7 +2,7 @@
 
 # {{PROJECT_NAME}}
 
-<!-- 徽章：建置狀態、套件版本、授權等，確定後再加上，格式同 README.md -->
+<!-- 徽章：建置狀態、版本、授權等，確定後再加上，格式同 README.md -->
 
 {{PROJECT_DESCRIPTION}}
 
@@ -15,12 +15,12 @@
 
 ## 開始使用
 
-<!-- Library：安裝方式（套件管理指令）與最簡單的使用範例。
-     Application：下載或執行方式。 -->
+<!-- Library：如何加入到專案，以及最簡單的使用範例。
+     Application 或 firmware：執行所需的環境，以及下載、安裝或燒錄的方式。 -->
 
-```
-<!-- e.g. dotnet add package {{PROJECT_NAME}} -->
-```
+## 環境需求
+
+<!-- 建置專案所需的工具與版本，見 AGENTS.md 的「Toolchain」章節。 -->
 
 ## 文件
 

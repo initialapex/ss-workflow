@@ -3,9 +3,8 @@ English | [繁體中文](README-zh-TW.md)
 
 # {{PROJECT_NAME}}
 
-<!-- Badges: add build status, package version, and license badges once they exist, e.g.
+<!-- Badges: add build status, version, and license badges once they exist, e.g.
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#)
-[![NuGet](https://img.shields.io/nuget/v/{{PROJECT_NAME}})](https://www.nuget.org/packages/{{PROJECT_NAME}})
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 -->
 
@@ -20,12 +19,14 @@ English | [繁體中文](README-zh-TW.md)
 
 ## Getting started
 
-<!-- For a library: how to install (package manager command) and a minimal usage example.
-     For an application: how to download or run it. -->
+<!-- For a library: how to add it to a project, and a minimal usage example.
+     For an application or firmware: what is needed to run it, and how to download,
+     install, or flash it. -->
 
-```
-<!-- e.g. dotnet add package {{PROJECT_NAME}} -->
-```
+## Requirements
+
+<!-- The tools and versions needed to build the project. See the "Toolchain" section
+     in AGENTS.md. -->
 
 ## Documentation
 

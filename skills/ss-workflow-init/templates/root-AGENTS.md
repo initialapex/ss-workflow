@@ -21,14 +21,33 @@ main-branch: {{MAIN_BRANCH}}
 remote-platform: {{REMOTE_PLATFORM}}
 remote-cli: {{REMOTE_CLI}}
 merge-method: {{MERGE_METHOD}}
+source-dir: {{SOURCE_DIR}}
+project-file: {{PROJECT_FILE}}
 version-source: {{VERSION_SOURCE}}
+setup-command: {{SETUP_COMMAND}}
 build-command: {{BUILD_COMMAND}}
 test-command: {{TEST_COMMAND}}
 verify-command:
 ```
 
-`verify-command` is optional: an extra verification script that `/ss-workflow-review`
-runs after the build and the tests, for example `pwsh scripts/verify.ps1`.
+The workflow itself does not depend on the project type. The settings from
+`source-dir` to `verify-command` describe this project's toolchain:
+
+| Setting | Meaning | When it is empty |
+|---------|---------|------------------|
+| `project-file` | The main solution, workspace, or top-level build file | The project has none |
+| `version-source` | The file and the field that hold the product version | `none`: the version only exists as a git tag |
+| `setup-command` | What a fresh checkout or worktree needs before it can build | Nothing is needed |
+| `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
+| `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
+| `verify-command` | An extra verification script that `/ss-workflow-review` runs after the build and the tests | No extra script |
+
+## Toolchain
+
+<!-- Written during initialization, and maintained by the developer. ss-workflow
+     upgrades never modify this section. -->
+
+{{TOOLCHAIN_NOTES}}
 
 <!-- ss-workflow:managed id=working-agreement -->
 ## Working agreement
@@ -52,27 +71,29 @@ runs after the build and the tests, for example `pwsh scripts/verify.ps1`.
   `develop`. A skill that switches it to another branch first checks that it is on
   `develop` with no uncommitted changes to tracked files, and returns it to `develop`
   when it is done. Only one of these activities uses the root checkout at a time.
-- In a worktree, write code and try to compile it with `build-command`. Do not run
-  tests, scripts, or executables there. If the build cannot run in the worktree, note
-  that in the request and leave it to Verify.
+- In a worktree, write code and try to compile it: run `setup-command` if the
+  worktree needs it, then `build-command`. Do not run tests, scripts, or executables
+  there. If a command is empty or cannot run in the worktree, note that in the request
+  and leave it to Verify.
+- Follow the "Toolchain" section below and the "Project rules" in the source folder's
+  `AGENTS.md`. They hold what is specific to this project type.
 <!-- /ss-workflow:managed -->
 
-<!-- ss-workflow:managed id=layout -->
 ## Repository layout
+
+<!-- Written during initialization from the developer's answers, and maintained by
+     the developer. ss-workflow upgrades never modify this section. Init removes the
+     rows of folders that the project does not use, and adds rows for other
+     top-level folders that the toolchain needs. -->
 
 | Path | Purpose | Rules |
 |------|---------|-------|
-| `src/` | The solution file, and the source projects, one folder per project, each with a `README.md` | `src/AGENTS.md` |
+| `{{SOURCE_DIR}}/` | The main project file and the source code. Each project or module has its own folder with a `README.md`. | `{{SOURCE_DIR}}/AGENTS.md` |
 | `reqs/` | Requests: one Markdown file per request; finished requests live in `reqs/done/` | `reqs/AGENTS.md` |
 | `docs/` | Project spec, developer-readable docs, knowledge base | Write for humans in `docs-language` |
-| `external/` | Git submodules and third-party binaries | Do not edit vendored content |
-| `tests/` | Test projects for `src/` | `tests/AGENTS.md` |
-| `samples/` | Sample / demo projects that show how to use the library | `samples/AGENTS.md` |
-| `bin/` | Build output (git-ignored) | Never commit |
-
-If a folder in this table does not exist, the project opted out of it during
-initialization.
-<!-- /ss-workflow:managed -->
+| `external/` | Git submodules and third-party files | Do not edit vendored content |
+| `tests/` | Automated tests for the source code | `tests/AGENTS.md` |
+| `samples/` | Sample and demo projects that show how to use the library | `samples/AGENTS.md` |
 
 <!-- ss-workflow:managed id=branching -->
 ## Branching model
@@ -140,8 +161,10 @@ Merge commits are the exception to the header format. They are always created wi
 
 - Versions follow SemVer: `MAJOR.MINOR.PATCH[-prerelease]`, for example `1.2.0` or
   `1.0.0-beta1`.
-- The single version source is `version-source`. Do not set versions anywhere else
-  (for .NET: no `<Version>` in individual project files).
+- The single version source is `version-source`. Do not set the product version
+  anywhere else. If the toolchain forces a second place to carry it, list that place
+  in the "Toolchain" section, so that a release updates it too.
+- If `version-source` is `none`, the version only exists as the git tag.
 - Only `/ss-workflow-release` and hotfix branches change the version.
 <!-- /ss-workflow:managed -->
 

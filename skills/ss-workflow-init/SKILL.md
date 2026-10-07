@@ -47,15 +47,17 @@ Supporting files (read them when the step that needs them comes up):
 Collect the following without changing anything:
 
 1. Directory contents: run `git ls-files` if this is a repo, otherwise list the
-   directory, ignoring `bin/`, `obj/`, `.vs/`, `node_modules/`.
+   directory, leaving out build output and dependency folders.
 2. Git state:
    - `git rev-parse --is-inside-work-tree`
    - `git branch -a`
    - `git remote -v`
    - `git status --porcelain`
-3. Solution and projects: `*.sln` / `*.slnx` files, `*.csproj` / `*.vbproj` /
-   `*.fsproj` files, test projects (those that reference xunit, nunit, or MSTest), and
-   other ecosystems (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, ...).
+3. The project type: look for the files that identify a toolchain, such as solution,
+   workspace, and project files, build files, and package manifests. Note the main
+   project file, the folders that hold source code, tests, and samples, and where the
+   version is set. The workflow supports any project type, so do not expect a
+   particular one.
 4. Existing agent files: `AGENTS.md` and `CLAUDE.md` at any level, and `README*.md`.
 5. Workflow marker: whether the root `AGENTS.md` contains `ss-workflow-version:`.
 6. Remote tooling: whether `gh` and `glab` are installed and authenticated
@@ -113,29 +115,27 @@ Generate in this order. Each group becomes one commit (Step 7):
 
 0. **Convert mode only**: apply the approved moves first, as their own commit. See
    [references/convert-existing.md](references/convert-existing.md).
-1. **Ignore and build files**
-   - `.gitignore`: if the project is .NET and `dotnet` is available, run
-     `dotnet new gitignore`. Otherwise use `templates/gitignore.template`. In both
-     cases, make sure the file contains every entry in the "ss-workflow" block of the
-     template.
-   - `Directory.Build.props` (.NET only): use `templates/Directory.Build.props`. If the
-     projects already set `<Version>`, move the value here (Convert mode) and remove it
-     from the individual project files.
+1. **Ignore file**: `.gitignore`. Keep an existing one, and add the ss-workflow block
+   and the missing `{{IGNORE_PATTERNS}}`. Otherwise, create it from
+   `templates/gitignore.template`.
 2. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`.
-3. **Folders**: `reqs/done/.gitkeep`, `external/.gitkeep`, and `tests/` and `samples/`
-   when kept.
+3. **Folders**: `reqs/done/.gitkeep`, the source folder, and `external/`, `tests/`,
+   and `samples/` when kept.
 4. **Docs**: `docs/{{PROJECT_SLUG}}-spec.md`.
-5. **READMEs**: the root README files, plus a `README.md` for each project in `src/`
-   that does not have one.
+5. **READMEs**: the root README files, plus a `README.md` for each project or module
+   in the source folder that does not have one.
+
+Init does not create project files, build files, or version files. Those belong to the
+project's toolchain, and they come from the developer or from the first request.
 
 ## Step 7: Commit
 
 Commit each group from Step 6 separately, for example:
 
 ```
-chore: add gitignore and Directory.Build.props
+chore: add gitignore
 docs(agents): add ss-workflow AGENTS.md and CLAUDE.md files
-chore: add reqs, external, tests and samples folders
+chore: add reqs, src, external, tests and samples folders
 docs: add project spec skeleton
 docs: add README and README-zh-TW
 ```

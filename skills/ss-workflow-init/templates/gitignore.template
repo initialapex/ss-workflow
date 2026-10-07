@@ -1,7 +1,4 @@
 # --- ss-workflow (required; keep this block) ---
-# Build output at any level, including the repository root bin/
-[Bb]in/
-[Oo]bj/
 # Request worktrees created by /ss-workflow-check-req
 .claude/worktrees/
 # Personal Claude Code settings
@@ -9,42 +6,12 @@
 CLAUDE.local.md
 # --- end ss-workflow ---
 
-# --- Visual Studio / .NET (condensed; prefer `dotnet new gitignore` when available) ---
-.vs/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-*.rsuser
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Aa][Rr][Mm]64/
-[Ll]og/
-[Ll]ogs/
-TestResults/
-[Tt]est[Rr]esult*/
-*.VisualState.xml
-*.coverage
-*.coveragexml
-coverage*.json
-coverage*.xml
-*.nupkg
-*.snupkg
-**/packages/*
-!**/packages/build/
-*.nuget.props
-*.nuget.targets
-project.lock.json
-artifacts/
-_ReSharper*/
-*.DotSettings.user
-.idea/
-*.swp
+# --- Project toolchain ---
+{{IGNORE_PATTERNS}}
 
-# --- OS ---
+# --- OS and editors ---
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
+*.swp

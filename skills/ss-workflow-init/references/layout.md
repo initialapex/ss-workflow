@@ -2,27 +2,29 @@
 
 All templates are in `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-init/templates/`.
 
+The workflow needs the files marked **(workflow)**. Everything else follows the
+answers from the questionnaire, because it depends on the project type.
+
 ```
 repo/
-├─ AGENTS.md                  ← root-AGENTS.md
-├─ CLAUDE.md                  ← CLAUDE.md
+├─ AGENTS.md                  ← root-AGENTS.md           (workflow)
+├─ CLAUDE.md                  ← CLAUDE.md                (workflow)
 ├─ README.md                  ← README.md
 ├─ README-zh-TW.md            ← README-zh-TW.md          (when zh-TW is in {{README_LANGS}})
-├─ .gitignore                 ← dotnet new gitignore / gitignore.template, plus the ss-workflow block
-├─ Directory.Build.props      ← Directory.Build.props    (.NET only)
+├─ .gitignore                 ← gitignore.template       (workflow: the ss-workflow block)
 ├─ .claude/settings.json      (Step 8, written by `claude plugin ... --scope project`)
-├─ src/
-│   ├── AGENTS.md             ← src-AGENTS.md
-│   ├── CLAUDE.md             ← CLAUDE.md
-│   ├── <Solution>.sln        (.NET only; this is {{SOLUTION_FILE}}; existing, or created with dotnet new sln on approval)
-│   └── <project>/README.md   ← project-README.md        (for each project without a README)
-├─ reqs/
+├─ reqs/                      (workflow)
 │   ├── AGENTS.md             ← reqs-AGENTS.md
 │   ├── CLAUDE.md             ← CLAUDE.md
 │   └── done/.gitkeep
-├─ docs/
+├─ docs/                      (workflow)
 │   └── {{PROJECT_SLUG}}-spec.md ← project-spec.md
-├─ external/.gitkeep
+├─ {{SOURCE_DIR}}/            (default: src/)
+│   ├── AGENTS.md             ← src-AGENTS.md
+│   ├── CLAUDE.md             ← CLAUDE.md
+│   ├── <main project file>   ({{PROJECT_FILE}}, if the project has one)
+│   └── <project>/README.md   ← project-README.md        (for each project or module without a README)
+├─ external/.gitkeep          (when {{HAS_EXTERNAL}})
 ├─ tests/                     (when {{HAS_TESTS}})
 │   ├── AGENTS.md             ← tests-AGENTS.md
 │   └── CLAUDE.md             ← CLAUDE.md
@@ -30,6 +32,9 @@ repo/
     ├── AGENTS.md             ← samples-AGENTS.md
     └── CLAUDE.md             ← CLAUDE.md
 ```
+
+Other top-level folders that the toolchain needs (from the questionnaire) stay where
+they are. Init only lists them in the "Repository layout" table of root `AGENTS.md`.
 
 ## Rules
 
@@ -42,19 +47,21 @@ repo/
 - Write `README.md` in English and `README-zh-TW.md` in Traditional Chinese. Each one
   links to the other at the top.
 - `docs/{{PROJECT_SLUG}}-spec.md` uses `{{DOCS_LANG}}`.
-- For a non-.NET project, drop the `.sln`-specific and `Directory.Build.props`-specific
-  lines from the AGENTS templates, and point "Versioning" at `{{VERSION_SOURCE}}`.
-- The solution file lives in `src/`, next to the project folders, as Visual Studio
-  lays it out. The projects in `tests/` and `samples/` are added to the same solution
-  with relative paths (`..\tests\…`, `..\samples\…`).
-- `Directory.Build.props` stays at the repository root, so that the projects in
-  `src/`, `tests/`, and `samples/` all inherit it.
+- Init does not create project files, build files, or version files. If the project
+  has no main project file yet, it is created by the developer or by the first
+  request. By default the main project file lives in the source folder, for example
+  `src/MyApp.sln`.
+- `.gitignore`: if the repository already has one, keep it, and add the ss-workflow
+  block and the missing `{{IGNORE_PATTERNS}}`. Otherwise, create it from the template.
 - Empty folders get a `.gitkeep`, so git keeps them.
-- Remove the lines that mention opted-out parts: the `samples/` link when there is no
-  `samples/`, and the `{{TEST_COMMAND}}` line when there is no `tests/`. In root
-  `AGENTS.md`, remove the matching rows of the layout table.
+- Remove the lines that mention parts the project does not use: the `samples/` link
+  when there is no `samples/`, an empty build or test command in the README, and the
+  matching rows of the layout table in root `AGENTS.md`.
+- When a free-text answer (`{{TOOLCHAIN_NOTES}}`, `{{PROJECT_RULES}}`,
+  `{{IGNORE_PATTERNS}}`) is empty, write a one-line note that nothing is recorded yet,
+  so that the section is not left blank.
 - Ownership:
-  - Files with `<!-- ss-workflow:managed -->` blocks (every AGENTS.md) are partly
-    maintained by upgrades.
-  - All other generated files (READMEs, spec, `Directory.Build.props`, `CLAUDE.md`)
-    belong to the developer after init, and upgrades never touch them.
+  - Text inside `<!-- ss-workflow:managed -->` blocks is maintained by upgrades.
+  - Everything else belongs to the developer after init, and upgrades never touch it:
+    the "Workflow settings" values, "Toolchain", "Repository layout", and "Project
+    rules" sections, the READMEs, the spec, and `CLAUDE.md`.
