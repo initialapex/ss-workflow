@@ -127,8 +127,13 @@ Decide the names first:
 | Base | `<develop-ref>`. For `type: hotfix`: the main branch (`origin/<main branch>` with a remote). |
 | Worktree path | `<root checkout>/.claude/worktrees/<branch with "/" replaced by "-">` |
 
-Creating the branch is the claim. Git creates a branch name only once, so two sessions
-cannot both succeed.
+Creating the branch is the claim.
+
+- In one repository, git creates a branch name only once, so two local sessions
+  cannot both succeed at step 2.
+- Across machines, pushing the branch does not decide it yet: two machines can both
+  push the same starting commit, and the remote accepts both. The push of the claim
+  commit in step 4 decides, because the remote accepts only the first one.
 
 1. **Check the remote first**, if one exists:
    `git ls-remote --heads origin "*REQ-<id>-*"` (for a hotfix: `hotfix/v<version>`).

@@ -85,7 +85,9 @@ Rules:
 - **Creating the request branch is the claim.** The branch
   `<type>/REQ-<id>-<slug>` is created from `develop` and pushed. If a branch for this
   id already exists, locally or on the remote, the request is claimed. The first
-  commit on the branch sets `status: in-progress` and `branch`.
+  commit on the branch sets `status: in-progress` and `branch`. When two machines
+  claim at the same time, the one whose first commit the remote accepts holds the
+  claim, and the other one gives up its branch.
 - `develop` keeps showing `ready` until the merge. The request branch holds the
   current status (`in-progress`, `review`, or `done`), and that status is the
   effective one.

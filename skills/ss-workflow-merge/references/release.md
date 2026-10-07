@@ -46,6 +46,9 @@ check). This guide only merges it.
    git merge --no-ff release/<tag> -m "Merge release/<tag> into develop" -m "Release <tag>"
    ```
 
+   If git answers "Already up to date", the release branch has no commit of its own
+   and `develop` did not move: there is nothing to merge, so continue.
+
    If this merge has conflicts, resolve them. For `version-source`, keep the higher
    version. Then run the build and the tests again.
 5. With a remote: pushing the main branch and the tag publishes the release, so ask

@@ -59,9 +59,11 @@ original copy with `status: ready`.
    After this commit, `develop` has the request only in `reqs/done/`, with
    `status: done`.
 
-   Conflicts are likely here, because `develop` has moved on:
-   - `version-source`: keep the higher of the two versions. This is normally the one
-     on `develop`.
+   If `develop` did not change the version since the last release, the version does
+   not conflict, and `develop` takes the hotfix version. Other conflicts are possible,
+   because `develop` has moved on:
+   - `version-source`: keep the higher of the two versions. An open release branch
+     normally has the higher one.
    - Code: keep the fix, and adapt it to the current code on `develop`. If the right
      resolution is not obvious, ask the developer.
    - After you resolve a conflict, run the build and the tests on `develop` before you

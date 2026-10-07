@@ -126,6 +126,10 @@ request in the state "merged".
    to close the programs that hold it, and continue.
 3. **Local branch**: `git branch -d <branch>`. If git refuses because the remote did a
    squash merge, and the merge request state is "merged", use `git branch -D <branch>`.
+
+   `git branch -d` is not a safety check. It also deletes a branch that is pushed but
+   not merged, with only a warning, and in this workflow every branch is pushed. The
+   confirmation at the start of this step is what protects the work, so never skip it.
 4. **Remote branch**: if it still exists, `git push origin --delete <branch>`.
 5. Run `git worktree prune` and `git fetch --prune`.
 

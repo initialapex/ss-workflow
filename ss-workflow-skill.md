@@ -199,7 +199,9 @@ created: 2026-09-07
 - draft 只存在 `req/` branch 上，develop 上只有 developer 確認過的 request
 - 有效狀態: develop 上的檔案在 merge 前一直顯示 `ready`；request branch 上的檔案才是目前的狀態 (`in-progress` / `review` / `done`)
 - 認領 (lock):
-  - 「建立 request branch」就是認領: 從 develop 建立 `<type>/REQ-<id>-<slug>` 並 push；git 保證同名 branch 只能建立一次
+  - 「建立 request branch」就是認領: 從 develop 建立 `<type>/REQ-<id>-<slug>` 並 push
+    - 同一個 repo 內，git 保證同名 branch 只能建立一次，兩個 local session 不會同時成功
+    - 跨機器時，單純 push branch 還分不出先後 (兩邊 push 的是同一個起始 commit，remote 都會接受)；由認領 commit 的 push 決定，remote 只接受第一個，另一邊放棄自己的 branch
   - 該編號的 branch 已存在 (local 或 remote) = 已被認領
   - branch 上的第一個 commit 將 status 改為 `in-progress` 並寫入 `branch`
   - 認領不需要根目錄在 develop，所以根目錄正在討論規格或 review 時，其他 session 仍可認領
@@ -304,6 +306,7 @@ created: 2026-09-07
 本工作流 git 遵循 gitflow 流程，有不同形態的 branch (worktree)
 若發現有 remote 端: e.g. github, gitlab，讓使用者選擇是否要發 merge-request 到 remote，由 remote 端 merge；對應到此，在 merge 之前都要先去 fetch remote，並用 `gh pr view` / `glab mr view` 檢查，因為有可能是已經發過 merge-request，也合併完了
 合併完成後，刪除 local / remote branch (worktree 在實作完成時就已刪除，若有殘留一併清除)
+刪除前一定要先確認已合併 (`git merge-base --is-ancestor` 或 merge-request 狀態)；`git branch -d` 不能當安全檢查，已 push 但未 merge 的 branch 它只給 warning 就會刪除
 對 request 而言，developer 執行此 skill 就代表驗收通過、結案
 
 - 共通規則
