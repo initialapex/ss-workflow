@@ -1,15 +1,95 @@
-English | [繁體中文](README-zh-TW.md)
+<h1 align="center">ss-workflow</h1>
 
-# ss-workflow
+<p align="center">
+  A request-driven development workflow on top of gitflow, as a Claude Code plugin.
+</p>
+
+<p align="center">
+  <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-blue">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
+  <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
+</p>
+
+<p align="center">
+  English | <a href="README-zh-TW.md">繁體中文</a>
+</p>
 
 A Claude Code plugin that gives a repository a request-driven development workflow on
-top of gitflow. It does not depend on a project type: a Visual Studio solution, a Keil
-project, an ESP32 firmware, or anything else works the same way. Every change starts as a request file whose spec you approve. An agent
+top of gitflow. Every change starts as a request file whose spec you approve. An agent
 implements it in its own git worktree, you verify and review it in the root checkout,
 and skills merge and release it by the same rules every time.
 
+- Every change is a request file, and nothing is implemented before you approve its
+  spec, including the software architecture.
+- Agents implement in separate git worktrees, so several sessions can work on several
+  requests in parallel.
+- Verify, an optional code review, and your manual review happen in the root checkout,
+  on the request branch.
+- Merges and releases follow fixed gitflow rules: `--no-ff` merges, tags, and a
+  recommended version number.
+- It does not depend on a project type: a Visual Studio solution, a Keil project, an
+  ESP32 firmware, or anything else works the same way.
+- It works locally, or with merge requests on GitHub or GitLab.
+
+> [!WARNING]
 > **Status: 0.2.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
+
+<details>
+<summary>Table of contents</summary>
+
+- [Getting started](#getting-started)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Quick start](#quick-start)
+- [Skills](#skills)
+- [How a request moves](#how-a-request-moves)
+- [Branching model](#branching-model)
+- [Repository layout after init](#repository-layout-after-init)
+- [Project types](#project-types)
+- [Updating](#updating)
+- [Developing this plugin](#developing-this-plugin)
+- [License](#license)
+
+</details>
+
+## Getting started
+
+### Requirements
+
+- [Claude Code](https://code.claude.com/docs)
+- git
+- Optional: the `gh` or `glab` CLI, for merge requests on GitHub or GitLab
+- The tools of your project's own toolchain. The plugin itself needs none of them.
+
+### Installation
+
+Add this repository as a plugin marketplace, then install the plugin. Run these inside
+a Claude Code session:
+
+```text
+/plugin marketplace add <owner>/ss-workflow
+/plugin install ss-workflow@ss-workflow
+```
+
+Replace `<owner>/ss-workflow` with the GitHub repository, or use the full git URL for
+another host.
+
+> [!TIP]
+> To let everyone who works in a project get the plugin, `/ss-workflow-init` can
+> register the marketplace in the project's `.claude/settings.json`.
+
+### Quick start
+
+```text
+/ss-workflow-init                      set up the repository (answer the questions)
+/ss-workflow-new-req add a dark theme  create a request and agree on its spec
+/ss-workflow-check-req                 claim it and implement it in a worktree
+/ss-workflow-review                    verify it and review it in the root checkout
+/ss-workflow-merge                     accept it: close it and merge it into develop
+/ss-workflow-release                   release a new version
+```
 
 ## Skills
 
@@ -22,9 +102,10 @@ and skills merge and release it by the same rules every time.
 | `/ss-workflow-merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
 | `/ss-workflow-release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
 
-The root checkout is the repository's primary working tree. Tests, scripts, and
-executables only run there. In a worktree, the agent writes code and tries to compile
-it, because running things in a worktree is more restricted.
+> [!NOTE]
+> The root checkout is the repository's primary working tree. Tests, scripts, and
+> executables only run there. In a worktree, the agent writes code and tries to compile
+> it, because running things in a worktree is more restricted.
 
 Each skill belongs to the `ss-workflow` plugin, so its full name is
 `/ss-workflow:ss-workflow-init`, and so on. Claude Code also accepts the short name
@@ -88,7 +169,7 @@ unchanged in its `## Original` section.
 
 ## Repository layout after init
 
-```
+```text
 repo/
 ├─ AGENTS.md, CLAUDE.md      workflow rules for agents (CLAUDE.md imports AGENTS.md)
 ├─ README.md, README-zh-TW.md
@@ -119,62 +200,30 @@ from there.
 | How new files and projects are registered with the build, generated files, naming | "Project rules" in the source folder's `AGENTS.md` |
 | Build output and local files to ignore | `.gitignore` |
 
-A command may stay empty, for example when a project can only be built inside an IDE.
-The skills then skip that step and report it as "not configured". They do not invent
-a command.
-
-## Requirements
-
-- [Claude Code](https://code.claude.com/docs)
-- git
-- Optional: the `gh` or `glab` CLI, for merge requests on GitHub or GitLab
-- The tools of your project's own toolchain. The plugin itself needs none of them.
-
-## Installation
-
-Add this repository as a plugin marketplace, then install the plugin. Run these inside
-a Claude Code session:
-
-```
-/plugin marketplace add <owner>/ss-workflow
-/plugin install ss-workflow@ss-workflow
-```
-
-Replace `<owner>/ss-workflow` with the GitHub repository, or use the full git URL for
-another host.
-
-To let everyone who works in a project get the plugin, `/ss-workflow-init` can
-register the marketplace in the project's `.claude/settings.json`.
-
-## Quick start
-
-```
-/ss-workflow-init                      set up the repository (answer the questions)
-/ss-workflow-new-req add a dark theme  create a request and agree on its spec
-/ss-workflow-check-req                 claim it and implement it in a worktree
-/ss-workflow-review                    verify it and review it in the root checkout
-/ss-workflow-merge                     accept it: close it and merge it into develop
-/ss-workflow-release                   release a new version
-```
+> [!NOTE]
+> A command may stay empty, for example when a project can only be built inside an
+> IDE. The skills then skip that step and report it as "not configured". They do not
+> invent a command.
 
 ## Updating
 
 The marketplace compares the `version` in `.claude-plugin/plugin.json` with the
 installed version.
 
-```
+```text
 /plugin marketplace update ss-workflow
 ```
 
-A plugin update does not change the files that init generated in your project. After
-an update, run `/ss-workflow-init` in the project again. It compares the
-`ss-workflow-version` recorded in the root `AGENTS.md` with the plugin version, and
-updates only the blocks marked `<!-- ss-workflow:managed -->`. Your own text outside
-those blocks stays as it is.
+> [!IMPORTANT]
+> A plugin update does not change the files that init generated in your project. After
+> an update, run `/ss-workflow-init` in the project again. It compares the
+> `ss-workflow-version` recorded in the root `AGENTS.md` with the plugin version, and
+> updates only the blocks marked `<!-- ss-workflow:managed -->`. Your own text outside
+> those blocks stays as it is.
 
 ## Developing this plugin
 
-```
+```text
 .claude-plugin/
 ├─ plugin.json               plugin manifest; "version" is the single version source
 └─ marketplace.json          makes this repository its own marketplace
@@ -208,8 +257,10 @@ the agent. Run it again when you change the git steps of a skill:
 bash tests/git-sequences.sh
 ```
 
-When you publish a change, raise `version` in `.claude-plugin/plugin.json`. Without a
-new version, installed copies do not update.
+> [!IMPORTANT]
+> When you publish a change, raise `version` in `.claude-plugin/plugin.json`, and the
+> version badge and the status line at the top of both README files. Without a new
+> version, installed copies do not update.
 
 The design decisions behind the skills are recorded in
 [ss-workflow-skill.md](ss-workflow-skill.md).
