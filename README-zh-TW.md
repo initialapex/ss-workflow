@@ -144,6 +144,7 @@ skills/
 ├─ ss-workflow-review/       SKILL.md
 ├─ ss-workflow-merge/        SKILL.md、references/
 └─ ss-workflow-release/      SKILL.md、references/
+tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 ss-workflow-skill.md         設計規格
 ```
 
@@ -155,6 +156,12 @@ claude plugin validate .
 
 ```bash
 claude --plugin-dir /path/to/ss-workflow
+```
+
+這些 skill 依賴 git 的特定行為：branch 如何認領 request、關閉的 request 如何進到 `develop`、hotfix 如何 merge。這支 script 會在暫存的沙盒裡跑這些指令並檢查結果。它測的是 git，不是 agent。修改 skill 的 git 步驟後請重跑一次：
+
+```bash
+bash tests/git-sequences.sh
 ```
 
 發佈變更時，要遞增 `.claude-plugin/plugin.json` 的 `version`。版本沒有變，已安裝的副本就不會更新。

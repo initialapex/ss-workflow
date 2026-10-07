@@ -177,6 +177,7 @@ skills/
 ├─ ss-workflow-review/       SKILL.md
 ├─ ss-workflow-merge/        SKILL.md, references/
 └─ ss-workflow-release/      SKILL.md, references/
+tests/git-sequences.sh       checks the git steps that the skills prescribe
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -188,6 +189,15 @@ claude plugin validate .
 
 ```bash
 claude --plugin-dir /path/to/ss-workflow
+```
+
+The skills rely on git behaving in specific ways: how a branch claims a request, how
+a closed request reaches `develop`, how a hotfix is merged. This script runs those
+command sequences in a temporary sandbox and checks the results. It tests git, not
+the agent. Run it again when you change the git steps of a skill:
+
+```bash
+bash tests/git-sequences.sh
 ```
 
 When you publish a change, raise `version` in `.claude-plugin/plugin.json`. Without a
