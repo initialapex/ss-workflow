@@ -67,6 +67,10 @@ ss-workflow/
       - 撰寫方式依照 Claude Code 的 memory 規範 (簡潔、可執行的規則，子目錄的檔案在讀取該目錄時才載入)
     - README.md Template 可以參考:
       - https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit
+      - 版面: 置中的標題、描述與 badge → 語言連結 → 功能清單 → 可收合的目錄 → 各章節
+      - 版本 badge 使用初始版本 (release 時由版本號檢查一併更新)；授權等尚未確定的 badge 不產生，只留註解範例
+      - 程式碼區塊都標上語言 (指令依執行的 shell 選 `bash` / `powershell` / `bat`)；補充說明用 GitHub alert (`> [!NOTE]` 等)
+      - 目錄要和章節一致，移除或新增章節時一併調整
 
 ### 初始化問答
 

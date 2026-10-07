@@ -47,6 +47,17 @@ they are. Init only lists them in the "Repository layout" table of root `AGENTS.
   `## Commit convention`, `## Request file format`) in English.
 - Write `README.md` in English and `README-zh-TW.md` in Traditional Chinese. Each one
   links to the other at the top.
+- The root README files keep the layout of their templates: a centered title, the
+  description, and the badges, then the language links, the feature list, a
+  collapsible table of contents, and the sections. When you fill them in:
+  - Keep the table of contents in step with the sections. If you remove or add a
+    section, change its entry too.
+  - The version badge shows `{{INITIAL_VERSION}}`. Do not add a badge for something
+    that is not known, such as a license that the project does not have yet.
+  - Tag every code block with a language. For commands, use the tag of the shell that
+    they run in (`bash`, `powershell`, `bat`), and `text` when nothing fits.
+  - Use GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`) for
+    side notes, and not for normal text.
 - `docs/{{PROJECT_SLUG}}-spec.md` uses `{{DOCS_LANG}}`.
 - Init does not create project files, build files, or version files. If the project
   has no main project file yet, it is created by the developer or by the first
