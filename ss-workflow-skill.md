@@ -286,6 +286,10 @@ created: 2026-09-07
 
 - Verify: AI 執行 build / Test 專案 / 驗證 script；Review: developer 人工驗證，AI 引導
 - 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在該 request branch 上 (接續 review)
+- 根目錄在 request branch 上，但 request 檔的 status 不是 `review` (e.g. 退回重做或 merge 做到一半被中斷、手動 checkout): 屬於未定義的狀態，回報 branch、status、可能原因與未 commit 的變更，由 developer 選擇
+  - 重新開始 review: status 改回 `review` (檔案在 `reqs/done/` 時先移回 `reqs/`)，Verify 與 Review 從頭執行
+  - merge 回 develop (hotfix 為 master 與 develop): status 不是 `done` 時先改為 `review`，根目錄留在該 branch，交給 `/ss-workflow-merge`
+  - 兩者都不選: 不做任何變更並停止
 - 流程
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
   2. 根目錄 checkout request branch，並把 develop (hotfix 為 master) 的新 commit merge 進來

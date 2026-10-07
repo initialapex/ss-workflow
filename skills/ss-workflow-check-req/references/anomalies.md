@@ -28,7 +28,7 @@ Normal states, for comparison:
 | A worktree has uncommitted changes | A session was interrupted in the middle of the work | Do not touch them. Report them. The developer resumes with this skill inside that worktree. |
 | Two request branches contain the same `REQ-<id>` | Two claims raced, or a branch was created by hand | Show both with their commits. Ask which one is the real one. Delete the other only with explicit approval if it has commits. |
 | A branch named `<type>/REQ-xxxx-…` exists, but no request on `develop` has that id | The request was never approved, or the branch was created by hand | Report it. Ask whether to link it to a request or to delete it. Never delete a branch that has unmerged commits without explicit approval. |
-| The root checkout is on a request branch, and nobody is reviewing | A review was paused or interrupted | Report it. `/ss-workflow-review` continues it. To free the root checkout, the developer switches it back to `develop` once it has no uncommitted changes. |
+| The root checkout is on a request branch, and nobody is reviewing | A review was paused or interrupted | Report it. `/ss-workflow-review` continues it. If the request file on that branch does not say `review`, that skill reports an undefined state, and asks whether to restart the review or to merge. To free the root checkout, the developer switches it back to `develop` once it has no uncommitted changes. |
 
 ## Draft problems
 

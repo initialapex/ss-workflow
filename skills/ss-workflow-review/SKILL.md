@@ -12,7 +12,8 @@ Verify and review one request in the root checkout, on its request branch.
 - **Review**: the developer checks the result by hand, and you guide them.
 
 The request is closed later, when the developer runs `/ss-workflow-merge`. This skill
-never merges.
+never merges. In one case it hands over to that skill: when the developer chooses to
+merge from an undefined state (Step 1).
 
 Input: `$ARGUMENTS` (optional `REQ-xxxx`)
 
@@ -43,7 +44,34 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes to tracked files. If it does, stop and report them. Choose the request (below), then continue with Step 2. |
 | A request or `hotfix/*` branch whose request file says `review` | A review is open here. If `$ARGUMENTS` is empty or names this request, continue it at Step 3. Otherwise, say that the root checkout is busy with this review, and ask whether to pause it first. To pause: commit and push the notes, check that there are no uncommitted changes, and run `git checkout develop`. |
+| A request or `hotfix/*` branch whose request file says anything else | The workflow does not define this state. Continue with "Undefined state" below. |
 | Any other branch | The root checkout is busy: a `req/*` branch means a spec discussion, and a `release/*` branch means a release. Say which one, and stop. |
+
+Undefined state: the root checkout is on a request branch, and the request file there
+(in `reqs/` or `reqs/done/`) does not say `review`. A step that should have switched
+the root checkout back to `develop` was interrupted, or the branch was checked out by
+hand.
+
+1. Tell the developer that you detected a state that the workflow does not define.
+   Show:
+   - the branch, the request, and the status in its file
+   - the likely cause: `in-progress` means that a review sent the request back for
+     rework; `done` means that a merge stopped after it closed the request, or that
+     the merge is pending on the remote; `ready` means that a claim was interrupted
+   - the commits that the branch has and its base does not
+     (`git log <base>..HEAD --oneline`), and the output of `git status --porcelain`
+2. If `$ARGUMENTS` names another request, say that this state has to be settled first.
+3. If tracked files have uncommitted changes, show them, and ask whether to commit or
+   to discard them, before you act on the answer to the next question.
+4. Ask with AskUserQuestion:
+
+| Option | Action |
+|--------|--------|
+| Restart the review | Make the request `review` again on this branch. If its file is in `reqs/done/`, move it back (`git mv reqs/done/<file> reqs/<file>`). Set `status: review`, and add a dated line to `## Notes` that says the review was restarted, and from which status. Commit `chore(reqs): restart review of REQ-0012`, and push. Continue with Step 2. Verify and Review then run from the start: earlier results in `## Notes` do not count. |
+| Merge into `develop` (for a hotfix: into the main branch and `develop`) | If the status is not `done`, set `status: review`, and add a dated line to `## Notes` that says the developer chose to merge from the status it had, without restarting the review. Commit `chore(reqs): mark REQ-0012 for review`, and push. Leave the root checkout on this branch, and hand over to the merge: invoke the `ss-workflow-merge` skill for this branch. If you cannot invoke it, read `${CLAUDE_PLUGIN_ROOT}/skills/ss-workflow-merge/SKILL.md` and the guide for the branch kind, and follow them. That skill still says so when no Verify result or no passed Review is recorded, and asks before it merges. |
+
+If the developer chooses neither, change nothing and stop. Say that the root checkout
+stays on this branch, and that `git checkout develop` frees it.
 
 Choosing the request, on `develop`:
 
