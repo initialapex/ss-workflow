@@ -48,6 +48,10 @@ developer approves the spec.
   ```
 
   Leave out the `Refs:` line for a release.
+- `setup-command`, `build-command`, `test-command`, and `verify-command` come from
+  "Workflow settings", and they depend on the project's toolchain. Where a guide says
+  to run them, a command that is empty is skipped: say that it is not configured, and
+  do not invent one.
 - If a merge has conflicts that are not trivial, show them and ask the developer how to
   resolve them. Do not guess at the intent of other people's changes.
 

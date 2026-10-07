@@ -9,13 +9,15 @@ Inputs:
 
 - **Last version**: the last release tag on the main branch, without the `v`. If there
   is no tag yet, there is no last version.
-- **Current version**: the value in `version-source`.
+- **Current version**: the value in `version-source`. If `version-source` is `none`,
+  there is no current version apart from the last tag.
 - **Changes**: the commits on `develop` since the last tag, without merge commits.
 
 ### First release (no tag yet)
 
 Recommend the current version from `version-source`, for example `0.1.0`. Do not raise
-it: nothing was released under that number yet.
+it: nothing was released under that number yet. If `version-source` is `none`,
+recommend `0.1.0`.
 
 ### Later releases
 
@@ -71,35 +73,39 @@ release version.
 
 ### 1. The version source
 
-Set the value in `version-source`:
+`version-source` in the root `AGENTS.md` names the file and the field that hold the
+product version. How the version is written there depends on the project type, so
+read the current value first and keep its form.
 
-| Project type | File and field |
-|--------------|----------------|
-| .NET | `Directory.Build.props`: `<Version>` |
-| Node.js | `package.json`: `version`. Use `npm version <version> --no-git-tag-version`, which also updates the lock file. |
-| Python | `pyproject.toml`: `project.version` |
-| Other | The file and the field named in `version-source` |
+- If `version-source` is `none`, the version only exists as the git tag. Skip to
+  section 3.
+- Otherwise, set the field to the release version.
+- Some fields cannot hold the full version. Keep the form that the field already
+  uses, and say in the report what you wrote. Common cases:
+  - A field with four numeric parts and no prerelease part: write
+    `MAJOR.MINOR.PATCH.0`. If the same file has a text field for the full version,
+    write the full version there.
+  - Separate numeric defines or constants for major, minor, and patch: set each one.
+  - A build number or a date that the build fills in by itself: leave it alone.
+- If a tool of the project's toolchain is the normal way to change the version, and
+  the "Toolchain" section of the root `AGENTS.md` names it, use that tool.
 
-### 2. Places that do not inherit it
+### 2. Other places that carry the version
 
-Search the folders `src/`, `samples/`, and `tests/` for versions that are set
-separately, and compare each one with the release version:
+The "Toolchain" section of the root `AGENTS.md` may list other places that have to
+carry the version. Update each of them.
 
-| Project type | Look for |
-|--------------|----------|
-| .NET | `<Version>`, `<VersionPrefix>`, `<VersionSuffix>`, `<PackageVersion>`, `<AssemblyVersion>`, `<FileVersion>`, and `<InformationalVersion>` in project files and in nested `Directory.Build.props` files; `AssemblyVersion` / `AssemblyFileVersion` attributes in `AssemblyInfo.cs`; `version` in `.nuspec` files; `Version` in `Package.appxmanifest` and installer projects |
-| Node.js | `version` in the `package.json` of each workspace package |
-| Python | `__version__` in the packages |
+Then search the source folder (`source-dir`), `samples/`, and `tests/` for the last
+version string, to find places that nobody listed, such as project files, package
+manifests, resource files, and installer definitions. For each hit that states the
+product version:
 
-For each one that differs:
-
-- Set it to the release version. `<AssemblyVersion>` and `<FileVersion>` take four
-  numeric parts and no prerelease part: use `MAJOR.MINOR.PATCH.0`.
-- Do not remove the element during a release, even if inheriting from
-  `version-source` would be cleaner. Mention it in the report as a possible follow-up
+- Set it to the release version, in the form that the place already uses.
+- Do not restructure how the project stores its version during a release, even if a
+  single place would be cleaner. Mention it in the report as a possible follow-up
   request.
-- If a project carries a version on purpose (a separately versioned package), ask the
-  developer before you change it.
+- If a part carries its own version on purpose (a separately versioned component or
+  a third-party library), leave it alone. If you cannot tell, ask the developer.
 
 ### 3. Documentation
 

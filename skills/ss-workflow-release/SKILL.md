@@ -139,7 +139,11 @@ If nothing had to change, say that the version numbers already match.
 
 ## Step 8: Verify
 
-Run `build-command` and `test-command` on the release branch. Both must pass.
+Run `build-command` and `test-command` on the release branch, plus `verify-command`
+if it is set. They must pass. These commands come from "Workflow settings" and depend
+on the project's toolchain. A command that is empty is skipped: tell the developer
+that this check is not configured, and ask them to confirm that they checked the
+release build themselves.
 
 If they fail, stop and report the failure. A fix for it is committed on the release
 branch as a normal `fix:` commit, and only after the developer agrees. Then run this

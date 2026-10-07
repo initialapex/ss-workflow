@@ -2,20 +2,29 @@
 
 Everything here happens inside the request's worktree, on the request branch.
 
-**What may run in a worktree:** `build-command`, to compile. Nothing else: no tests, no
-scripts, no executables, no sample applications. Those belong to Verify, which the
+**What may run in a worktree:** `setup-command`, if the worktree needs preparation,
+and `build-command`, to compile. Nothing else: no tests, no scripts, no executables,
+no sample applications, no flashing or deploying. Those belong to Verify, which the
 developer starts later in the root checkout with `/ss-workflow-review`.
 
-If `build-command` cannot run in the worktree because of the environment (for example
-a restore that needs network access, or a sandbox restriction), that is not a failure
-of the request. Record it in `## Notes` and continue.
+Both commands come from "Workflow settings" in the root `AGENTS.md`, and they depend
+on the project's toolchain. Read the "Toolchain" section there, and the "Project
+rules" in the source folder's `AGENTS.md`, before you build or change anything.
+
+- If `build-command` is empty, the project cannot be built from a shell. Do not
+  invent a build command. Skip the build, and record "build: not configured".
+- If a command cannot run in the worktree because of the environment (for example a
+  step that needs network access, an IDE, or a license, or a sandbox restriction),
+  that is not a failure of the request. Record it in `## Notes` and continue.
 
 ## Step 1: Prepare
 
 1. Read the request file completely: `## Spec`, `## Original`, and `## Notes`.
-2. Read the AGENTS.md of every folder you will change (`src/`, `tests/`, `samples/`),
-   the `README.md` of each affected project, and `docs/*-spec.md`.
-3. Try `build-command` once before you change anything, to know the baseline. If the
+2. Read the AGENTS.md of every folder you will change (the source folder, `tests/`,
+   `samples/`), the `README.md` of each affected project or module, and
+   `docs/*-spec.md`.
+3. Run `setup-command` if the worktree needs it. Then try `build-command` once before
+   you change anything, to know the baseline. If the
    code does not compile before your changes, tell the developer before you continue.
 4. Write a short implementation plan (the steps, and the files or projects affected)
    and show it to the developer. Wait for an answer only if the plan needs a decision
@@ -34,9 +43,12 @@ of the request. Record it in `## Notes` and continue.
 - Commit often. One commit holds one reason for change. Follow the commit convention,
   and end every commit with `Refs: REQ-xxxx`.
 - Push after every commit if a remote exists.
-- Add or update the tests in `tests/` for every behavior change in `src/`. Write them
+- Add or update the tests in `tests/` for every behavior change in the source code,
+  if the project has automated tests. Write them
   carefully, because you cannot run them here.
-- When the public API or the behavior changes, update the affected sample in
+- Register every new file with the build in the way that "Project rules" describe.
+  A file that the build does not know is a common cause of a failed Verify.
+- When the public interface or the behavior changes, update the affected sample in
   `samples/`, the project `README.md`, and `docs/*-spec.md` in this branch.
 - Do not change the version (except on a hotfix branch, see below). Do not touch other
   requests' files.
@@ -65,7 +77,7 @@ a new request.
    ```markdown
    ### Implementation summary (yyyy-MM-dd)
    - What changed: ...
-   - Build in the worktree: passed / failed (<reason>) / could not run (<reason>)
+   - Build in the worktree: passed / failed (<reason>) / could not run (<reason>) / not configured
    - Verify: <commands, test projects, and scripts to run in the root checkout>
    - Review by hand: <what the developer needs to look at or try, and how to start it>
    - Follow-ups: <out-of-scope findings, if any>
@@ -114,5 +126,6 @@ A `hotfix/v<version>` branch starts from the main branch.
   that, the file is handled like any other request file: its status and its notes are
   committed on the hotfix branch.
 - Set the hotfix version in `version-source` on the hotfix branch as its own commit:
-  `chore(release): bump version to <version>`.
+  `chore(release): bump version to <version>`. Skip this if `version-source` is
+  `none`.
 - Step 3.2 merges the main branch, not `develop`. The diff base is the main branch.

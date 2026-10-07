@@ -13,10 +13,12 @@ check). This guide only merges it.
    The version is the tag name without the `v`.
 2. The root checkout is on the release branch, and `git status --porcelain` is empty.
 3. `version-source` contains exactly this version. If it does not, stop and point to
-   `/ss-workflow-release`.
+   `/ss-workflow-release`. Skip this step if `version-source` is `none`.
 4. The tag does not exist yet: check `git tag -l <tag>`, and with a remote
    `git ls-remote --tags origin <tag>`. If it exists, stop and report it.
-5. Run `build-command` and `test-command`. Both must pass.
+5. Run `build-command` and `test-command`, plus `verify-command` if it is set. They
+   must pass. A command that is empty in "Workflow settings" is skipped: say so in
+   the summary of the next step.
 6. Show the developer what will be released: the version, the number of commits
    (`git log <main branch>..HEAD --oneline`), and the requests closed since the last
    tag (files added to `reqs/done/`). Ask for a go-ahead.
@@ -88,13 +90,15 @@ check). This guide only merges it.
 ## Pre-1.0 sync without a release branch
 
 Before v1.0.0, the root `AGENTS.md` allows merging `develop` straight into the main
-branch. Offer this only when the version in `version-source` is below `1.0.0` and the
-developer asks for it.
+branch. Offer this only when the current version is below `1.0.0` and the developer
+asks for it. The current version is the value in `version-source`, or the last tag
+when `version-source` is `none`.
 
 1. The root checkout is on `develop`, is clean, and the build and the tests pass.
 2. Ask whether to tag this state. The tag is `v` plus the version in `version-source`.
    If that tag already exists, the version must be raised first: point to
-   `/ss-workflow-release`.
+   `/ss-workflow-release`. When `version-source` is `none`, ask the developer for the
+   tag.
 3. Merge and return:
 
    ```bash

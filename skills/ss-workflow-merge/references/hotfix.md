@@ -19,7 +19,8 @@ original copy with `status: ready`.
    `/ss-workflow-check-req`. If it says `done`, the request was already closed by an
    earlier run: skip to "Merge locally" or "Finish".
 4. `version-source` on the hotfix branch contains exactly this version. If it does
-   not, set it and commit `chore(release): bump version to <version>`.
+   not, set it and commit `chore(release): bump version to <version>`. Skip this step
+   if `version-source` is `none`.
 5. The tag does not exist yet (`git tag -l <tag>`, and with a remote
    `git ls-remote --tags origin <tag>`).
 6. If the main branch has commits that the hotfix branch does not have, merge the main

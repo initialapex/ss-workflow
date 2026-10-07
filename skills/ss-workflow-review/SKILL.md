@@ -90,11 +90,20 @@ Show the developer a short overview: the request, the change
 
 Run these in order, and keep the output of each:
 
-1. `build-command`
-2. `test-command`, if the project has tests
-3. `verify-command` from "Workflow settings", if it is set
-4. The commands and scripts that the request names for Verify
-5. For a hotfix: check that `version-source` holds the hotfix version
+1. `setup-command`, if the checkout needs preparation after the branch switch
+2. `build-command`
+3. `test-command`
+4. `verify-command`
+5. The commands and scripts that the request names for Verify
+6. For a hotfix: check that `version-source` holds the hotfix version, unless it is
+   `none`
+
+The first four commands come from "Workflow settings" in the root `AGENTS.md`, and they
+depend on the project's toolchain. Read the "Toolchain" section there for how to find
+and run the tools. A command that is empty is skipped and recorded as "not
+configured". Do not invent a command for it. If neither a build command nor a test
+command is configured, say clearly that Verify checked nothing automatically, and that
+the Review has to cover everything.
 
 Then go through the acceptance criteria. Tick (`- [x]`) each criterion that these
 checks actually prove. Leave the others for the Review.
@@ -115,7 +124,7 @@ Record the result in `## Notes`:
 ### Verify (yyyy-MM-dd)
 - build: passed
 - tests: passed (132 passed, 0 failed)
-- scripts: `pwsh scripts/verify.ps1` passed
+- verify script: not configured
 - Fixed during Verify: <commits, or "none">
 - Not verified automatically: <criteria left for the Review>
 ```
