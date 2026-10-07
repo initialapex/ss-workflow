@@ -1,10 +1,10 @@
 ---
-name: ss-workflow-check-req
+name: check-req
 description: Check the state of all requests in an ss-workflow repository, repair inconsistent ones, claim a ready request by creating its branch and git worktree, and implement it there. In a request worktree, resume the implementation. When the implementation is finished, it marks the request for review and removes the worktree. Use when the developer asks what requests are pending, or wants to start or continue the implementation of a request.
 argument-hint: "[REQ-id]"
 ---
 
-# ss-workflow-check-req
+# check-req
 
 Where this skill runs decides what it does:
 
@@ -16,7 +16,7 @@ Where this skill runs decides what it does:
 Input: `$ARGUMENTS` (optional `REQ-xxxx` to pick a specific request)
 
 This skill covers the implementation only. Verify and Review happen later in the root
-checkout, when the developer runs `/ss-workflow-review`.
+checkout, when the developer runs `/ss-workflow:review`.
 
 Supporting files:
 
@@ -44,7 +44,7 @@ Supporting files:
 ## Step 1: Find out where you are
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and point to
-   `/ss-workflow-init`.
+   `/ss-workflow:init`.
 2. Collect the following:
    - `git branch --show-current`
    - `git rev-parse --git-dir --git-common-dir`. If the two differ, this is a linked
@@ -90,7 +90,7 @@ Build the list of requests without checking anything out.
    |----|-------|------|----------|--------|-------------------|-------|
 
    Put anomalies in the Notes column. For `review` requests, note that they wait for
-   `/ss-workflow-review`.
+   `/ss-workflow:review`.
 
 ## Step 3: Repair anomalies
 
@@ -115,10 +115,10 @@ Candidates are the requests with the effective status `ready`, sorted by `priori
     refuses this while the root checkout is on that branch: apply the repair from
     [references/anomalies.md](references/anomalies.md) first.
   - `review`: say that the implementation is finished, and point to
-    `/ss-workflow-review`.
-  - A draft: say that it needs approval through `/ss-workflow-new-req` first.
+    `/ss-workflow:review`.
+  - A draft: say that it needs approval through `/ss-workflow:new-req` first.
 - No candidates: report this and mention the next useful action, such as drafts to
-  finish, requests waiting for `/ss-workflow-review`, or `/ss-workflow-new-req`.
+  finish, requests waiting for `/ss-workflow:review`, or `/ss-workflow:new-req`.
 - One candidate: confirm it with the developer.
 - Several candidates: ask with AskUserQuestion. Show the top three as options, with the
   recommended one first. The developer can name any other request through "Other".
@@ -192,5 +192,5 @@ From here on, every file path and every command belongs to the worktree. Continu
 | Status | Action |
 |--------|--------|
 | `in-progress` | Resume. Find where the work stopped: `git status`, `git log <develop-ref>..HEAD --oneline`, and `## Notes`, including review feedback if the request was reopened. Summarize it for the developer. Continue with [references/implement.md](references/implement.md) from its Step 2. |
-| `review` or `done` | The implementation is finished, and this worktree should no longer exist. Check that it has no uncommitted changes and no unpushed commits, then remove it as in Step 4 of [references/implement.md](references/implement.md). Point to `/ss-workflow-review` (for `review`) or `/ss-workflow-merge` (for `done`). |
+| `review` or `done` | The implementation is finished, and this worktree should no longer exist. Check that it has no uncommitted changes and no unpushed commits, then remove it as in Step 4 of [references/implement.md](references/implement.md). Point to `/ss-workflow:review` (for `review`) or `/ss-workflow:merge` (for `done`). |
 | No request file, or `draft` / `ready` | This is an anomaly. See [references/anomalies.md](references/anomalies.md). |

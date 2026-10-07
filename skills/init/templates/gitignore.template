@@ -1,5 +1,5 @@
 # --- ss-workflow (required; keep this block) ---
-# Request worktrees created by /ss-workflow-check-req
+# Request worktrees created by /ss-workflow:check-req
 .claude/worktrees/
 # Personal Claude Code settings
 .claude/settings.local.json

@@ -33,15 +33,15 @@ ss-workflow/
 │   ├── marketplace.json
 │   └── plugin.json          (version 為唯一版本來源)
 └─ skills/
-    ├── ss-workflow-init/
+    ├── init/
     │   ├── SKILL.md
     │   ├── templates/       (AGENTS.md, CLAUDE.md, README.md, .gitignore ... 範本)
     │   └── references/      (gitflow 規則, commit 格式, request 格式)
-    ├── ss-workflow-new-req/SKILL.md
-    ├── ss-workflow-check-req/SKILL.md
-    ├── ss-workflow-review/SKILL.md
-    ├── ss-workflow-merge/SKILL.md
-    └── ss-workflow-release/SKILL.md
+    ├── new-req/SKILL.md
+    ├── check-req/SKILL.md
+    ├── review/SKILL.md
+    ├── merge/SKILL.md
+    └── release/SKILL.md
 ```
 
 - 安裝: developer 執行 `/plugin marketplace add <ss-workflow repo>` 後安裝 plugin
@@ -51,9 +51,9 @@ ss-workflow/
 - 團隊自動帶入: init 時在目標專案的 `.claude/settings.json` 寫入 `extraKnownMarketplaces` 與 `enabledPlugins`，其他成員 clone 並 trust 專案後會被提示安裝
 - 專案文件版本: plugin 會自動更新，但專案內由範本產生的文件 (CLAUDE.md, AGENTS.md ...) 不會
   - init 時在 root `AGENTS.md` 記錄 `ss-workflow-version`
-  - 重跑 `/ss-workflow-init` 時比對此值與 plugin 版本，較舊則 migrate 範本產生的檔案
+  - 重跑 `/ss-workflow:init` 時比對此值與 plugin 版本，較舊則 migrate 範本產生的檔案
 
-## skill: `/ss-workflow-init`
+## skill: `/ss-workflow:init`
 
 這個 skill 會將目前的目錄初始化，其中包含:
     - 建立工作流所需的檔案結構；若是已有專案的目錄，一樣轉換成工作流的檔案結構
@@ -84,7 +84,7 @@ ss-workflow/
 - merge 方式 (`merge-method`): 每次詢問 / local merge / 發 merge-request
 - 現有專案: 說明轉換的方法，由 developer 確認或答覆需調整的部分
 
-問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的 `verify-command` (`/ss-workflow-review` 在 build 與測試之後額外執行的驗證 script)，init 不詢問，由 developer 需要時自行填入
+問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的 `verify-command` (`/ss-workflow:review` 在 build 與測試之後額外執行的驗證 script)，init 不詢問，由 developer 需要時自行填入
 
 轉換既有專案時，是否把程式碼搬進標準結構由 developer 決定；許多 toolchain 依賴檔案位置，這時可以選擇「維持現有結構」，只加入工作流需要的檔案
 
@@ -157,19 +157,19 @@ repo/
 
 | 階段 | 位置 | skill |
 |------|------|-------|
-| 規格討論 | 根目錄，`req/REQ-xxxx-<slug>` branch | `/ss-workflow-new-req` |
-| 實作 | worktree，request branch | `/ss-workflow-check-req` |
-| Verify (跑 build / Test 專案 / script) 與 Review (人工驗證) | 根目錄，checkout request branch | `/ss-workflow-review` |
-| 結案 (merge) | 根目錄 | `/ss-workflow-merge` |
+| 規格討論 | 根目錄，`req/REQ-xxxx-<slug>` branch | `/ss-workflow:new-req` |
+| 實作 | worktree，request branch | `/ss-workflow:check-req` |
+| Verify (跑 build / Test 專案 / script) 與 Review (人工驗證) | 根目錄，checkout request branch | `/ss-workflow:review` |
+| 結案 (merge) | 根目錄 | `/ss-workflow:merge` |
 
   - 在 worktree 上跑 script 或執行檔的限制較多，所以 worktree 只寫程式並嘗試編譯，不跑測試、script、執行檔
-  - AI 完成實作後直接刪除 worktree，但保留 branch；request 停在 `review` 狀態，由 developer 觸發 `/ss-workflow-review` 才開始 Verify 與 Review
-  - developer 執行 `/ss-workflow-merge` 就算結案
+  - AI 完成實作後直接刪除 worktree，但保留 branch；request 停在 `review` 狀態，由 developer 觸發 `/ss-workflow:review` 才開始 Verify 與 Review
+  - developer 執行 `/ss-workflow:merge` 就算結案
   - 根目錄一次只能做一件事 (規格討論 / review / merge / release)；skill 切換根目錄的 branch 前，先確認它在 develop 且沒有未 commit 的變更，完成後切回 develop
 
 - 檔名: `REQ-<4 位流水號>-<yyyyMMdd>-<slug>.md`，e.g. `REQ-0012-20260907-gui-button.md`
   - 流水號取「使用中的最大號 + 1」；使用中 = develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 local / remote 上名稱含該編號的 branch (`req/REQ-0012-…`、`feat/REQ-0012-…`)
-- 未完成的 request 放在 `reqs/`；完成 (`done`) 後由 `/ss-workflow-merge` 以 `git mv` 移到 `reqs/done/`
+- 未完成的 request 放在 `reqs/`；完成 (`done`) 後由 `/ss-workflow:merge` 以 `git mv` 移到 `reqs/done/`
 - YAML frontmatter 為狀態的唯一來源:
 
 ```markdown
@@ -194,11 +194,11 @@ created: 2026-09-07
 
 | status        | 意義                                         | 該狀態的檔案在哪個 branch            | 誰設定 |
 |---------------|----------------------------------------------|--------------------------------------|--------|
-| `draft`       | 規格討論中                                   | `req/REQ-…` branch (根目錄)          | `/ss-workflow-new-req` |
-| `ready`       | developer 確認規格，等待認領                 | develop (`req/` branch merge 之後)   | `/ss-workflow-new-req` |
-| `in-progress` | 已認領，在 worktree 實作中                   | request branch                       | `/ss-workflow-check-req` |
-| `review`      | 實作完成、worktree 已刪除、branch 保留；等待或正在 Verify 與 Review | request branch | `/ss-workflow-check-req` 設定，`/ss-workflow-review` 處理 |
-| `done`        | 已關閉，檔案在 `reqs/done/`                  | request branch 的最後一個 commit (merge 前) | `/ss-workflow-merge` |
+| `draft`       | 規格討論中                                   | `req/REQ-…` branch (根目錄)          | `/ss-workflow:new-req` |
+| `ready`       | developer 確認規格，等待認領                 | develop (`req/` branch merge 之後)   | `/ss-workflow:new-req` |
+| `in-progress` | 已認領，在 worktree 實作中                   | request branch                       | `/ss-workflow:check-req` |
+| `review`      | 實作完成、worktree 已刪除、branch 保留；等待或正在 Verify 與 Review | request branch | `/ss-workflow:check-req` 設定，`/ss-workflow:review` 處理 |
+| `done`        | 已關閉，檔案在 `reqs/done/`                  | request branch 的最後一個 commit (merge 前) | `/ss-workflow:merge` |
 
 - draft 只存在 `req/` branch 上，develop 上只有 developer 確認過的 request
 - 有效狀態: develop 上的檔案在 merge 前一直顯示 `ready`；request branch 上的檔案才是目前的狀態 (`in-progress` / `review` / `done`)
@@ -240,7 +240,7 @@ created: 2026-09-07
 
 - 若是專案為 library，會建立 sample / demo 專案，展示如何使用 library，也是一種 GUI 測試
 
-## skill: `/ss-workflow-new-req`
+## skill: `/ss-workflow:new-req`
 
 建立新需求使用，使用者可利用此 skill + .md file 建立新需求，也可單獨輸入此 skill，skill 會引導建立 new request
 
@@ -254,15 +254,15 @@ created: 2026-09-07
   - developer 答不出來時: AI 提出預設值與理由，developer 接受後寫入 Spec，並在 `## Notes` 記為 Assumption，留待 Review 再確認；不留在 Open questions，也不自行默默決定
 - developer 確認規格沒有問題後，將 status 改為 `ready`，把 `req/` branch `--no-ff` merge 回 develop 並刪除該 branch；之後由其他 session 認領
   - `merge-method` 為 `remote` 或 develop 不允許直接 push 時，改發 merge-request
-  - 保留 draft: commit + push 後根目錄切回 develop，`req/` branch 留著；之後用 `/ss-workflow-new-req REQ-xxxx` 接續
+  - 保留 draft: commit + push 後根目錄切回 develop，`req/` branch 留著；之後用 `/ss-workflow:new-req REQ-xxxx` 接續
   - 捨棄: 刪除 `req/` branch，develop 上不留任何痕跡
 - 一個 `req/` branch 只處理一個 request；輸入包含多個可獨立實作的需求時，提議拆開並依序處理；與既有 request 重複時先提醒
 - 此 skill 只寫 request，不實作
-- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow-merge`)，規格討論一樣走 `req/` branch 並 merge 回 develop
+- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow:merge`)，規格討論一樣走 `req/` branch 並 merge 回 develop
 
-## skill: `/ss-workflow-check-req`
+## skill: `/ss-workflow:check-req`
 
-只負責總覽、認領與實作；Verify 與 Review 由 `/ss-workflow-review` 處理
+只負責總覽、認領與實作；Verify 與 Review 由 `/ss-workflow:review` 處理
 
 - 在根目錄執行 (根目錄在哪個 branch 都可以，不需要切到 develop): 總覽 + 認領
   - 不 checkout 任何東西，透過 `origin/develop` (無 remote 時為 `develop`) 與各 branch 讀取 request 檔
@@ -285,12 +285,12 @@ created: 2026-09-07
   - 規格不清楚或有誤時停下來問，不自行猜測；規格異動要更新 `## Spec` 並在 `## Notes` 記錄原因
   - 每個 commit 帶 `Refs: REQ-xxxx` 並 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary (改了什麼、worktree 內 build 結果、Verify 要跑什麼、Review 要人工看什麼)
-  - 交付: status 改為 `review` 並 push → 確認沒有未 commit / 未 push 的內容 → 刪除 worktree、保留 branch → 提示 `/ss-workflow-review REQ-xxxx`
+  - 交付: status 改為 `review` 並 push → 確認沒有未 commit / 未 push 的內容 → 刪除 worktree、保留 branch → 提示 `/ss-workflow:review REQ-xxxx`
 - hotfix request
   - branch 為 `hotfix/v<version>`，從 master 開，一樣在 worktree 實作
   - master 上沒有 request 檔，所以認領 commit 會把 request 檔從 develop 複製到 hotfix branch，之後狀態都記在 hotfix branch 上
 
-## skill: `/ss-workflow-review`
+## skill: `/ss-workflow:review`
 
 由 developer 觸發，在根目錄對一個 `review` 狀態的 request 做 Verify 與 Review；不會 merge
 
@@ -298,7 +298,7 @@ created: 2026-09-07
 - 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在該 request branch 上 (接續 review)
 - 根目錄在 request branch 上，但 request 檔的 status 不是 `review` (e.g. 退回重做或 merge 做到一半被中斷、手動 checkout): 屬於未定義的狀態，回報 branch、status、可能原因與未 commit 的變更，由 developer 選擇
   - 重新開始 review: status 改回 `review` (檔案在 `reqs/done/` 時先移回 `reqs/`)，Verify 與 Review 從頭執行
-  - merge 回 develop (hotfix 為 master 與 develop): status 不是 `done` 時先改為 `review`，根目錄留在該 branch，交給 `/ss-workflow-merge`
+  - merge 回 develop (hotfix 為 master 與 develop): status 不是 `done` 時先改為 `review`，根目錄留在該 branch，交給 `/ss-workflow:merge`
   - 兩者都不選: 不做任何變更並停止
 - 流程
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
@@ -312,10 +312,10 @@ created: 2026-09-07
      - Review 期間 developer 也可以隨時要求執行
   5. Review: 列出需要人工確認的項目，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
   6. 詢問結果
-     - Review 通過: 其餘 criteria 打勾、記錄結果、根目錄切回 develop，提示 `/ss-workflow-merge REQ-xxxx` 結案
+     - Review 通過: 其餘 criteria 打勾、記錄結果、根目錄切回 develop，提示 `/ss-workflow:merge REQ-xxxx` 結案
      - 小修: 直接在根目錄的 request branch 上修正並 commit，重跑 Verify
-     - 需要大改: feedback 寫入 `## Notes`、status 退回 `in-progress`、根目錄切回 develop，提示 `/ss-workflow-check-req REQ-xxxx` 在 worktree 繼續
-     - 還在 review: 保留根目錄在 request branch 上，之後再下一次 `/ss-workflow-review` 接續
+     - 需要大改: feedback 寫入 `## Notes`、status 退回 `in-progress`、根目錄切回 develop，提示 `/ss-workflow:check-req REQ-xxxx` 在 worktree 繼續
+     - 還在 review: 保留根目錄在 request branch 上，之後再下一次 `/ss-workflow:review` 接續
 - 原則
   - 失敗或跳過的檢查不會記成通過；Review 是否通過只由 developer 決定
   - Verify 失敗時區分小問題 (當場修)、大問題 (退回) 與環境問題 (如實回報)；無法判斷時詢問 developer
@@ -327,7 +327,7 @@ created: 2026-09-07
     - Verify 只有在乾淨的工作目錄上跑才算數；最後一次 Verify 之後有改到 `reqs/` 以外檔案的 commit 時，要重跑 Verify 才能記 Review 通過
     - 切回 develop 前 `git status --porcelain` 必須是空的 (含 untracked)
 
-## skill: `/ss-workflow-merge`
+## skill: `/ss-workflow:merge`
 
 本工作流 git 遵循 gitflow 流程，有不同形態的 branch (worktree)
 若發現有 remote 端: e.g. github, gitlab，讓使用者選擇是否要發 merge-request 到 remote，由 remote 端 merge；對應到此，在 merge 之前都要先去 fetch remote，並用 `gh pr view` / `glab mr view` 檢查，因為有可能是已經發過 merge-request，也合併完了
@@ -337,14 +337,14 @@ created: 2026-09-07
 
 - 共通規則
   - 在根目錄執行 (不在 worktree)；會在 target branch / develop / master 之間切換，結束時停在 develop
-  - request 的 `## Notes` 內沒有通過的 Review 或 Verify 結果時先提醒，由 developer 決定先跑 `/ss-workflow-review` 或直接 merge
-  - `req/` branch 不由此 skill 處理 (由 `/ss-workflow-new-req` 在規格確認時 merge)
+  - request 的 `## Notes` 內沒有通過的 Review 或 Verify 結果時先提醒，由 developer 決定先跑 `/ss-workflow:review` 或直接 merge
+  - `req/` branch 不由此 skill 處理 (由 `/ss-workflow:new-req` 在規格確認時 merge)
   - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
   - 一律 `--no-ff`，不 squash、不 rebase 已 push 的 branch、不 force-push
   - merge commit message: `Merge <source> into <target>` (不套用 `<type>(<scope>)` 格式)，body 帶 request title 與 `Refs: REQ-xxxx`
   - 根目錄有未 commit 的變更，或正忙著別的事 (在 `req/` branch 或其他 request branch 上) 時停止
   - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
-  - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow-merge` 收尾 (刪除 branch)
+  - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow:merge` 收尾 (刪除 branch)
   - 放棄 request: 透過一個短暫的 `req/REQ-<id>-drop` branch 把 request 標為 `done` 並註明原因，merge 回 develop；request branch 有未合併的 commit，需另外確認才刪除
 
 - request
@@ -355,7 +355,7 @@ created: 2026-09-07
   - 只 merge 有效狀態為 `review` 的 request
   - merge 前先把 develop 的新 commit merge 進 request branch，在 branch 上解衝突；有 merge 進新 commit 時重新跑 build + test (+ `verify-command`)
   - 關閉 request (status 改為 `done`、`git mv` 到 `reqs/done/`) 是 request branch 上的最後一個 commit，隨著 merge 一起進 develop
-    - 發 merge-request 的情況下，branch 上為 `done` 但尚未合併 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow-review REQ-xxxx` 重新開啟並繼續 review
+    - 發 merge-request 的情況下，branch 上為 `done` 但尚未合併 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow:review REQ-xxxx` 重新開啟並繼續 review
 
 - release
   - 會從 develop 開分支出去，完成後 merge 回 master 與 develop
@@ -365,12 +365,12 @@ created: 2026-09-07
   - merge 前檢查: version-source 的版本與 branch 相符、tag 尚未存在、build + test 通過
   - push master 與 tag 等於對外釋出，push 前再確認一次，並用 `git push --atomic` 一次推送 master / develop / tag
   - 完成後可選擇是否在平台上建立 release (`gh release create` / `glab release create`)
-  - release 流程使用 `/ss-workflow-release`
+  - release 流程使用 `/ss-workflow:release`
 
 - hotfix
   - 會從 master 開分支出去，完成後 merge 回 master 與 develop
   - branch name 範例: hotfix/v1.0.1
-  - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow-check-req` 認領)，Verify / Review / merge 一樣在根目錄
+  - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 認領)，Verify / Review / merge 一樣在根目錄
   - 合併回 master 後，依照 branch name 建立 tag: e.g. v1.0.1
   - merge 回 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
   - 若有進行中的 release branch，詢問是否也 merge 進去
@@ -378,12 +378,12 @@ created: 2026-09-07
 
 - master (持續存在)
   - 主要是在有新版要釋出時，才會有新的 commit
-  - 例外: v1.0.0 釋出之前為快速疊代期，允許 develop 直接 merge 到 master，並建立 `v0.x.y` tag (由 `/ss-workflow-merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
+  - 例外: v1.0.0 釋出之前為快速疊代期，允許 develop 直接 merge 到 master，並建立 `v0.x.y` tag (由 `/ss-workflow:merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
 
 - develop (持續存在)
   - 主要是開發 branch，所有變動大部分都會在這邊
 
-## skill: `/ss-workflow-release`
+## skill: `/ss-workflow:release`
 
 - 若 developer 在 develop branch 使用此 skill，則表示想釋出新版本
   - 檢查適合的版本號推薦給使用者 (依上一個 tag 與 develop 上的 commit type)，使用者同意後，從 develop 建立 release branch
@@ -391,7 +391,7 @@ created: 2026-09-07
     - 若不同意，先處理完需求， developer 要在 release branch 再下一次此 skill
   - 若同意 release ，則去檢查 `version-source` (以及「Toolchain」章節列出的其他位置、source / samples / tests 內另外設定版本的地方) 的版本號是否與 release branch 相符
     - 若不相符作相對應的修改並 commit
-  - 若相符則直接啟用 release merge 規則 (見 `/ss-workflow-merge`)
+  - 若相符則直接啟用 release merge 規則 (見 `/ss-workflow:merge`)
 - 若在 release branch 上使用此 skill，表示接續先前的 release
   - develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否納入這次 release
 - 一次只進行一個 release；已有 release branch 時不再建立新的
@@ -407,7 +407,7 @@ created: 2026-09-07
   - 1.0.0 以下: breaking 與 `feat` → MINOR、其他 → PATCH；升到 1.0.0 由 developer 決定，不主動推薦
   - 上一個 tag 是 prerelease (e.g. `1.0.0-beta1`): 候選為同階段的下一個 (`beta2`) / 下一階段的第一個 (`rc1`) / 正式版
   - 上一個 tag 是正式版: 推薦正式版，另提供 prerelease 作為替代，階段由 developer 選擇 (`alpha1` / `beta1` / `rc1` 都可以)
-  - 可直接帶版本號 `/ss-workflow-release 1.0.0-beta1` 跳過推薦
+  - 可直接帶版本號 `/ss-workflow:release 1.0.0-beta1` 跳過推薦
 - 未完成工作的判定
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及未合併的 hotfix
   - 尚未開始 (`req/` branch 上的 draft、`ready`): 只列出，不阻擋 release

@@ -28,7 +28,7 @@ Normal states, for comparison:
 | A worktree has uncommitted changes | A session was interrupted in the middle of the work | Do not touch them. Report them. The developer resumes with this skill inside that worktree. |
 | Two request branches contain the same `REQ-<id>` | Two claims raced, or a branch was created by hand | Show both with their commits. Ask which one is the real one. Delete the other only with explicit approval if it has commits. |
 | A branch named `<type>/REQ-xxxx-…` exists, but no request on `develop` has that id | The request was never approved, or the branch was created by hand | Report it. Ask whether to link it to a request or to delete it. Never delete a branch that has unmerged commits without explicit approval. |
-| The root checkout is on a request branch whose request file says `review` or `done`, and nobody is reviewing or merging | A review was paused or interrupted, or a merge stopped after it closed the request | Report it. `/ss-workflow-review` continues a review, and `/ss-workflow-merge` continues a merge. To free the root checkout, the developer switches it back to `develop` once it has no uncommitted changes. |
+| The root checkout is on a request branch whose request file says `review` or `done`, and nobody is reviewing or merging | A review was paused or interrupted, or a merge stopped after it closed the request | Report it. `/ss-workflow:review` continues a review, and `/ss-workflow:merge` continues a merge. To free the root checkout, the developer switches it back to `develop` once it has no uncommitted changes. |
 | The root checkout is on a request branch whose request file says `in-progress` or `ready` | A review sent the request back for rework, or a claim was interrupted, and the root checkout was not switched back to `develop`. Or the branch was checked out by hand. | Git cannot create a worktree for a branch that the root checkout is on, so apply this repair before any repair or step that creates the worktree. Check that `git status --porcelain` shows no changes to tracked files in the root checkout. If it does, report them, and do not switch. Otherwise, after the developer approves: `git checkout develop` in the root checkout. The request is then an ordinary `in-progress` request without a worktree (or an interrupted claim), and the rows above apply. |
 
 ## Draft problems
@@ -36,7 +36,7 @@ Normal states, for comparison:
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
 | A `req/REQ-…` branch whose request is already on `develop` | The branch was merged, but not deleted | Delete the branch locally and on the remote. |
-| A `req/` branch without commits of its own, or without a request file | The session stopped right after creating the branch | Ask whether to continue the draft with `/ss-workflow-new-req REQ-xxxx`, or to delete the branch. |
+| A `req/` branch without commits of its own, or without a request file | The session stopped right after creating the branch | Ask whether to continue the draft with `/ss-workflow:new-req REQ-xxxx`, or to delete the branch. |
 | A `req/` branch that has not changed for a long time | The discussion was paused | Report it only. The developer decides whether to continue or to discard it. |
 | A request file with `status: draft` on `develop` | The `req/` branch was merged before the approval | Ask whether the spec is approved. If yes, set `ready` through a new `req/` branch. If not, the discussion continues the same way. |
 
@@ -44,16 +44,16 @@ Normal states, for comparison:
 
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
-| The request branch is merged into `develop`, but the request is not `done`, or its file is not in `reqs/done/` | It was merged by hand, or on the remote before it was closed | Point to `/ss-workflow-merge`. It detects the finished merge and closes the request. |
+| The request branch is merged into `develop`, but the request is not `done`, or its file is not in `reqs/done/` | It was merged by hand, or on the remote before it was closed | Point to `/ss-workflow:merge`. It detects the finished merge and closes the request. |
 | `done` on the request branch, and the branch is not merged | Not an anomaly: the merge is pending on the remote | Show it as "merge pending" with the merge request URL. No repair. |
-| `status: done`, but the file is still in `reqs/` | The close step was interrupted | Point to `/ss-workflow-merge`, which finishes the close step. |
-| A file in `reqs/done/` with a status other than `done` | The file was moved by hand | Ask which one is right, the location or the status. The fix is made on the request branch if it still exists, otherwise through `/ss-workflow-merge`. |
+| `status: done`, but the file is still in `reqs/` | The close step was interrupted | Point to `/ss-workflow:merge`, which finishes the close step. |
+| A file in `reqs/done/` with a status other than `done` | The file was moved by hand | Ask which one is right, the location or the status. The fix is made on the request branch if it still exists, otherwise through `/ss-workflow:merge`. |
 | `review`, and the branch has code commits after the commit that marked it for review | Fixes were made during a review. This is normal while a review is open. | Report it only. |
 
 ## File problems
 
 Request files on `develop` are changed through a `req/` branch
-(`/ss-workflow-new-req REQ-xxxx`). Files of claimed requests are changed on their
+(`/ss-workflow:new-req REQ-xxxx`). Files of claimed requests are changed on their
 request branch.
 
 | Symptom | Repair |
@@ -67,5 +67,5 @@ request branch.
 
 | Symptom | Repair |
 |---------|--------|
-| A worktree whose branch is merged | Remove it: `git worktree remove <path>`. `/ss-workflow-merge` deletes the branch. |
+| A worktree whose branch is merged | Remove it: `git worktree remove <path>`. `/ss-workflow:merge` deletes the branch. |
 | A worktree on a branch that no request refers to | Report it. It may be the developer's own worktree, so leave it alone unless they ask. |

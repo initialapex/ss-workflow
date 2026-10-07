@@ -1,10 +1,10 @@
 ---
-name: ss-workflow-merge
+name: merge
 description: Close a reviewed request by merging its branch into develop, or merge a release or hotfix branch into the main branch and develop with a tag, following the gitflow rules of an ss-workflow repository. Also finishes a merge that already happened on the remote (closes the request, deletes the branches) and closes a dropped request. Use when the developer says a request is reviewed and should be merged or closed, asks to merge a release or hotfix, or asks to clean up after a merge request was merged.
 argument-hint: "[REQ-id | branch]"
 ---
 
-# ss-workflow-merge
+# merge
 
 Merge one branch according to its kind, then clean up. For a request, running this
 skill is the developer's sign-off: the request is closed.
@@ -17,7 +17,7 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx` or a branch name)
 | `release/v…` | main branch and `develop`, plus a tag | [references/release.md](references/release.md) |
 | `hotfix/v…` | main branch and `develop`, plus a tag | [references/hotfix.md](references/hotfix.md) |
 
-`req/*` branches are not merged here. `/ss-workflow-new-req` merges them when the
+`req/*` branches are not merged here. `/ss-workflow:new-req` merges them when the
 developer approves the spec.
 
 ## Ground rules
@@ -31,9 +31,9 @@ developer approves the spec.
   `develop`.
 - A request or a hotfix must have the effective status `review`, or must already be
   closed on its branch by an earlier run of this skill (merge pending). If it is
-  `in-progress`, stop and point to `/ss-workflow-check-req`.
+  `in-progress`, stop and point to `/ss-workflow:check-req`.
 - If the request's `## Notes` has no passed Review, or no Verify result, say so. Ask
-  the developer whether to run `/ss-workflow-review` first, or to merge anyway. The
+  the developer whether to run `/ss-workflow:review` first, or to merge anyway. The
   developer may merge without a review, but must decide it knowingly.
 - Always merge with `--no-ff`, so that every request, release, and hotfix stays visible
   as one merge commit. Never squash. Never rebase a pushed branch. Never force-push.
@@ -58,7 +58,7 @@ developer approves the spec.
 ## Step 1: Preconditions and target
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and point to
-   `/ss-workflow-init`.
+   `/ss-workflow:init`.
 2. If this is a linked worktree, stop. Explain that merges run in the root checkout.
 3. `git status --porcelain` must show no changes to tracked files. If it does, stop
    and report them.
@@ -142,8 +142,8 @@ Tell the developer, in `discussion-language`:
 - What was pushed
 - What was cleaned up, and anything that could not be removed
 - That the root checkout is on `develop`
-- The next step: other requests waiting for `/ss-workflow-review`,
-  `/ss-workflow-check-req` for the next request, or `/ss-workflow-release` when it is
+- The next step: other requests waiting for `/ss-workflow:review`,
+  `/ss-workflow:check-req` for the next request, or `/ss-workflow:release` when it is
   time to release
 
 ## Closing a dropped request

@@ -15,7 +15,7 @@ written in the `reqs-language` from root `AGENTS.md`.
     it (`req/REQ-0012-…`, `feat/REQ-0012-…`).
   - **date**: the creation date.
   - **slug**: short, lowercase, kebab-case, in English.
-- When a request is closed, `/ss-workflow-merge` moves its file to `reqs/done/` with
+- When a request is closed, `/ss-workflow:merge` moves its file to `reqs/done/` with
   `git mv`. The file name does not change.
 <!-- /ss-workflow:managed -->
 
@@ -63,11 +63,11 @@ The frontmatter is the only source of truth for a request's state.
 
 | Status | Meaning | Where the work happens | The file with this status is on | Set by |
 |--------|---------|------------------------|---------------------------------|--------|
-| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | The `req/` branch | `/ss-workflow-new-req` |
-| `ready` | The developer approved the spec; waiting to be claimed | (nothing) | `develop`, after the `req/` branch is merged | `/ss-workflow-new-req` |
-| `in-progress` | Claimed; being implemented | A worktree, on the request branch | The request branch | `/ss-workflow-check-req` |
-| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | The request branch | `/ss-workflow-check-req` sets it; `/ss-workflow-review` works on it |
-| `done` | Closed; the file is in `reqs/done/` | Root checkout | The request branch, as its last commit before the merge | `/ss-workflow-merge` |
+| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | The `req/` branch | `/ss-workflow:new-req` |
+| `ready` | The developer approved the spec; waiting to be claimed | (nothing) | `develop`, after the `req/` branch is merged | `/ss-workflow:new-req` |
+| `in-progress` | Claimed; being implemented | A worktree, on the request branch | The request branch | `/ss-workflow:check-req` |
+| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | The request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it |
+| `done` | Closed; the file is in `reqs/done/` | Root checkout | The request branch, as its last commit before the merge | `/ss-workflow:merge` |
 
 Terms:
 
@@ -94,11 +94,11 @@ Rules:
 - In a worktree, the agent writes code and may try to compile it. It does not run
   tests, scripts, or executables there. Those belong to Verify, in the root checkout.
 - When the implementation is finished, the worktree is removed and the branch is kept.
-  The request waits in `review` until the developer starts `/ss-workflow-review`.
+  The request waits in `review` until the developer starts `/ss-workflow:review`.
 - Small fixes found during Verify or Review are made in the root checkout, on the
   request branch. If the request needs larger rework, it goes back to `in-progress`
   and is implemented in a worktree again.
-- A request is closed when the developer runs `/ss-workflow-merge`.
+- A request is closed when the developer runs `/ss-workflow:merge`.
 - A request that is `done` on its branch while the branch is not merged yet is
   waiting for its merge request on the remote ("merge pending").
 - `type: hotfix` requests use the branch `hotfix/v<version>`, created from the main

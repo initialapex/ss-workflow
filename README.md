@@ -77,39 +77,39 @@ Replace `<owner>/ss-workflow` with the GitHub repository, or use the full git UR
 another host.
 
 > [!TIP]
-> To let everyone who works in a project get the plugin, `/ss-workflow-init` can
+> To let everyone who works in a project get the plugin, `/ss-workflow:init` can
 > register the marketplace in the project's `.claude/settings.json`.
 
 ### Quick start
 
 ```text
-/ss-workflow-init                      set up the repository (answer the questions)
-/ss-workflow-new-req add a dark theme  create a request and agree on its spec
-/ss-workflow-check-req                 claim it and implement it in a worktree
-/ss-workflow-review                    verify it and review it in the root checkout
-/ss-workflow-merge                     accept it: close it and merge it into develop
-/ss-workflow-release                   release a new version
+/ss-workflow:init                      set up the repository (answer the questions)
+/ss-workflow:new-req add a dark theme  create a request and agree on its spec
+/ss-workflow:check-req                 claim it and implement it in a worktree
+/ss-workflow:review                    verify it and review it in the root checkout
+/ss-workflow:merge                     accept it: close it and merge it into develop
+/ss-workflow:release                   release a new version
 ```
 
 ## Skills
 
 | Skill | When to use it | Where it runs | What it does |
 |-------|----------------|---------------|--------------|
-| `/ss-workflow-init` | Once per repository, and again after a plugin update | Root checkout | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
-| `/ss-workflow-new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
-| `/ss-workflow-check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; a worktree for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branch and worktree, and implements it. Then it marks the request for review and removes the worktree. |
-| `/ss-workflow-review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
-| `/ss-workflow-merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
-| `/ss-workflow-release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
+| `/ss-workflow:init` | Once per repository, and again after a plugin update | Root checkout | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
+| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
+| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; a worktree for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branch and worktree, and implements it. Then it marks the request for review and removes the worktree. |
+| `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
+| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
+| `/ss-workflow:release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
 
 > [!NOTE]
 > The root checkout is the repository's primary working tree. Tests, scripts, and
 > executables only run there. In a worktree, the agent writes code and tries to compile
 > it, because running things in a worktree is more restricted.
 
-Each skill belongs to the `ss-workflow` plugin, so its full name is
-`/ss-workflow:ss-workflow-init`, and so on. Claude Code also accepts the short name
-shown above when no other skill uses it.
+Each skill belongs to the `ss-workflow` plugin, so its name starts with
+`/ss-workflow:`. Always type that prefix. The names after it are short and common,
+and some of them, such as `/init`, are also Claude Code's own commands.
 
 ## How a request moves
 
@@ -124,11 +124,11 @@ flowchart LR
 
 | Status | Meaning | Where the work happens | Set by |
 |--------|---------|------------------------|--------|
-| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow-new-req` |
-| `ready` | You approved the spec; the request is on `develop` and waits to be claimed | (nothing) | `/ss-workflow-new-req` |
-| `in-progress` | Claimed; being implemented | A worktree, on the request branch | `/ss-workflow-check-req` |
-| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | `/ss-workflow-check-req`, then `/ss-workflow-review` |
-| `done` | Closed; the file is in `reqs/done/` | Root checkout | `/ss-workflow-merge` |
+| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
+| `ready` | You approved the spec; the request is on `develop` and waits to be claimed | (nothing) | `/ss-workflow:new-req` |
+| `in-progress` | Claimed; being implemented | A worktree, on the request branch | `/ss-workflow:check-req` |
+| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | `/ss-workflow:check-req`, then `/ss-workflow:review` |
+| `done` | Closed; the file is in `reqs/done/` | Root checkout | `/ss-workflow:merge` |
 
 A request is one Markdown file, `reqs/REQ-0012-20260907-gui-button.md`. Its YAML
 frontmatter is the only place that holds its state, and your original text is kept
@@ -139,11 +139,11 @@ unchanged in its `## Original` section.
   two sessions cannot claim the same request.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
-- You can change code by hand during a review. `/ss-workflow-review` lists every
+- You can change code by hand during a review. `/ss-workflow:review` lists every
   uncommitted change, new files included, and asks you what each one is: part of the
   request (committed), a generated file (added to `.gitignore`), or unwanted
   (discarded). A Verify result only counts when it ran on a clean working tree.
-- A code review is optional. `/ss-workflow-review` offers it after Verify passed, and
+- A code review is optional. `/ss-workflow:review` offers it after Verify passed, and
   runs Claude Code's `/code-review` on the changes of the request only
   (`origin/develop...<request branch>`). You can also ask for it later in the same
   review. Its result is recorded in the request's `## Notes`.
@@ -216,7 +216,7 @@ installed version.
 
 > [!IMPORTANT]
 > A plugin update does not change the files that init generated in your project. After
-> an update, run `/ss-workflow-init` in the project again. It compares the
+> an update, run `/ss-workflow:init` in the project again. It compares the
 > `ss-workflow-version` recorded in the root `AGENTS.md` with the plugin version, and
 > updates only the blocks marked `<!-- ss-workflow:managed -->`. Your own text outside
 > those blocks stays as it is.
@@ -228,12 +228,12 @@ installed version.
 ├─ plugin.json               plugin manifest; "version" is the single version source
 └─ marketplace.json          makes this repository its own marketplace
 skills/
-├─ ss-workflow-init/         SKILL.md, references/, templates/
-├─ ss-workflow-new-req/      SKILL.md
-├─ ss-workflow-check-req/    SKILL.md, references/
-├─ ss-workflow-review/       SKILL.md
-├─ ss-workflow-merge/        SKILL.md, references/
-└─ ss-workflow-release/      SKILL.md, references/
+├─ init/                     SKILL.md, references/, templates/
+├─ new-req/                  SKILL.md
+├─ check-req/                SKILL.md, references/
+├─ review/                   SKILL.md
+├─ merge/                    SKILL.md, references/
+└─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
