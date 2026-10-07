@@ -2,7 +2,7 @@
 
 A `release/v<version>` branch merges into the main branch and into `develop`, and the
 merge commit on the main branch gets the tag `v<version>`. Release branches have no
-worktree: all of this runs in the main checkout.
+worktree: all of this runs in the root checkout.
 
 `/ss-workflow-release` prepares the branch (the version number, the open-request
 check). This guide only merges it.
@@ -11,7 +11,7 @@ check). This guide only merges it.
 
 1. The tag name is the branch name without `release/`, for example `v1.0.0-beta1`.
    The version is the tag name without the `v`.
-2. The main checkout is on the release branch, and `git status --porcelain` is empty.
+2. The root checkout is on the release branch, and `git status --porcelain` is empty.
 3. `version-source` contains exactly this version. If it does not, stop and point to
    `/ss-workflow-release`.
 4. The tag does not exist yet: check `git tag -l <tag>`, and with a remote
@@ -78,7 +78,7 @@ check). This guide only merges it.
    - The tag exists, and points to a commit on the main branch.
 2. Run the shared clean-up (Step 5 of the skill). There is no worktree. Delete the
    local and the remote release branch.
-3. Leave the main checkout on `develop`.
+3. Leave the root checkout on `develop`.
 4. Offer to create a release on the platform from the tag, and do it only if the
    developer agrees:
    - GitHub: `gh release create <tag> --generate-notes`, with `--prerelease` when the
@@ -91,7 +91,7 @@ Before v1.0.0, the root `AGENTS.md` allows merging `develop` straight into the m
 branch. Offer this only when the version in `version-source` is below `1.0.0` and the
 developer asks for it.
 
-1. The main checkout is on `develop`, is clean, and the build and the tests pass.
+1. The root checkout is on `develop`, is clean, and the build and the tests pass.
 2. Ask whether to tag this state. The tag is `v` plus the version in `version-source`.
    If that tag already exists, the version must be raised first: point to
    `/ss-workflow-release`.

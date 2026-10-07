@@ -13,9 +13,9 @@ Input: `$ARGUMENTS` (optional version; skips the recommendation)
 
 | Where | What it does |
 |-------|--------------|
-| `develop`, main checkout | Start a release: Steps 1 to 4, then continue with Step 5 |
-| A `release/*` branch | Continue the release from Step 5 |
-| Anywhere else | Explain where this skill runs, and stop |
+| `develop`, root checkout | Start a release: Steps 1 to 4, then continue with Step 5 |
+| A `release/*` branch, root checkout | Continue the release from Step 5 |
+| Anywhere else | The root checkout is busy with something else (a `req/*` branch means a spec discussion, a request branch means a review), or this is a worktree. Say which, and stop. |
 
 Supporting file:
 
@@ -27,7 +27,7 @@ Supporting file:
 - Read the root `AGENTS.md` ("Workflow settings", "Branching model", "Versioning",
   "Commit convention") and `reqs/AGENTS.md` first. They are the source of truth.
 - Talk to the developer in `discussion-language`.
-- A release branch has no worktree. Everything runs in the main checkout. If this
+- A release branch has no worktree. Everything runs in the root checkout. If this
   session is inside a linked worktree, stop and say so.
 - Only one release at a time. If a `release/*` branch already exists, continue that
   one. Do not start a second one.
@@ -98,16 +98,18 @@ Step 4, there is nothing to do here.
 Collect the following:
 
 - The requests in `reqs/` (not `reqs/done/`), with their effective status. Read the
-  status of a claimed request from its branch, as `/ss-workflow-check-req` does.
-- The worktrees from `git worktree list`, other than the main checkout
+  status of a claimed request from its request branch, as `/ss-workflow-check-req`
+  does in its overview.
+- The drafts: the `req/*` branches
+- The worktrees from `git worktree list`, other than the root checkout
 - Open `hotfix/*` branches
 
 Sort them into two groups:
 
 | Group | Requests |
 |-------|----------|
-| Unfinished | `in-progress`, `review`, and merge pending |
-| Not started | `draft` and `ready` |
+| Unfinished | `in-progress` (being implemented in a worktree, or reopened), `review` (waiting for or under Verify and Review), and merge pending |
+| Not started | Drafts on `req/*` branches, and `ready` requests |
 
 If the "Unfinished" group is empty and there is no open hotfix, continue with Step 7.
 Mention the "Not started" requests only as information: they do not block a release.
@@ -117,7 +119,7 @@ Otherwise, show both groups and ask the developer with AskUserQuestion:
 | Option | Action |
 |--------|--------|
 | Release without them | Continue with Step 7. List these requests in the final report as "not part of this release". |
-| Finish them first | Stop here. Explain the way back: switch the main checkout to `develop` (`git checkout develop`), finish the requests with `/ss-workflow-check-req` and `/ss-workflow-merge`, then run `git checkout release/v<version>` and `/ss-workflow-release` again. Step 5 then offers to include the new commits. |
+| Finish them first | Stop here. Explain the way back: switch the root checkout to `develop` (`git checkout develop`), finish the requests with `/ss-workflow-check-req`, `/ss-workflow-review`, and `/ss-workflow-merge`, then run `git checkout release/v<version>` and `/ss-workflow-release` again. Step 5 then offers to include the new commits. |
 | Cancel the release | Confirm it once more. Then run `git checkout develop`, delete the release branch (`git branch -D`, and `git push origin --delete` with a remote), and stop. |
 
 An open hotfix must be merged before the release: point to `/ss-workflow-merge`, and
