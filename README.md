@@ -8,7 +8,7 @@ project, an ESP32 firmware, or anything else works the same way. Every change st
 implements it in its own git worktree, you verify and review it in the root checkout,
 and skills merge and release it by the same rules every time.
 
-> **Status: 0.1.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.2.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 ## Skills
