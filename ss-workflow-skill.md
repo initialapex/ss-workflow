@@ -80,11 +80,11 @@ repo/
 ├─ .gitignore
 ├─ .claude/
 │   └── settings.json        (extraKnownMarketplaces, enabledPlugins)
-├─ Directory.Build.props     (集中管理版本號)
-├─ VisualStudioSolution.sln
+├─ Directory.Build.props     (集中管理版本號，src / tests / samples 的專案都會繼承)
 ├─ src/ (Source Code 目錄)
 │   ├── CLAUDE.md
 │   ├── AGENTS.md
+│   ├── VisualStudioSolution.sln
 │   ├── project1-folder/
 │   │   ├── README.md
 │   │   └── project1.csproj
@@ -125,6 +125,11 @@ repo/
 
 放置專案檔案，目前是以 `Visual Studio` 為例，底下會有自己的 `CLAUDE.md` / `AGENTS.md`
 每個專案都要有描述自己專案的 `README.md`
+
+- Solution file (`.sln`) 放在 `src/` 內，與各專案資料夾同一層 (符合 Visual Studio 原本的階層設計)
+  - `tests/` 與 `samples/` 的專案也加入這個 solution，以相對路徑參考 (e.g. `..\tests\MyLib.Tests\MyLib.Tests.csproj`)
+  - build / test 指令: `dotnet build src/<Solution>.sln`、`dotnet test src/<Solution>.sln`
+- `Directory.Build.props` 留在 repo 根目錄，這樣 `src/`、`tests/`、`samples/` 的專案都會繼承同一個版本號
 
 #### reqs
 

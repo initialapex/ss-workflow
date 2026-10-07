@@ -67,7 +67,8 @@ repo/
 ├─ AGENTS.md, CLAUDE.md      給 agent 看的流程規則（CLAUDE.md 只 import AGENTS.md）
 ├─ README.md, README-zh-TW.md
 ├─ Directory.Build.props     唯一的版本來源（.NET 專案）
-├─ src/                      原始碼專案，一個專案一個資料夾，各有 README.md
+├─ src/                      Solution file (.sln) 和原始碼專案，一個專案一個資料夾，
+│                            各有 README.md
 ├─ reqs/                     未完成的 request；完成的在 reqs/done/
 ├─ docs/                     專案規格、developer 文件、知識庫
 ├─ external/                 submodule 和第三方 binary

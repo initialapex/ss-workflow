@@ -10,7 +10,9 @@ Source projects of {{PROJECT_NAME}}.
 - Every project folder has a `README.md` that covers what the project is for, its main
   types or entry points, and how it relates to the other projects. Update the README
   when the project's responsibilities change.
-- Add every new project to `{{SOLUTION_FILE}}`.
+- The solution file is `{{SOLUTION_FILE}}`, in this folder next to the project
+  folders. Add every new project to it. The projects in `tests/` and `samples/`
+  belong to the same solution, with relative paths.
 - Do not set `<Version>`, `<VersionPrefix>`, or `<VersionSuffix>` in project files.
   The version comes from `Directory.Build.props` at the repository root.
 - Shared build settings belong in `Directory.Build.props`, not in individual

@@ -62,7 +62,7 @@ runs after the build and the tests, for example `pwsh scripts/verify.ps1`.
 
 | Path | Purpose | Rules |
 |------|---------|-------|
-| `src/` | Source projects, one folder per project, each with a `README.md` | `src/AGENTS.md` |
+| `src/` | The solution file, and the source projects, one folder per project, each with a `README.md` | `src/AGENTS.md` |
 | `reqs/` | Requests: one Markdown file per request; finished requests live in `reqs/done/` | `reqs/AGENTS.md` |
 | `docs/` | Project spec, developer-readable docs, knowledge base | Write for humans in `docs-language` |
 | `external/` | Git submodules and third-party binaries | Do not edit vendored content |

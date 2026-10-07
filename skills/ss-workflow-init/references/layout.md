@@ -10,11 +10,11 @@ repo/
 ├─ README-zh-TW.md            ← README-zh-TW.md          (when zh-TW is in {{README_LANGS}})
 ├─ .gitignore                 ← dotnet new gitignore / gitignore.template, plus the ss-workflow block
 ├─ Directory.Build.props      ← Directory.Build.props    (.NET only)
-├─ {{SOLUTION_FILE}}          (.NET only; existing, or created with dotnet new sln on approval)
 ├─ .claude/settings.json      (Step 8, written by `claude plugin ... --scope project`)
 ├─ src/
 │   ├── AGENTS.md             ← src-AGENTS.md
 │   ├── CLAUDE.md             ← CLAUDE.md
+│   ├── <Solution>.sln        (.NET only; this is {{SOLUTION_FILE}}; existing, or created with dotnet new sln on approval)
 │   └── <project>/README.md   ← project-README.md        (for each project without a README)
 ├─ reqs/
 │   ├── AGENTS.md             ← reqs-AGENTS.md
@@ -44,6 +44,11 @@ repo/
 - `docs/{{PROJECT_SLUG}}-spec.md` uses `{{DOCS_LANG}}`.
 - For a non-.NET project, drop the `.sln`-specific and `Directory.Build.props`-specific
   lines from the AGENTS templates, and point "Versioning" at `{{VERSION_SOURCE}}`.
+- The solution file lives in `src/`, next to the project folders, as Visual Studio
+  lays it out. The projects in `tests/` and `samples/` are added to the same solution
+  with relative paths (`..\tests\…`, `..\samples\…`).
+- `Directory.Build.props` stays at the repository root, so that the projects in
+  `src/`, `tests/`, and `samples/` all inherit it.
 - Empty folders get a `.gitkeep`, so git keeps them.
 - Remove the lines that mention opted-out parts: the `samples/` link when there is no
   `samples/`, and the `{{TEST_COMMAND}}` line when there is no `tests/`. In root

@@ -84,7 +84,8 @@ repo/
 ├─ AGENTS.md, CLAUDE.md      workflow rules for agents (CLAUDE.md imports AGENTS.md)
 ├─ README.md, README-zh-TW.md
 ├─ Directory.Build.props     the single version source (.NET projects)
-├─ src/                      source projects, one folder each, each with a README.md
+├─ src/                      the solution file (.sln) and the source projects, one
+│                            folder each, each with a README.md
 ├─ reqs/                     open requests; finished ones in reqs/done/
 ├─ docs/                     project spec, developer docs, knowledge base
 ├─ external/                 submodules and third-party binaries

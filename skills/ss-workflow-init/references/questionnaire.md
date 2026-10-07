@@ -37,10 +37,14 @@ For the project type, offer these options: ".NET / Visual Studio", "Node.js",
 | Python | (ask) | `pytest` | `pyproject.toml` (`project.version`) |
 | Other | (ask) | (ask) | (ask) |
 
-`{{SOLUTION_FILE}}` is the existing `.sln` / `.slnx` file, or `{{PROJECT_NAME}}.sln`
-for a new .NET project. For a new .NET project, do not create projects. Run
-`dotnet new sln -n {{PROJECT_NAME}}` only if the developer agrees. Projects come
-later through requests.
+`{{SOLUTION_FILE}}` is the path of the solution file from the repository root. The
+solution file lives in `src/`: `src/{{PROJECT_NAME}}.sln` for a new .NET project, or
+the existing `.sln` / `.slnx` file after it is moved to `src/` (Convert mode). If the
+developer keeps an existing solution file where it is, use its actual path.
+
+For a new .NET project, do not create projects. Run
+`dotnet new sln -n {{PROJECT_NAME}} -o src` only if the developer agrees. Projects
+come later through requests.
 
 ## Round 3: Folders and branches
 

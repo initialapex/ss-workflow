@@ -21,6 +21,7 @@ Show a table, then ask for approval with AskUserQuestion:
 
 | Current path | New path | Reason |
 |--------------|----------|--------|
+| `MyLib.sln` | `src/MyLib.sln` | the solution file lives in `src/` |
 | `MyLib/MyLib.csproj` | `src/MyLib/MyLib.csproj` | source project |
 | `MyLib.Tests/` | `tests/MyLib.Tests/` | references xunit |
 | `Demo/` | `samples/Demo/` | WPF app referencing MyLib |
@@ -41,7 +42,15 @@ If the developer keeps some paths, record them in root `AGENTS.md` under
 - Use `git mv` for every move, so git records each one as a rename.
 - Fix every path that the moves break:
   - Paths in `.sln`: use `dotnet sln remove` and `dotnet sln add`, or edit the
-    relative paths directly.
+    relative paths directly. Project paths in a solution file are relative to the
+    solution file, so moving it to `src/` changes every one of them: a source project
+    becomes `MyLib\MyLib.csproj`, and a test project becomes
+    `..\tests\MyLib.Tests\MyLib.Tests.csproj`.
+  - Files next to the old solution file that Visual Studio or MSBuild find by
+    location: `Directory.Build.props`, `Directory.Build.targets`,
+    `Directory.Packages.props`, `NuGet.config`, `global.json`, and `.editorconfig`.
+    Keep these at the repository root, so that they still apply to `src/`, `tests/`,
+    and `samples/`.
   - `<ProjectReference Include="...">` relative paths in the project files.
   - Paths in CI files and build scripts.
 - Verify that `{{BUILD_COMMAND}}` succeeds. If tests exist, verify that
