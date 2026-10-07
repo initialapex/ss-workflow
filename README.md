@@ -3,22 +3,27 @@ English | [繁體中文](README-zh-TW.md)
 # ss-workflow
 
 A Claude Code plugin that gives a repository a request-driven development workflow on
-top of gitflow. Every change starts as a request file, is implemented in its own git
-worktree, is reviewed by the developer, and is then merged and released by skills that
-follow the same rules every time.
+top of gitflow. Every change starts as a request file whose spec you approve. An agent
+implements it in its own git worktree, you verify and review it in the root checkout,
+and skills merge and release it by the same rules every time.
 
-> **Status: 0.1.0, early.** The five skills are written and the plugin manifest
+> **Status: 0.1.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 ## Skills
 
-| Skill | When to use it | What it does |
-|-------|----------------|--------------|
-| `/ss-workflow-init` | Once per repository, and again after a plugin update | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
-| `/ss-workflow-new-req` | You have a new feature, fix, or other change | Creates a request file in `reqs/`, discusses the spec with you, and marks it `ready` when you approve. |
-| `/ss-workflow-check-req` | You want to see what is pending, or start or continue work | Lists the open requests, repairs inconsistent ones, claims a `ready` request into its own worktree, and implements it. In a request worktree, it resumes the work or asks about the review. |
-| `/ss-workflow-merge` | A request is reviewed, or a release or hotfix is ready | Merges the branch by its kind, creates the tag for releases and hotfixes, and removes the worktree and the branches. |
-| `/ss-workflow-release` | You want to release a new version | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
+| Skill | When to use it | Where it runs | What it does |
+|-------|----------------|---------------|--------------|
+| `/ss-workflow-init` | Once per repository, and again after a plugin update | Root checkout | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
+| `/ss-workflow-new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
+| `/ss-workflow-check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; a worktree for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branch and worktree, and implements it. Then it marks the request for review and removes the worktree. |
+| `/ss-workflow-review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
+| `/ss-workflow-merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
+| `/ss-workflow-release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
+
+The root checkout is the repository's primary working tree. Tests, scripts, and
+executables only run there. In a worktree, the agent writes code and tries to compile
+it, because running things in a worktree is more restricted.
 
 Each skill belongs to the `ss-workflow` plugin, so its full name is
 `/ss-workflow:ss-workflow-init`, and so on. Claude Code also accepts the short name
@@ -29,28 +34,35 @@ shown above when no other skill uses it.
 ```mermaid
 flowchart LR
     draft -->|you approve the spec| ready
-    ready -->|claimed on develop| in-progress
-    in-progress -->|implemented and verified| review
-    review -->|changes requested| in-progress
-    review -->|merged into develop| done
+    ready -->|a session creates the request branch| in-progress
+    in-progress -->|implemented, worktree removed| review
+    review -->|rework needed| in-progress
+    review -->|you run the merge skill| done
 ```
 
-| Status | Meaning | Set by |
-|--------|---------|--------|
-| `draft` | The spec is under discussion | `/ss-workflow-new-req` |
-| `ready` | You approved the spec; the request waits to be claimed | `/ss-workflow-new-req` |
-| `in-progress` | Claimed; being implemented in a worktree | `/ss-workflow-check-req` |
-| `review` | Implemented; waiting for your review | `/ss-workflow-check-req` |
-| `done` | Closed; the file is in `reqs/done/` | `/ss-workflow-merge` |
+| Status | Meaning | Where the work happens | Set by |
+|--------|---------|------------------------|--------|
+| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow-new-req` |
+| `ready` | You approved the spec; the request is on `develop` and waits to be claimed | (nothing) | `/ss-workflow-new-req` |
+| `in-progress` | Claimed; being implemented | A worktree, on the request branch | `/ss-workflow-check-req` |
+| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | `/ss-workflow-check-req`, then `/ss-workflow-review` |
+| `done` | Closed; the file is in `reqs/done/` | Root checkout | `/ss-workflow-merge` |
 
 A request is one Markdown file, `reqs/REQ-0012-20260907-gui-button.md`. Its YAML
 frontmatter is the only place that holds its state, and your original text is kept
 unchanged in its `## Original` section.
 
+- A draft only exists on its `req/` branch. `develop` only holds requests you approved.
+- Creating the request branch is the claim: git creates a branch name only once, so
+  two sessions cannot claim the same request.
+- Small problems found during Verify or Review are fixed in the root checkout. A
+  request that needs larger rework goes back to `in-progress` and into a worktree.
+
 ## Branching model
 
 | Branch | Created from | Merges into | Example |
 |--------|--------------|-------------|---------|
+| Spec discussion | `develop` | `develop` | `req/REQ-0012-gui-button` |
 | Request | `develop` | `develop` | `feat/REQ-0012-gui-button` |
 | Release | `develop` | `master` and `develop`, plus a tag | `release/v1.0.0-beta1` |
 | Hotfix | `master` | `master` and `develop`, plus a tag | `hotfix/v1.0.1` |
@@ -58,7 +70,10 @@ unchanged in its `## Original` section.
 - `master` (or `main`) only receives releases and hotfixes. Before v1.0.0, `develop`
   may also be merged into it directly.
 - Request and hotfix branches are implemented in git worktrees under
-  `.claude/worktrees/`, so several sessions can work on several requests in parallel.
+  `.claude/worktrees/`, so several sessions can implement several requests in
+  parallel. A worktree only lives during the implementation.
+- Spec discussions, reviews, merges, and releases share the root checkout, so only one
+  of them runs at a time.
 - Every merge uses `--no-ff`. A branch can be merged locally, or through a merge
   request on GitHub or GitLab.
 
@@ -109,7 +124,8 @@ register the marketplace in the project's `.claude/settings.json`.
 /ss-workflow-init                      set up the repository (answer the questions)
 /ss-workflow-new-req add a dark theme  create a request and agree on its spec
 /ss-workflow-check-req                 claim it and implement it in a worktree
-/ss-workflow-merge                     after your review, merge it into develop
+/ss-workflow-review                    verify it and review it in the root checkout
+/ss-workflow-merge                     accept it: close it and merge it into develop
 /ss-workflow-release                   release a new version
 ```
 
@@ -138,6 +154,7 @@ skills/
 ├─ ss-workflow-init/         SKILL.md, references/, templates/
 ├─ ss-workflow-new-req/      SKILL.md
 ├─ ss-workflow-check-req/    SKILL.md, references/
+├─ ss-workflow-review/       SKILL.md
 ├─ ss-workflow-merge/        SKILL.md, references/
 └─ ss-workflow-release/      SKILL.md, references/
 ss-workflow-skill.md         the design spec (Traditional Chinese)

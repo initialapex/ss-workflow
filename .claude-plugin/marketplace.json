@@ -8,7 +8,7 @@
     {
       "name": "ss-workflow",
       "source": "./",
-      "description": "Request-driven gitflow workflow skills: project init, new/check request, merge, and release"
+      "description": "Request-driven gitflow workflow skills: project init, new/check request, review, merge, and release"
     }
   ]
 }
