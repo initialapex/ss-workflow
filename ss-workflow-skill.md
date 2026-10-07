@@ -210,8 +210,21 @@ created: 2026-09-07
   - 先檢查所有未完成 request 的狀態；若發現異常 (e.g. `in-progress` 但 branch 不存在、`review` 但 worktree 遺失)，先排除異常再認領
   - 若有多個 `ready` 的 request，依 `priority` 排序後讓 developer 選擇
   - 認領流程見 reqs 章節 (lock + 建立 worktree + `git push -u`)，之後在 worktree 上實作 (為了多 session 平行實作多個 request)
+  - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`
+  - 實作中 request 的「有效狀態」以 request branch 上的檔案為準 (develop 上會一直顯示 `in-progress`，直到 merge)
+  - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意
 - 在 request worktree 上執行: 表示要再啟動實作
-  - 若檢查這個需求已經完成 (`review`)，提示 developer 是否完成 review？後續要做什麼？(e.g. 執行 `/ss-workflow-merge`)
+  - `in-progress`: 找出上次停在哪裡，繼續實作
+  - `review`: 提示 developer 是否完成 review？選項: review 通過 (執行 `/ss-workflow-merge`) / 要求修改 (記錄 feedback，狀態改回 `in-progress` 繼續實作) / 還在 review / 放棄 request
+- 實作原則
+  - 只在 request 的 worktree 內修改程式，主 checkout 只會改 develop 上的 request frontmatter
+  - 規格不清楚或有誤時停下來問，不自行猜測；規格異動要更新 `## Spec` 並在 `## Notes` 記錄原因
+  - 每個 commit 帶 `Refs: REQ-xxxx` 並 push；完成的 acceptance criteria 逐項打勾
+  - 交付 review 前: build + test 通過、把 develop 的新 commit merge 進來 (不 rebase)、在 `## Notes` 寫 review summary (改了什麼、如何驗證、需手動確認的項目)
+  - 交付後不 merge、不刪 worktree，等 developer review
+- hotfix request
+  - 也在 worktree 實作 (branch 從 master 開)
+  - request 檔不在 hotfix branch 上，所有狀態變更都 commit 在 develop
 
 ## skill: `/ss-workflow-merge`
 
@@ -236,6 +249,7 @@ created: 2026-09-07
 - hotfix
   - 會從 master 開分支出去，完成後 merge 回 master 與 develop
   - branch name 範例: hotfix/v1.0.1
+  - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow-check-req` 認領)
   - 合併回 master 後，依照 branch name 建立 tag: e.g. v1.0.1
 
 - master (持續存在)

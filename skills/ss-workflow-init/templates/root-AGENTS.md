@@ -63,7 +63,7 @@ The repository follows gitflow. `main-branch` and `develop` are long-lived.
 |--------|--------------|-------------|--------------|----------|
 | Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `develop` | `develop` | `feat/REQ-0012-gui-button` | Yes, under `.claude/worktrees/` |
 | `release/*` | `develop` | `main-branch` and `develop` | `release/v1.0.0-beta1` | No |
-| `hotfix/*` | `main-branch` | `main-branch` and `develop` | `hotfix/v1.0.1` | No |
+| `hotfix/*` | `main-branch` | `main-branch` and `develop` | `hotfix/v1.0.1` | Yes, under `.claude/worktrees/` |
 
 - `main-branch` receives commits only when a version is released. Every merge into it
   gets a tag that matches the release or hotfix name (for example `v1.0.0-beta1`).

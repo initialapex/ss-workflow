@@ -78,8 +78,14 @@ Rules:
   4. Only after the claim lands, create the branch and the worktree.
 - After creating a request branch, push it right away (`git push -u`), and push after
   every commit, so that work is never only local.
+- While a request is being worked on, its branch holds the newer copy of the request
+  file. `develop` keeps showing `in-progress` until the merge; the status on the
+  request branch (`in-progress` or `review`) is the effective one.
 - `type: hotfix` requests branch from the main branch instead of `develop`. See the
-  root `AGENTS.md` section "Branching model".
+  root `AGENTS.md` section "Branching model". The request file is not on the hotfix
+  branch, so every status change of a hotfix request is committed on `develop`.
+- The worktree of a request is `.claude/worktrees/<branch with "/" replaced by "-">`
+  under the repository root.
 - Never edit the `## Original` section. Never delete a request file. A request that is
   dropped gets `status: done` and a note in `## Notes` that explains why.
 <!-- /ss-workflow:managed -->
