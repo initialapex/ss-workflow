@@ -2,7 +2,7 @@
 
 # ss-workflow
 
-一個 Claude Code plugin，在 gitflow 之上為 repo 建立以 request 為核心的開發流程。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
+一個 Claude Code plugin，在 gitflow 之上為 repo 建立以 request 為核心的開發流程。它不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware 或其他類型，用法都一樣。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
 
 > **狀態：0.1.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
@@ -66,8 +66,7 @@ flowchart LR
 repo/
 ├─ AGENTS.md, CLAUDE.md      給 agent 看的流程規則（CLAUDE.md 只 import AGENTS.md）
 ├─ README.md, README-zh-TW.md
-├─ Directory.Build.props     唯一的版本來源（.NET 專案）
-├─ src/                      Solution file (.sln) 和原始碼專案，一個專案一個資料夾，
+├─ src/                      主要專案檔和原始碼，一個專案（或模組）一個資料夾，
 │                            各有 README.md
 ├─ reqs/                     未完成的 request；完成的在 reqs/done/
 ├─ docs/                     專案規格、developer 文件、知識庫
@@ -76,14 +75,27 @@ repo/
 └─ samples/                  sample / demo 專案（可選）
 ```
 
-這個結構以 Visual Studio / .NET 專案為主。其他類型的專案，init 會問你要保留哪些部分。
+`reqs/`、`docs/` 和 agent 檔案是工作流必要的部分。程式碼相關的資料夾只是預設值：init 會問你要保留哪些、source 資料夾叫什麼名字，既有專案也可以維持原本的結構。
+
+## 專案形式
+
+Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話描述專案類型，agent 提出下表各項的建議值讓你確認。這些內容存在專案的 `AGENTS.md` 裡，所有 skill 都從那裡讀取。
+
+| 內容 | 存放位置 |
+|------|----------|
+| 主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md` 的「Workflow settings」 |
+| 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | root `AGENTS.md` 的「Toolchain」 |
+| 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | source 資料夾 `AGENTS.md` 的「Project rules」 |
+| 要忽略的 build 輸出和本機檔案 | `.gitignore` |
+
+指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
 
 ## 需求
 
 - [Claude Code](https://code.claude.com/docs)
 - git
 - 選用：`gh` 或 `glab` CLI，用來在 GitHub 或 GitLab 發 merge request
-- 選用：.NET SDK，用於 .NET 專案
+- 你的專案自己的 toolchain 所需的工具。Plugin 本身不需要其中任何一項。
 
 ## 安裝
 

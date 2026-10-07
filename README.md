@@ -3,7 +3,8 @@ English | [繁體中文](README-zh-TW.md)
 # ss-workflow
 
 A Claude Code plugin that gives a repository a request-driven development workflow on
-top of gitflow. Every change starts as a request file whose spec you approve. An agent
+top of gitflow. It does not depend on a project type: a Visual Studio solution, a Keil
+project, an ESP32 firmware, or anything else works the same way. Every change starts as a request file whose spec you approve. An agent
 implements it in its own git worktree, you verify and review it in the root checkout,
 and skills merge and release it by the same rules every time.
 
@@ -83,9 +84,8 @@ unchanged in its `## Original` section.
 repo/
 ├─ AGENTS.md, CLAUDE.md      workflow rules for agents (CLAUDE.md imports AGENTS.md)
 ├─ README.md, README-zh-TW.md
-├─ Directory.Build.props     the single version source (.NET projects)
-├─ src/                      the solution file (.sln) and the source projects, one
-│                            folder each, each with a README.md
+├─ src/                      the main project file and the source code, one folder
+│                            per project or module, each with a README.md
 ├─ reqs/                     open requests; finished ones in reqs/done/
 ├─ docs/                     project spec, developer docs, knowledge base
 ├─ external/                 submodules and third-party binaries
@@ -93,15 +93,34 @@ repo/
 └─ samples/                  sample and demo projects (optional)
 ```
 
-The layout is designed around Visual Studio / .NET projects. For other project types,
-init asks which parts to keep.
+`reqs/`, `docs/`, and the agent files are what the workflow needs. The code folders
+are a default: init asks which ones to keep and what the source folder is called, and
+an existing project can keep its own layout.
+
+## Project types
+
+The plugin ships no templates or commands for any toolchain. During init you describe
+the project type in your own words, and the agent proposes the values below for you
+to confirm. They are stored in the project's `AGENTS.md`, and every skill reads them
+from there.
+
+| What | Where it is stored |
+|------|--------------------|
+| Main project file, version source, and the setup, build, test, and verify commands | "Workflow settings" in the root `AGENTS.md` |
+| Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the root `AGENTS.md` |
+| How new files and projects are registered with the build, generated files, naming | "Project rules" in the source folder's `AGENTS.md` |
+| Build output and local files to ignore | `.gitignore` |
+
+A command may stay empty, for example when a project can only be built inside an IDE.
+The skills then skip that step and report it as "not configured". They do not invent
+a command.
 
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs)
 - git
 - Optional: the `gh` or `glab` CLI, for merge requests on GitHub or GitLab
-- Optional: the .NET SDK, for .NET projects
+- The tools of your project's own toolchain. The plugin itself needs none of them.
 
 ## Installation
 
