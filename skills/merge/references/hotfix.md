@@ -72,26 +72,36 @@ original copy with `status: ready`.
    developer whether to merge the hotfix into that release branch as well
    (`git checkout release/<x>`, then the same merge as in step 2).
 4. With a remote: pushing the main branch and the tag publishes the hotfix, so ask once
-   more before you push. Then:
+   more before you push, whatever `push-policy` says. Then:
 
    ```bash
    git push --atomic origin <main branch> develop <tag>
    ```
 
    Also push the release branch if step 3 changed it.
+
+   With `push-policy: never`, or if the developer says no, do not push. Show the
+   command, and say that the hotfix is merged and tagged in this repository only until
+   the developer runs it. Without a remote, the local tag is the hotfix release.
+
+   If the remote refuses the push because a branch is protected, do not work around
+   it. Handle it as step 5 of "Merge locally" in the release guide describes.
 5. Continue with "Finish".
 
 ## Merge request on the remote
 
 1. Create the merge request from `hotfix/<tag>` into the main branch. Title:
-   `Hotfix <tag>: <request title> (REQ-0012)`. Body: the goal, and the Verify and
-   Review results from the request, and `Refs: REQ-0012`.
+   `Hotfix <tag>: <request title> (REQ-0012)`. Body: the goal, the Verify and Review
+   results from the request as they are recorded (also what failed or did not run),
+   and `Refs: REQ-0012`. The merge request needs the branch on the remote: if you may
+   not push it, stop, and say which branch the developer has to push.
 2. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the root checkout back to `develop`, and stop. The developer runs
    `/ss-workflow:merge` again after it is merged.
 3. When it is merged on the remote:
    - `git checkout <main branch>`, then `git pull --ff-only`.
-   - `git tag -a <tag> -m "Hotfix <tag>"`, then `git push origin <tag>`.
+   - `git tag -a <tag> -m "Hotfix <tag>"`, then `git push origin <tag>`. Ask before
+     this push. With `push-policy: never`, show the command instead.
    - Continue with steps 2 and 3 of "Merge locally", then push `develop`. If the
      remote does not allow direct pushes to `develop`, do the merge of step 2 on a
      short-lived branch created from `develop`, and open a merge request from that
@@ -105,6 +115,8 @@ original copy with `status: ready`.
    - The tag exists, and points to a commit on the main branch.
 2. Confirm on `develop` that the request file is in `reqs/done/` with `status: done`,
    and that no copy of it is left in `reqs/`.
-3. Run the shared clean-up (Step 5 of the skill): the local branch and the remote
-   branch.
-4. Offer to create a release on the platform from the tag, as in the release guide.
+3. Run the shared clean-up (Step 5 of the skill): the local branch, and the remote
+   branch when pushing is allowed. If the hotfix was not pushed, say that the main
+   branch, `develop`, and the tag still have to be pushed.
+4. If the tag is on the remote, offer to create a release on the platform from the
+   tag, as in the release guide.

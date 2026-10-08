@@ -38,6 +38,13 @@ Supporting files:
 - In a worktree, write code and try to compile it. Do not run tests, scripts, or
   executables there.
 - Never force-push, and never rebase a branch that has been pushed.
+- **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
+  says "push", push only when a remote exists and `push-policy` allows it: `auto`
+  pushes, `ask` asks before the first push of this run, and `never` does not push. A
+  missing `push-policy` means `auto`. Steps that fetch or pull apply only with a
+  remote. When a push is skipped, go on, and list the unpushed branches in the report.
+- Report results as they are: what ran and passed, what ran and failed, and what did
+  not run and why. Nothing that did not run is reported as passed.
 - Do not take over an `in-progress` request without asking: another session may be
   working on it.
 
@@ -52,9 +59,13 @@ Supporting files:
    - `git worktree list --porcelain`. The first entry is the root checkout.
 3. If a remote exists, run `git fetch --prune`.
 4. Choose the ref that stands for `develop` in this run, called `<develop-ref>` below:
-   `origin/develop` with a remote, `develop` without one. If the local `develop` has
-   commits that are not on `origin/develop`, tell the developer: other sessions cannot
-   see those requests until they are pushed.
+
+   | Situation | `<develop-ref>` |
+   |-----------|-----------------|
+   | No remote | `develop` |
+   | A remote, and the local `develop` has no commits of its own (`git log origin/develop..develop --oneline` is empty) | `origin/develop` |
+   | A remote, and the local `develop` is ahead of `origin/develop` | `develop`. Tell the developer that other machines cannot see those requests until `develop` is pushed. |
+   | A remote, and both have commits that the other one lacks | `develop`, and also read the requests that only `origin/develop` has. Tell the developer that `develop` has to be brought together with the remote (`git pull` on `develop`), and do not claim a request that only one side has. |
 5. Route:
    - A linked worktree → **Step 6**.
    - The root checkout → **Step 2**. The root checkout may be on any branch: this
@@ -82,7 +93,8 @@ Build the list of requests without checking anything out.
    - whether it exists locally, on the remote, or both
    - its worktree path, from `git worktree list`
    - whether the root checkout is on it
-   - the unpushed commits: `git log origin/<branch>..<branch> --oneline`
+   - with a remote, the unpushed commits: `git log origin/<branch>..<branch> --oneline`,
+     or that the branch is not on the remote at all
    - whether it is merged: `git merge-base --is-ancestor <branch> <develop-ref>`
 6. Show a table sorted by status, then priority, then id:
 
@@ -136,10 +148,14 @@ Decide the names first:
 Creating the branch is the claim.
 
 - In one repository, git creates a branch name only once, so two local sessions
-  cannot both succeed at step 2.
+  cannot both succeed at step 2. This needs no remote.
 - Across machines, pushing the branch does not decide it yet: two machines can both
   push the same starting commit, and the remote accepts both. The push of the claim
   commit in step 4 decides, because the remote accepts only the first one.
+- When nothing is pushed (no remote, `push-policy: never`, or the developer declined),
+  the claim holds in this repository only. Say so. If a later push of this branch is
+  rejected because another machine claimed the request in the meantime, do not force
+  anything: show both branches to the developer, who decides which claim stands.
 
 1. **Check the remote first**, if one exists:
    `git ls-remote --heads origin "*REQ-<id>-*"` (for a hotfix: `hotfix/v<version>`).
@@ -153,7 +169,7 @@ Creating the branch is the claim.
 
    If git says that the branch already exists, another session claimed the request.
    Tell the developer, and go back to Step 4.
-3. **Publish the branch** if a remote exists:
+3. **Publish the branch** when pushing is allowed:
 
    ```bash
    git -C <worktree path> push -u origin <branch>
@@ -177,7 +193,8 @@ Creating the branch is the claim.
 
 5. If the repository has submodules, run
    `git -C <worktree path> submodule update --init --recursive`.
-6. Tell the developer the worktree path and the branch.
+6. Tell the developer the worktree path and the branch, and whether the claim is on
+   the remote.
 
 From here on, every file path and every command belongs to the worktree. Continue with
 [references/implement.md](references/implement.md).

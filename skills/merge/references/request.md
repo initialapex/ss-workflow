@@ -25,7 +25,10 @@ merge. The merge then brings the code and the closed request to `develop` togeth
 4. **Verify again, if the code changed**: if step 3 merged anything, run
    `build-command` and `test-command`, plus `verify-command` if it is set. They must
    pass. If they fail, stop: tell the developer, and point to `/ss-workflow:review`.
-   The root checkout stays on the request branch for that.
+   The root checkout stays on the request branch for that. Record the run in
+   `## Notes` as `### Verify before merge (yyyy-MM-dd)`, one line per command, with
+   `passed`, `failed (<reason>)`, or `not configured`. If step 3 merged nothing, do
+   not run them, and do not record a result that you did not produce.
 5. **Close the request on the branch**:
    - Set `status: done`.
    - Add a dated line to `## Notes`: `Merged into develop (yyyy-MM-dd)`.
@@ -50,8 +53,20 @@ merge. The merge then brings the code and the closed request to `develop` togeth
    Because the branch already contains `develop`, this merge has no conflicts. If it
    does conflict, `develop` moved in the meantime: abort with `git merge --abort`, and
    repeat "Prepare" from step 3.
-3. If a remote exists, push `develop`. If the push is rejected, run
+3. Push `develop`. If the push is rejected because the remote has new commits, run
    `git pull --no-rebase` (a merge commit must not be rebased), then push again.
+
+   If the remote refuses direct pushes to `develop` (a protected branch), do not work
+   around it. Undo the local merge (`git reset --hard HEAD^` while `HEAD` is that
+   merge commit, which only removes the unpublished merge commit). Then:
+   - With a remote platform: continue with "Merge request on the remote".
+   - Without one: switch back to `develop`, and stop. Tell the developer that
+     `<branch>` has to be merged into `develop` on the remote by someone who is
+     allowed to, with a merge commit. The request is "merge pending" until then, and
+     running this skill again finds the finished merge and continues with "Finish".
+
+   If `develop` is not pushed (no remote, `push-policy: never`, or the developer
+   declined), the merge is complete in this repository. Continue.
 4. Continue with "Finish".
 
 ## Merge request on the remote
@@ -62,7 +77,9 @@ merge. The merge then brings the code and the closed request to `develop` togeth
 
    Title: `<type>: <request title> (REQ-0012)`.
    Body: the goal and the acceptance criteria from `## Spec`, the Verify and Review
-   results from `## Notes`, and `Refs: REQ-0012`.
+   results from `## Notes` as they are recorded (also what failed, what did not run,
+   and what the developer accepted anyway), the `### Behavior changes` entry if there
+   is one, and `Refs: REQ-0012`.
 2. Give the developer the URL. Tell them to choose a merge commit on the platform, not
    a squash merge, so that the request's commits stay in the history.
 3. Switch the root checkout back to `develop`, and stop. Do not delete the branch yet.
@@ -70,7 +87,8 @@ merge. The merge then brings the code and the closed request to `develop` togeth
    merged, and the skill then continues with "Finish".
 
 Until then, the branch shows `status: done` while it is not merged. This state means
-"merge pending on the remote". If the remote review asks for changes, the developer
+"merge pending on the remote". It is the same state when the branch waits for a merge
+that someone else has to do on a remote without a platform. If the remote review asks for changes, the developer
 runs `/ss-workflow:review REQ-0012` again. That skill reopens the request on the
 branch and continues the review.
 
@@ -83,4 +101,5 @@ branch and continues the review.
    the skill, with the note `Merged into develop (yyyy-MM-dd)` and the commit
    `chore(reqs): close REQ-0012`.
 3. Run the shared clean-up (Step 5 of the skill): the local branch and the remote
-   branch.
+   branch. Confirm the merge on the ref that holds it: `origin/develop` when `develop`
+   was pushed or merged on the remote, the local `develop` otherwise.

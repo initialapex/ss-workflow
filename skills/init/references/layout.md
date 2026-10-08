@@ -74,6 +74,8 @@ they are. Init only lists them in the "Repository layout" table of root `AGENTS.
   so that the section is not left blank.
 - Ownership:
   - Text inside `<!-- ss-workflow:managed -->` blocks is maintained by upgrades.
-  - Everything else belongs to the developer after init, and upgrades never touch it:
-    the "Workflow settings" values, "Toolchain", "Repository layout", and "Project
-    rules" sections, the READMEs, the spec, and `CLAUDE.md`.
+  - Everything else belongs to the developer after init, and upgrades never rewrite
+    it: the "Workflow settings" values, "Toolchain", "Repository layout", and "Project
+    rules" sections, the READMEs, the spec, and `CLAUDE.md`. When a new version needs
+    a change there, for example a new setting, its migration file says so, and the
+    upgrade proposes that change to the developer.

@@ -4,8 +4,10 @@
 # start Claude, and it does not cover gh / glab.
 #
 # The script builds a throwaway sandbox in a temporary folder: one bare repository as
-# the remote, clone A as the root checkout, and clone B as a second machine. It never
-# touches this repository.
+# the remote, clone A as the root checkout, and clone B as a second machine. Three
+# more repositories cover the other setups: C has no remote at all, D has a remote
+# that it does not push to (push-policy: never), and E has a remote that refuses
+# pushes to develop (a protected branch). It never touches this repository.
 #
 # Usage:  bash tests/git-sequences.sh
 #         KEEP=1 bash tests/git-sequences.sh    # keep the sandbox for inspection
@@ -46,8 +48,31 @@ created: 2026-10-07
 
 original text of $2
 
+## Q&A
+
 ## Notes
 EOF
+}
+initrepo() { # creates master + develop with a first commit in the current folder
+  git checkout -q -b master
+  mkdir -p reqs/done src
+  echo "ss-workflow-version: 0.1.0" > AGENTS.md
+  touch reqs/done/.gitkeep
+  echo "0.1.0" > src/version.txt
+  echo "hello" > src/app.txt
+  printf ".claude/worktrees/\n" > .gitignore
+  git add -A 2>/dev/null; git commit -q -m "chore: initial commit"
+  git branch develop
+}
+localreq() { # id slug type  -> request is ready on the local develop, nothing pushed
+  git checkout -q -b "req/REQ-$1-$2" develop
+  mkreq "$1" "$2" "$3"
+  git add -A 2>/dev/null; git commit -q -m "docs(reqs): add draft REQ-$1 $2" -m "Refs: REQ-$1"
+  setstatus "reqs/REQ-$1-20261007-$2.md" ready
+  git commit -q -am "docs(reqs): mark REQ-$1 ready" -m "Refs: REQ-$1"
+  git checkout -q develop
+  git merge -q --no-ff "req/REQ-$1-$2" -m "Merge req/REQ-$1-$2 into develop" -m "$2" -m "Refs: REQ-$1"
+  git branch -q -d "req/REQ-$1-$2"
 }
 
 A="$S/A"; B="$S/B"
@@ -342,6 +367,143 @@ git checkout -q master
 yes_ "merge release into master" git merge -q --no-ff release/v0.3.0 -m "Merge release/v0.3.0 into master" -m "Release v0.3.0"
 eq_ "master equals the release tree (hotfix was merged back)" "$(git diff master release/v0.3.0 --stat | wc -l | tr -d ' ')" "0"
 git checkout -q develop
+
+# ================================================================ no remote at all
+C="$S/C"
+sec "no remote: setup, and how a skill tells that there is none"
+mkdir "$C"; cd "$C"; git init -q; initrepo; git checkout -q develop
+eq_ "git remote lists nothing" "$(git remote | wc -l | tr -d ' ')" "0"
+no_ "origin/develop does not exist, so develop itself is <develop-ref>" git rev-parse --verify -q origin/develop
+
+sec "no remote: new-req reserves the id with the local branch alone"
+git checkout -q -b req/REQ-0001-local-one develop
+eq_ "id scan sees the reserved id in the local branch name" "$(git branch -a --list '*REQ-*' | grep -c 'REQ-0001')" "1"
+no_ "a second session cannot create the same req/ branch" git branch req/REQ-0001-local-one develop
+git checkout -q develop; git branch -q -D req/REQ-0001-local-one
+localreq 0001 local-one feat
+eq_ "the request is ready on the local develop" "$(status_of develop:reqs/REQ-0001-20261007-local-one.md)" "ready"
+no_ "the merged req/ branch is gone" git rev-parse --verify -q req/REQ-0001-local-one
+
+sec "no remote: the local branch is the claim"
+WC="$C/.claude/worktrees/feat-REQ-0001-local-one"
+yes_ "worktree add -b from the local develop" git worktree add -q --no-track -b feat/REQ-0001-local-one "$WC" develop
+no_ "a second local claim of the same branch fails" \
+  git worktree add -q --no-track -b feat/REQ-0001-local-one "$C/.claude/worktrees/dup" develop
+( cd "$WC" && setstatus reqs/REQ-0001-20261007-local-one.md in-progress \
+  && sed -i 's#^branch:.*#branch: feat/REQ-0001-local-one#' reqs/REQ-0001-20261007-local-one.md \
+  && git commit -q -am "chore(reqs): claim REQ-0001" -m "Refs: REQ-0001" \
+  && echo "local work" >> src/app.txt && git commit -q -am "feat: local work" -m "Refs: REQ-0001" \
+  && setstatus reqs/REQ-0001-20261007-local-one.md review \
+  && git commit -q -am "chore(reqs): mark REQ-0001 for review" -m "Refs: REQ-0001" )
+eq_ "overview reads the effective status from the local branch" "$(status_of feat/REQ-0001-local-one:reqs/REQ-0001-20261007-local-one.md)" "review"
+
+sec "no remote: remove the worktree without a push, the commits stay on the branch"
+eq_ "worktree is clean before removal" "$(git -C "$WC" status --porcelain | wc -l | tr -d ' ')" "0"
+eq_ "HEAD of the worktree is the tip of the local branch" "$(git -C "$WC" rev-parse HEAD)" "$(git rev-parse feat/REQ-0001-local-one)"
+yes_ "worktree remove works" git -C "$C" worktree remove "$WC"
+eq_ "the branch still holds the three commits" "$(git log develop..feat/REQ-0001-local-one --oneline | wc -l | tr -d ' ')" "3"
+
+sec "no remote: review and merge on local branches only"
+yes_ "checkout of the request branch in the root checkout" git checkout -q feat/REQ-0001-local-one
+fc=REQ-0001-20261007-local-one.md
+setstatus "reqs/$fc" done; git mv "reqs/$fc" "reqs/done/$fc"
+git commit -q -am "chore(reqs): close REQ-0001" -m "Refs: REQ-0001"
+git checkout -q develop
+yes_ "merge --no-ff into the local develop" \
+  git merge -q --no-ff feat/REQ-0001-local-one -m "Merge feat/REQ-0001-local-one into develop" -m "local-one" -m "Refs: REQ-0001"
+yes_ "is-ancestor confirms the merge on the local develop" git merge-base --is-ancestor feat/REQ-0001-local-one develop
+yes_ "branch -d accepts the merged branch" git branch -q -d feat/REQ-0001-local-one
+eq_ "develop has the request only in reqs/done, as done" "$(status_of develop:reqs/done/$fc)" "done"
+
+sec "no remote: branch -d protects an unmerged branch (unlike a pushed one)"
+git checkout -q -b feat/REQ-0002-unmerged develop
+echo "x" >> src/app.txt; git commit -q -am "feat: not merged"
+git checkout -q develop
+no_ "branch -d refuses a branch that is neither merged nor pushed" git branch -d feat/REQ-0002-unmerged
+git branch -q -D feat/REQ-0002-unmerged
+
+sec "no remote: release with a local tag"
+git checkout -q -b release/v0.1.0 develop
+git checkout -q master
+yes_ "merge the release into the local master" git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into master" -m "Release v0.1.0"
+git tag -a v0.1.0 -m "Release v0.1.0"
+git checkout -q develop
+git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into develop" -m "Release v0.1.0" >/dev/null 2>&1
+eq_ "the local tag is the release" "$(git describe --tags --abbrev=0 master)" "v0.1.0"
+yes_ "release branch is an ancestor of master and develop" sh -c 'git merge-base --is-ancestor release/v0.1.0 master && git merge-base --is-ancestor release/v0.1.0 develop'
+git branch -q -d release/v0.1.0
+
+# ================================================================ a remote, nothing pushed
+D="$S/D"; D2="$S/D2"
+sec "push-policy never: the local develop is ahead, so it is <develop-ref>"
+cd "$S"; git init -q --bare remote-d.git
+git clone -q remote-d.git D 2>/dev/null; cd "$D"; initrepo
+git push -q -u origin master develop 2>/dev/null; git checkout -q develop
+git clone -q "$S/remote-d.git" "$D2" 2>/dev/null; ( cd "$D2" && git checkout -q develop )
+localreq 0001 not-pushed feat
+git fetch -q --prune
+eq_ "the local develop has commits that origin/develop lacks" "$(git log origin/develop..develop --oneline | wc -l | tr -d ' ')" "3"
+eq_ "origin/develop has nothing that the local develop lacks" "$(git log develop..origin/develop --oneline | wc -l | tr -d ' ')" "0"
+no_ "origin/develop does not show the request that was not pushed" git cat-file -e "origin/develop:reqs/REQ-0001-20261007-not-pushed.md"
+yes_ "the local develop shows it" git cat-file -e "develop:reqs/REQ-0001-20261007-not-pushed.md"
+
+sec "push-policy never: a claim that is not pushed holds on this machine only"
+WD="$D/.claude/worktrees/feat-REQ-0001-not-pushed"
+git worktree add -q --no-track -b feat/REQ-0001-not-pushed "$WD" develop
+( cd "$WD" && setstatus reqs/REQ-0001-20261007-not-pushed.md in-progress \
+  && git commit -q -am "chore(reqs): claim REQ-0001" -m "Refs: REQ-0001" )
+no_ "the remote does not know the claim" git ls-remote --exit-code --heads origin 'feat/REQ-0001-*'
+eq_ "the branch has no upstream, so the overview shows it as not on the remote" "$(git -C "$WD" rev-parse --abbrev-ref '@{u}' 2>/dev/null)" ""
+git worktree remove "$WD"
+
+sec "push-policy never: both sides moved, the skill must see both"
+( cd "$D2" && echo "other" > src/other.txt && git add -A 2>/dev/null && git commit -q -m "feat: other machine" && git push -q 2>/dev/null )
+git fetch -q
+eq_ "origin/develop now has a commit that the local develop lacks" "$(git log develop..origin/develop --oneline | wc -l | tr -d ' ')" "1"
+eq_ "and the local develop still has its own commits" "$(git log origin/develop..develop --oneline | wc -l | tr -d ' ')" "3"
+yes_ "the developer's later push is rejected until develop is brought together" sh -c '! git push -q origin develop 2>/dev/null'
+yes_ "git pull --no-rebase brings them together with a merge commit" git pull -q --no-rebase origin develop
+yes_ "then the push is accepted" git push -q origin develop
+
+# ================================================================ protected develop
+E="$S/E"; E2="$S/E2"
+sec "protected develop: the remote refuses the push of a local merge"
+cd "$S"; git init -q --bare remote-e.git
+git clone -q remote-e.git E 2>/dev/null; cd "$E"; initrepo
+git push -q -u origin master develop 2>/dev/null; git checkout -q develop
+git clone -q "$S/remote-e.git" "$E2" 2>/dev/null; ( cd "$E2" && git checkout -q develop )
+cat > "$S/remote-e.git/hooks/pre-receive" <<'HOOK'
+#!/bin/sh
+while read old new ref; do
+  if [ "$ref" = "refs/heads/develop" ] && [ -z "$ALLOW_DEVELOP" ]; then
+    echo "develop is protected" >&2; exit 1
+  fi
+done
+exit 0
+HOOK
+chmod +x "$S/remote-e.git/hooks/pre-receive"
+git checkout -q -b feat/REQ-0001-protected develop
+echo "protected work" >> src/app.txt; git commit -q -am "feat: protected work" -m "Refs: REQ-0001"
+yes_ "the topic branch can be pushed" git push -q -u origin feat/REQ-0001-protected
+git checkout -q develop
+before=$(git rev-parse develop)
+git merge -q --no-ff feat/REQ-0001-protected -m "Merge feat/REQ-0001-protected into develop"
+no_ "the push to develop is refused" git push -q origin develop
+eq_ "HEAD is the unpublished merge commit (2 parents)" "$(git rev-list --parents -n1 HEAD | wc -w | tr -d ' ')" "3"
+git reset -q --hard HEAD^
+eq_ "reset --hard HEAD^ puts develop back to the published commit" "$(git rev-parse develop)" "$before"
+eq_ "develop equals origin/develop again" "$(git rev-parse develop)" "$(git rev-parse origin/develop)"
+yes_ "the topic branch still holds the work" git rev-parse --verify -q feat/REQ-0001-protected
+no_ "the branch is not merged yet: merge pending" git merge-base --is-ancestor feat/REQ-0001-protected origin/develop
+
+sec "protected develop: someone merges on the remote, the next run finds it"
+( cd "$E2" && git fetch -q && git merge -q --no-ff origin/feat/REQ-0001-protected -m "Merge feat/REQ-0001-protected into develop" \
+  && ALLOW_DEVELOP=1 git push -q origin develop 2>/dev/null )
+git fetch -q --prune
+yes_ "is-ancestor against origin/develop finds the merge, without a merge request" git merge-base --is-ancestor feat/REQ-0001-protected origin/develop
+yes_ "pull --ff-only brings the local develop up to date" git pull -q --ff-only
+yes_ "branch -d accepts the branch after the remote merge" git branch -q -d feat/REQ-0001-protected
+yes_ "the remote branch can be deleted" git push -q origin --delete feat/REQ-0001-protected
 
 echo
 echo "RESULT: $PASS passed, $FAIL failed"

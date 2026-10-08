@@ -19,13 +19,20 @@ Input: `$ARGUMENTS`
   `reqs/AGENTS.md` first. `reqs/AGENTS.md` is the source of truth for the file name,
   the frontmatter, and the lifecycle. If it differs from this skill, follow it.
 - Talk to the developer in `discussion-language`. Write the request in `reqs-language`.
-  Keep the headings `## Spec`, `## Original`, and `## Notes` in English, because other
-  skills look them up.
+  Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English,
+  because other skills look them up.
 - This skill runs in the root checkout, not in a worktree.
 - A `req/` branch changes only its own request file.
 - One request per `req/` branch.
 - Never edit the `## Original` section after it is written.
 - A request moves to `ready` only after the developer explicitly approves the spec.
+- Every question that you ask the developer about the request, and its answer, goes
+  into `## Q&A`, as "Questions and answers" in `reqs/AGENTS.md` describes.
+- **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
+  says "push", push only when a remote exists and `push-policy` allows it: `auto`
+  pushes, `ask` asks before the first push of this run, and `never` does not push. A
+  missing `push-policy` means `auto`. Steps that fetch or pull apply only with a
+  remote. When a push is skipped, go on, and list the unpushed branches in the report.
 - Commit messages are English and follow the root `AGENTS.md` section
   "Commit convention".
 
@@ -78,17 +85,22 @@ Then check the following:
    most five words.
 4. **priority**: `normal`, unless the developer says otherwise. Use `high` for
    `hotfix`.
-5. Create and publish the branch. Publishing it reserves the id for other sessions and
-   machines:
+5. Create the branch, and push it. The local branch reserves the id for the other
+   sessions in this repository, and the pushed branch reserves it for other machines:
 
    ```bash
    git checkout -b req/REQ-<id>-<slug> develop
-   git push -u origin req/REQ-<id>-<slug>      # with a remote
+   git push -u origin req/REQ-<id>-<slug>      # when pushing is allowed
    ```
 
    If the remote now has another branch with the same id (fetch and list again),
    another session took the id at the same time. Rename your branch to the next free
    id (`git branch -m`, delete the wrong remote branch, and push again).
+
+   If the branch is not pushed, the id is reserved in this repository only. Another
+   machine may take the same id in the meantime. This shows at the next fetch, or when
+   the developer pushes. Then renumber the newer request: the branch, the file name,
+   and `id`.
 
 ## Step 4: Create the draft file
 
@@ -96,7 +108,8 @@ Then check the following:
    with `status: draft`, an empty `branch:`, and today's date in `created`. The
    `branch` field is for the implementation branch, not for this `req/` branch.
 2. Put the original input into `## Original`, byte for byte. If the input came from a
-   file, add one line above it: `Source: <original path>`.
+   file, add one line above it: `Source: <original path>`. `## Q&A` starts empty, apart
+   from its comment.
 3. If the source file is inside the repository (for example, the developer dropped it
    into `reqs/`), ask whether to delete it on this branch now that its content is
    preserved in `## Original`. Leave files outside the repository alone.
@@ -117,6 +130,15 @@ Before you ask the developer anything, read what the request touches:
 - Related requests in `reqs/` and `reqs/done/`
 
 Do not ask the developer questions that the repository already answers.
+
+When you continue a draft, read its `## Q&A` first, and start with the entries that
+are still pending. A draft from an older ss-workflow version may lack the section, and
+may have an "Open questions" part in its spec:
+
+- Add `## Q&A` between `## Original` and `## Notes`.
+- Turn each open question into an entry with `A: (pending)` and today's date, and
+  remove the "Open questions" part.
+- Leave earlier decisions in `## Notes` where they are. Do not turn them into entries.
 
 ## Step 6: Discuss and write the spec
 
@@ -142,7 +164,9 @@ only if the developer wants to.
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify) or by hand (Review). |
 | Out of scope | What this request deliberately does not cover |
-| Open questions | Anything not decided yet. This part must be empty before `ready`. |
+
+The spec has no "Open questions" part. A question that is not decided yet is an entry
+in `## Q&A` with `A: (pending)`.
 
 For `type: hotfix`, also state the affected released version and the hotfix version
 (the next patch version after the latest tag on the main branch, in the form that
@@ -172,11 +196,16 @@ of the spec.
 
 ### When the developer does not know
 
-If the developer cannot answer a question, do not leave it in "Open questions", and do
-not decide it silently. Propose a default, and say why. If the developer accepts it,
-write it into the spec, and record it in `## Notes` as
+If the developer cannot answer a question, do not decide it silently. Propose a
+default, and say why. If the developer accepts it, write it into the spec, complete
+the entry in `## Q&A` (the answer says that the developer accepted the proposed
+default), and record it in `## Notes` as
 `Assumption (yyyy-MM-dd): <what>, because <why>`, so that it is checked again in the
 Review.
+
+A question that only somebody else can answer, or that the developer wants to answer
+later, stays in `## Q&A` with `A: (pending)`. The request stays a draft until it is
+answered.
 
 ### Rounds
 
@@ -185,26 +214,36 @@ Go through these rounds with the developer:
 1. Show the draft spec, and ask only the questions whose answers change what gets
    built. Use AskUserQuestion when the answer is a choice between options. Ask in plain
    text when the answer is free-form.
-2. Update the file after each round, and move resolved items out of "Open questions".
+2. Update the file after each round:
+   - Add each question of this round to `## Q&A`, with the answer in the developer's
+     own words and the decision that follows from it. Add a question that got no
+     answer with `A: (pending)`.
+   - Complete the pending entries that were answered in this round. Do not change an
+     entry that already has an answer: a changed decision is a new entry.
+   - Write the decisions into `## Spec`.
+
    Commit and push after each round (`docs(reqs): update REQ-0012 <what changed>`).
 3. Flag what the developer may not have considered: breaking changes, effects on other
    projects or samples, missing tests, and documentation that would need updating.
 4. If the request turns out to be too large for one branch, propose splitting it
    (Step 2).
 
-Record the decisions that explain *why* in `## Notes`, with the date.
+`## Q&A` holds the questions and the decisions. Use `## Notes` for what is not an
+answer to a question: assumptions, and facts found in the code that explain a choice,
+each with the date.
 
 ## Step 7: Approval
 
-When "Open questions" is empty and "Architecture" is filled in, show the final spec
-and ask with AskUserQuestion:
+When `## Q&A` has no pending entry and "Architecture" is filled in, show the final
+spec and ask with AskUserQuestion. While entries are pending, list them, and leave
+out the "Approve" option.
 
 | Option | Action |
 |--------|--------|
 | Approve (Recommended) | Continue with Step 8. |
 | Keep as draft | Commit and push what is there. Switch the root checkout back to `develop`. The `req/` branch stays, and the developer continues later with `/ss-workflow:new-req REQ-0012`. Then go to Step 9. |
 | Keep discussing | Go back to Step 6. |
-| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` with a remote), and go to Step 9. Nothing reaches `develop`. |
+| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and go to Step 9. Nothing reaches `develop`. |
 
 ## Step 8: Merge into `develop`
 
@@ -218,26 +257,31 @@ and ask with AskUserQuestion:
    Refs: REQ-0012
    ```
 
-2. Read `merge-method` from "Workflow settings". If it is `remote`, open a merge
-   request from the `req/` branch into `develop` (title
-   `docs(reqs): add REQ-0012 <title>`), give the developer the URL, switch the root
-   checkout back to `develop`, and go to Step 9. The request becomes `ready` when the
-   merge request is merged. Otherwise, continue.
+2. Read `merge-method` from "Workflow settings". If it is `remote` and
+   `remote-platform` is not `none`, open a merge request from the `req/` branch into
+   `develop` (title `docs(reqs): add REQ-0012 <title>`), give the developer the URL,
+   switch the root checkout back to `develop`, and go to Step 9. The request becomes
+   `ready` when the merge request is merged. A merge request needs the branch on the
+   remote: if the branch is not pushed, do not open one. Switch back to `develop`, say
+   which branch the developer has to push, and go to Step 9. Otherwise, continue.
 3. Merge locally:
 
    ```bash
    git checkout develop
    git pull --ff-only                          # with a remote
    git merge --no-ff req/REQ-<id>-<slug> -m "Merge req/REQ-<id>-<slug> into develop" -m "<request title>" -m "Refs: REQ-<id>"
-   git push                                    # with a remote
+   git push                                    # when pushing is allowed
    ```
 
    If the push is rejected, run `git pull --no-rebase`, then push again. If the remote
    refuses direct pushes to `develop`, undo the local merge
    (`git reset --hard HEAD^` while `HEAD` is that merge commit, which only removes the
-   unpublished merge commit), and open a merge request as in step 2.
-4. Delete the `req/` branch: `git branch -d`, and with a remote
-   `git push origin --delete`.
+   unpublished merge commit). Then open a merge request as in step 2. Without a remote
+   platform, stop instead: keep the `req/` branch, and tell the developer that it has
+   to be merged into `develop` on the remote.
+4. Delete the `req/` branch: `git branch -d`. Delete it on the remote too, if it is
+   there and pushing is allowed (`git push origin --delete`). If `develop` was not
+   pushed, the request is `ready` in this repository only: say so in the report.
 
 ## Step 9: Report
 
@@ -246,6 +290,9 @@ Tell the developer, in `discussion-language`:
 - The request id, title, type, priority, and status
 - Where it is: on `develop` (`ready`), on its `req/` branch (draft), in an open merge
   request, or discarded
+- The questions that are still pending in `## Q&A`, for a draft
+- What is not on the remote yet: the branches that were not pushed, and whether
+  `develop` still has to be pushed
 - That the root checkout is back on `develop`
 - The next step for a `ready` request: any session can run `/ss-workflow:check-req`
   to claim it and implement it in a worktree

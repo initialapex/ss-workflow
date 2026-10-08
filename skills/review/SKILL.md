@@ -28,13 +28,28 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
   executables run here, not in worktrees.
 - Review one request at a time. The root checkout stays on the request branch while
   the review is open.
-- Report results as they are. A failed or skipped check is never recorded as passed.
+- Report results as they are. Every check is recorded and reported as exactly one of
+  `passed`, `failed` (with the reason), `did not run` (with the reason), or
+  `not configured`. A failed or skipped check is never recorded as passed, whatever
+  its cause, and a check is `passed` only when you ran it in this review and saw it
+  pass. Do not carry a result over from the implementation summary or from an earlier
+  run without saying so.
 - Only the developer decides that the Review passed.
+- A question to the developer whose answer decides how a result is judged, or changes
+  the spec, goes into `## Q&A` with the stage `review`, as "Questions and answers" in
+  `reqs/AGENTS.md` describes: for example whether a failed check is accepted, or
+  whether a finding is left as it is. If the file has no `## Q&A` section yet (an
+  older request), add it between `## Original` and `## Notes`.
 - What passes must be what is committed. A Verify result counts only when it ran on a
   working tree without uncommitted changes (see "Uncommitted changes").
 - A commit that records a result stages only the request file (`git add reqs/<file>`).
   Do not use `git add -A` or `git commit -a` for it.
 - Never force-push, and never rebase a pushed branch.
+- **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
+  says "push", push only when a remote exists and `push-policy` allows it: `auto`
+  pushes, `ask` asks before the first push of this run, and `never` does not push. A
+  missing `push-policy` means `auto`. Steps that fetch or pull apply only with a
+  remote. When a push is skipped, go on, and list the unpushed branches in the report.
 
 ## Uncommitted changes
 
@@ -143,9 +158,9 @@ Choosing the request, on `develop`:
 ## Step 2: Check out the request branch
 
 1. If a worktree still holds the branch (`git worktree list`), git cannot check it out
-   here. Check that the worktree has no uncommitted changes and no unpushed commits,
-   then remove it (`git worktree remove <path>`). If it has uncommitted changes, stop
-   and report them.
+   here. Check that the worktree has no uncommitted changes, then remove it
+   (`git worktree remove <path>`). Its commits stay on the branch. If it has
+   uncommitted changes, stop and report them.
 2. `git checkout <branch>`. If the branch exists only on the remote, this creates the
    local branch from `origin/<branch>`. With a remote, run `git pull --ff-only`.
 3. Bring the branch up to date. The base is `develop`, or the main branch for a hotfix.
@@ -158,11 +173,32 @@ Choosing the request, on `develop`:
 Read the request file on this branch:
 
 - `## Spec`: the acceptance criteria, and "How to verify"
-- `## Notes`: the implementation summary (what changed, what to run, what to look at by
-  hand), earlier Verify results, and earlier review feedback
+- `## Q&A`: the decisions behind the spec, and entries that are still pending
+- `## Notes`: the implementation summary (what changed, what ran, what did not run,
+  what is not done, what to look at by hand), the assumptions, the behavior changes,
+  earlier Verify results, and earlier review feedback
+
+Then check two things that the implementation owes:
+
+1. **Not done**: if the implementation summary lists criteria or parts of the spec as
+   not done, tell the developer now, before anything runs. Ask whether to continue
+   the review anyway, or to send the request back (Step 7, "Rework needed").
+2. **Agent behavior files**: list the files that the request changes
+   (`git diff --name-only <base>...HEAD`), and compare them with the agent behavior
+   files in "Working agreement" of the root `AGENTS.md`: `AGENTS.md`, `CLAUDE.md`,
+   files under `.claude/`, a `SKILL.md` and the files in its folder, and the paths in
+   `agent-files`. Each such file needs an item under `### Behavior changes` in
+   `## Notes`. If the entry is missing or does not cover a file, write the missing
+   items now from the diff, as "Results and behavior changes" in `reqs/AGENTS.md`
+   describes, and commit them with the next commit of the request file. Every item
+   becomes a point of the Review (Step 6).
+
+If a `## Q&A` entry is pending, ask the developer that question before the Review
+starts, and complete the entry.
 
 Show the developer a short overview: the request, the change
-(`git diff <base>...HEAD --stat`), and the plan for Verify and Review.
+(`git diff <base>...HEAD --stat`), the agent behavior files that it changes, and the
+plan for Verify and Review.
 
 ## Step 4: Verify
 
@@ -193,7 +229,7 @@ If a check fails:
 |-----------------|--------|
 | Small: a localized fix that changes neither the design nor the spec | Fix it here, on the request branch. Commit it as a normal commit (`fix: …`, with `Refs: REQ-xxxx`) and push. Run the failed check again, and then all checks once more at the end. |
 | Large: the approach is wrong, a part is missing, or the fix needs a spec decision | Do not fix it here. Show the developer what failed, and propose to send the request back (Step 7, "Rework needed"). |
-| Caused by the environment, not by the request (a missing tool, a flaky test that also fails on `develop`) | Report it as such. Ask the developer how to treat it. Do not record it as passed. |
+| Caused by the environment, not by the request (a missing tool, a flaky test that also fails on `develop`) | Report it as such, with what shows that the request is not the cause. Ask the developer how to treat it, and record the question and the answer in `## Q&A`. The check stays `failed` or `did not run` in the record, with the cause. It is never recorded as passed. |
 
 If you are not sure whether a problem is small or large, ask the developer.
 
@@ -202,12 +238,19 @@ Record the result in `## Notes`:
 ```markdown
 ### Verify (yyyy-MM-dd)
 - Working tree: clean
+- setup: did not run (not needed)
 - build: passed
-- tests: passed (132 passed, 0 failed)
+- tests: failed (2 of 132 failed: <names>; <cause, if known>)
 - verify script: not configured
+- request scripts: did not run (<reason>)
 - Fixed during Verify: <commits, or "none">
 - Not verified automatically: <criteria left for the Review>
 ```
+
+Write one line for each of the checks above, with `passed`, `failed (<reason>)`,
+`did not run (<reason>)`, or `not configured`. Do not leave out a check because it
+did not run. When a check was run again after a fix, record the last run, and name
+the fix under "Fixed during Verify".
 
 Commit and push: `docs(reqs): record verify result of REQ-0012`, with `Refs: REQ-0012`.
 
@@ -234,7 +277,7 @@ or the Review, and it ticks no acceptance criteria.
    ref that Step 2 merged from: `origin/develop` with a remote, `develop` without one,
    and the main branch in the same way for a hotfix. Do not run the code review
    without a scope. Its default scope is the commits that are not pushed yet, and in
-   this workflow every commit is pushed.
+   this workflow the commits are normally pushed already.
 5. Invoke the `code-review` skill with that scope as its argument, for example
    `origin/develop...feat/REQ-0012-gui-button`. Do not pass `--fix` or `--comment`:
    fixes are made by the rules below. The code review may run in the background. Wait
@@ -275,8 +318,15 @@ or the Review, and it ticks no acceptance criteria.
 
 Guide the developer through the manual check:
 
-1. List what to check by hand: every acceptance criterion that is not ticked yet, and
-   the "Review by hand" points from the implementation summary.
+1. List what to check by hand:
+   - every acceptance criterion that is not ticked yet
+   - the "Review by hand" points from the implementation summary
+   - every item under `### Behavior changes`: show the developer the diff of the file
+     and the "Before" and "After" text, and ask whether this is the behavior they
+     want. If the text does not match the diff, correct the text first.
+   - every `Assumption` in `## Notes`: ask whether it still holds
+   - every check that Verify recorded as `failed` or `did not run`: the developer has
+     to know about it before they decide
 2. For each one, say how to check it: which sample or application to start (with the
    exact command or project), which steps to perform, and what the expected result is.
 3. If the developer asks, start the application or the sample for them, or run extra
@@ -290,7 +340,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and the branch has no commit after it that changes files outside `reqs/`. If it does not count, run Verify again (Step 4) before you record anything. Then tick the remaining acceptance criteria that the developer confirmed. Add `### Review (yyyy-MM-dd)` with `Passed` and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and the branch has no commit after it that changes files outside `reqs/`. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the request branch, with normal commits, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review`, and push. Switch the root checkout back to `develop`. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far. Leave the root checkout on the request branch, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |
@@ -308,10 +358,16 @@ Before you act on "Review passed" or "Rework needed", check for uncommitted chan
 
 Tell the developer, in `discussion-language`:
 
-- The Verify result, check by check
+- The Verify result, check by check, in three groups: what ran and passed, what ran
+  and failed, and what did not run or is not configured, with the reason. Do not sum
+  it up as "passed" while one check is in the second or third group.
+- The acceptance criteria that are still not ticked
 - The code review: its findings and what was done with each, or that it was skipped
   or not available
+- The behavior changes of agent behavior files, and whether the developer confirmed
+  each one
 - The Review outcome, and the fixes made during the review
+- What is not on the remote yet, if a push was skipped
 - The status of the request, and which branch the root checkout is on
 - The next step: `/ss-workflow:merge REQ-0012` after a passed review,
   `/ss-workflow:check-req REQ-0012` after "Rework needed", or `/ss-workflow:review`

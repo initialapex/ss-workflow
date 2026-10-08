@@ -20,6 +20,9 @@ Supporting files (read them when the step that needs them comes up):
 - [references/layout.md](references/layout.md): target layout, and which template produces each file
 - [references/convert-existing.md](references/convert-existing.md): converting a project that already has code
 - [references/upgrade.md](references/upgrade.md): upgrading a repo created by an older ss-workflow version
+- `migrations/`: one file per plugin version that needs more than new template text
+  when a repository is upgraded. `${CLAUDE_PLUGIN_ROOT}/skills/init/migrations/` is
+  its full path.
 - `templates/`: file templates with `{{PLACEHOLDER}}` tokens
 
 ## Ground rules
@@ -168,10 +171,12 @@ developer can run them, and do not handwrite the JSON.
 
 ## Step 9: Remote
 
-- If a remote exists, ask whether to push `{{MAIN_BRANCH}}` and `develop`
-  (`git push -u origin <branch>`).
-- If no remote exists, mention that the workflow works locally, and that claiming
-  requests (`/ss-workflow:check-req`) is safer with a remote.
+- If a remote exists and `{{PUSH_POLICY}}` is not `never`, ask whether to push
+  `{{MAIN_BRANCH}}` and `develop` (`git push -u origin <branch>`). With `never`, show
+  the two commands for the developer to run.
+- If no remote exists, say that the workflow works completely without one: a local
+  branch is the claim, and branches are merged locally. A remote is only needed to
+  share the work between machines, and it can be added later.
 
 ## Step 10: Report
 
@@ -183,4 +188,7 @@ Summarize in the discussion language:
   `docs/{{PROJECT_SLUG}}-spec.md` and the README description
 - The optional `verify-command` setting in root `AGENTS.md`, for a verification script
   that `/ss-workflow:review` runs after the build and the tests
+- The optional `agent-files` setting, for files outside the built-in list that tell an
+  agent how to behave, such as prompt files that the product ships
+- What was pushed, and what the developer still has to push
 - Next step: `/ss-workflow:new-req` to create the first request
