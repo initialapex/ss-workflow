@@ -21,6 +21,7 @@ main-branch: {{MAIN_BRANCH}}
 remote-platform: {{REMOTE_PLATFORM}}
 remote-cli: {{REMOTE_CLI}}
 merge-method: {{MERGE_METHOD}}
+push-policy: {{PUSH_POLICY}}
 source-dir: {{SOURCE_DIR}}
 project-file: {{PROJECT_FILE}}
 version-source: {{VERSION_SOURCE}}
@@ -28,6 +29,7 @@ setup-command: {{SETUP_COMMAND}}
 build-command: {{BUILD_COMMAND}}
 test-command: {{TEST_COMMAND}}
 verify-command:
+agent-files:
 ```
 
 The workflow itself does not depend on the project type. The settings from
@@ -41,6 +43,11 @@ The workflow itself does not depend on the project type. The settings from
 | `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
 | `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
 | `verify-command` | An extra verification script that `/ss-workflow:review` runs after the build and the tests | No extra script |
+
+`push-policy` (`auto`, `ask`, or `never`) is explained in "Remote and pushing".
+`agent-files` lists extra paths, as glob patterns separated by commas, whose files tell
+an agent how to behave, for example prompt files that the product ships. It adds to
+the built-in list in "Working agreement", and it may stay empty.
 
 ## Toolchain
 
@@ -77,6 +84,16 @@ The workflow itself does not depend on the project type. The settings from
   and leave it to Verify.
 - Follow the "Toolchain" section below and the "Project rules" in the source folder's
   `AGENTS.md`. They hold what is specific to this project type.
+- Report results as they are. Every report to the developer and every result written
+  into a request says what ran and passed, what ran and failed, and what did not run
+  and why. A check that did not run is never reported as passed, and neither is one
+  that only "should" pass.
+- Agent behavior files are the files that an agent reads as instructions: `AGENTS.md`,
+  `CLAUDE.md`, everything under `.claude/` except `.claude/worktrees/`, a `SKILL.md`
+  and the files in its folder, and the paths in `agent-files`. A change to one of them
+  changes how agents behave, and no build or test shows that. A request that changes
+  one records the behavior before and after (see `reqs/AGENTS.md`), and the developer
+  confirms it in the Review.
 <!-- /ss-workflow:managed -->
 
 ## Repository layout
@@ -111,19 +128,59 @@ The repository follows gitflow. `main-branch` and `develop` are long-lived.
   the developer approves the spec.
 - Creating a request or hotfix branch claims the request. When the implementation is
   finished, its worktree is removed and the branch is kept for Verify and Review.
-
 - `main-branch` receives commits only when a version is released. Every merge into it
   gets a tag that matches the release or hotfix name (for example `v1.0.0-beta1`).
 - Before v1.0.0 is released, `develop` may be merged straight into `main-branch` and
   tagged `v0.x.y`, which allows fast iteration.
 - `develop` is the integration branch; most changes land here through request branches.
 - Never force-push `main-branch` or `develop`. Never rewrite published history.
-- Before any merge, run `git fetch`. If a remote exists, check whether the merge
-  request was already merged there (`remote-cli`: `gh pr view` / `glab mr view`).
+- Before any merge, run `git fetch` if a remote exists, and check whether the branch
+  was already merged there: `git merge-base --is-ancestor`, and with a remote platform
+  also the merge request (`remote-cli`: `gh pr view` / `glab mr view`).
 - `merge-method` decides how branches are merged: `local` (merge locally, then push),
-  `remote` (open a merge request on the remote), or `ask` (ask every time).
+  `remote` (open a merge request on the remote), or `ask` (ask every time). Without a
+  remote platform, branches are always merged locally.
 - Use `/ss-workflow:merge` to merge and `/ss-workflow:release` to release; do not merge
   long-lived branches by hand.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=remote -->
+## Remote and pushing
+
+The workflow does not need a remote. A remote exists when `git remote` lists `origin`.
+`remote-platform` answers a different question: whether merge requests can be opened
+(`github`, `gitlab`). It is `none` for every other remote, and when there is none.
+
+- **Without a remote**, every step that fetches, pulls, or pushes is skipped, and
+  everything else works as described: the local `develop` stands for `origin/develop`,
+  creating the local branch is the claim, and branches are merged locally.
+- **With a remote**, `push-policy` decides what the agent pushes:
+
+  | `push-policy` | The agent |
+  |---------------|-----------|
+  | `auto` | Pushes the topic branches (`req/*`, request, `hotfix/*`, `release/*`) after every commit, and `develop` after a merge that the developer asked for. |
+  | `ask` | Commits locally, and asks before the first push in a skill run. A yes covers the rest of that run. A no is treated like `never` for that run. |
+  | `never` | Never pushes, and never deletes a remote branch. It still fetches and pulls. |
+
+  A missing `push-policy` means `auto`.
+- When a push is skipped, the skill goes on, and its report lists the branches and
+  tags that are not on the remote yet. Other machines see a request, a claim, or a
+  status change only after the developer pushes it. Until then, a claim holds in this
+  repository only.
+- A merge request needs its branch on the remote. If the branch is not pushed, the
+  skill stops before it opens the merge request, and says which branch to push.
+- These rules hold for every value of `push-policy`:
+  - Never force-push. Never rewrite published history.
+  - Pushing `main-branch` or a tag publishes a version. Ask the developer right before
+    that push, every time.
+  - Never delete a branch, local or remote, before its merge is confirmed
+    (`git merge-base --is-ancestor`, or a merge request in the state "merged"). A
+    branch with unmerged commits is deleted only after the developer says so for that
+    branch.
+  - If the remote refuses a push to `develop` or `main-branch` (a protected branch),
+    do not work around it. Open a merge request where `remote-platform` allows one.
+    Otherwise, stop and tell the developer which branch has to be merged on the
+    remote.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=commits -->
@@ -150,7 +207,8 @@ Commit messages are always in English.
   - `BREAKING CHANGE: <what changed, why, and how to migrate>` for incompatible changes
 
 Commit often while you implement. Each commit is one reason for change, not a
-bundle of unrelated files. On request branches, push after every commit.
+bundle of unrelated files. On request branches, push after every commit when
+"Remote and pushing" allows it.
 
 Merge commits are the exception to the header format. They are always created with
 `--no-ff` and use the subject `Merge <source branch> into <target branch>`.

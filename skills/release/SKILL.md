@@ -35,6 +35,13 @@ Supporting file:
   fixes for problems that block the release. New features go through requests on
   `develop`.
 - Never force-push. Never rebase a pushed branch.
+- **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
+  says "push", push only when a remote exists and `push-policy` allows it: `auto`
+  pushes, `ask` asks before the first push of this run, and `never` does not push. A
+  missing `push-policy` means `auto`. Steps that fetch or pull apply only with a
+  remote. When a push is skipped, go on, and list the unpushed branches in the report.
+- Report results as they are: what ran and passed, what ran and failed, and what did
+  not run and why. Nothing that did not run is reported as passed.
 
 ## Step 1: Preconditions (on `develop`)
 
@@ -79,7 +86,7 @@ The tag is `v<version>`. The branch is `release/v<version>`.
 
 ```bash
 git checkout -b release/v<version> develop
-git push -u origin release/v<version>      # with a remote
+git push -u origin release/v<version>      # when pushing is allowed
 ```
 
 ## Step 5: Bring the release branch up to date
@@ -120,7 +127,7 @@ Otherwise, show both groups and ask the developer with AskUserQuestion:
 |--------|--------|
 | Release without them | Continue with Step 7. List these requests in the final report as "not part of this release". |
 | Finish them first | Stop here. Explain the way back: switch the root checkout to `develop` (`git checkout develop`), finish the requests with `/ss-workflow:check-req`, `/ss-workflow:review`, and `/ss-workflow:merge`, then run `git checkout release/v<version>` and `/ss-workflow:release` again. Step 5 then offers to include the new commits. |
-| Cancel the release | Confirm it once more. Then run `git checkout develop`, delete the release branch (`git branch -D`, and `git push origin --delete` with a remote), and stop. |
+| Cancel the release | Confirm it once more. Then run `git checkout develop`, delete the release branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and stop. |
 
 An open hotfix must be merged before the release: point to `/ss-workflow:merge`, and
 treat it like "Finish them first".
@@ -143,7 +150,8 @@ Run `build-command` and `test-command` on the release branch, plus `verify-comma
 if it is set. They must pass. These commands come from "Workflow settings" and depend
 on the project's toolchain. A command that is empty is skipped: tell the developer
 that this check is not configured, and ask them to confirm that they checked the
-release build themselves.
+release build themselves. Report each command with `passed`, `failed (<reason>)`, or
+`not configured`.
 
 If they fail, stop and report the failure. A fix for it is committed on the release
 branch as a normal `fix:` commit, and only after the developer agrees. Then run this
@@ -157,8 +165,8 @@ this branch. If you cannot invoke it, read
 `references/release.md`, and follow them.
 
 That skill asks the developer for the go-ahead, merges into the main branch and
-`develop`, creates the tag, asks again before it pushes, and deletes the release
-branch.
+`develop`, creates the tag, asks again before it pushes (with `push-policy: never` it
+shows the push command instead), and deletes the release branch.
 
 ## Step 10: Report
 
@@ -167,5 +175,8 @@ After the merge skill finishes, add to its report, in `discussion-language`:
 - The released version and its tag
 - The requests in this release, grouped by type
 - The requests that are not part of this release (from Step 6)
+- The checks of Step 8 that were not configured, and that the developer confirmed the
+  release build themselves
+- What is not on the remote yet, with the command that pushes it
 - A reminder of anything the developer still does by hand, such as publishing a
   package or announcing the release

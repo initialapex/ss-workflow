@@ -82,12 +82,25 @@ on the project.
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Remote platform | Detected from `git remote -v`; otherwise "None for now" | `{{REMOTE_PLATFORM}}` (`github` / `gitlab` / `none`) |
+| Remote platform | Detected from `git remote -v`; otherwise "None for now" | `{{REMOTE_PLATFORM}}` (`github` / `gitlab` / `none`). Use `none` for any other remote too, such as a plain git server: it only means that the skills cannot open merge requests. |
 | Remote URL (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
 | How to merge finished branches (only when there is a remote platform) | "Ask every time" | `{{MERGE_METHOD}}` (`ask` / `local` / `remote`); `local` when there is no remote platform |
+| Who pushes to the remote (only when there is a remote, or the developer plans one) | "The agent pushes by itself" | `{{PUSH_POLICY}}` (`auto` / `ask` / `never`); `auto` when there is no remote |
 | Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, if the developer can give the marketplace source (`owner/repo` or a git URL) | `{{MARKETPLACE_SOURCE}}`; empty means skip Step 8 |
 
 For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and `none` otherwise.
+
+Explain the three answers to the push question when you ask it:
+
+| Answer | What it means | Fits |
+|--------|---------------|------|
+| `auto` (Recommended) | The agent pushes its topic branches after every commit, and `develop` after a merge that the developer asked for. Other sessions and machines see claims and status changes at once. | Several machines or sessions that share a remote |
+| `ask` | The agent commits locally, and asks before the first push of a skill run. | The developer wants to see what leaves the machine |
+| `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. Claims hold on this machine only until then. | Strict rules about who publishes, or a remote that agents must not write to |
+
+For every answer, the agent asks before it pushes the main branch or a tag, and it
+never force-pushes. The workflow also works without any remote: the questions of this
+round then only record `none`, `local`, and `auto`.
 
 ## Confirmation
 

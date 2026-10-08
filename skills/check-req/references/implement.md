@@ -27,8 +27,8 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
    you change anything, to know the baseline. If the
    code does not compile before your changes, tell the developer before you continue.
 4. If `## Spec` has no "Architecture" part, stop. Propose one, and ask the developer to
-   confirm it. Write it into `## Spec`, and record the decision in `## Notes` with the
-   date.
+   confirm it. Write it into `## Spec`, and record the question and the answer in
+   `## Q&A` (stage `implementation`).
 5. Write a short implementation plan (the steps, and the files or projects affected)
    that follows the "Architecture" part of the spec, and show it to the developer. Wait for an answer only if the plan needs a decision
    that the spec does not cover. Otherwise, start.
@@ -42,13 +42,17 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
   architecture on your own. If it does not fit the code as you find it, that is an
   error in the spec: see the next point.
 - **If the spec is unclear or turns out to be wrong, stop and ask.** Do not guess.
-  When the developer decides, update `## Spec`, and record the decision and its reason
-  in `## Notes` with the date.
+  Add the question to `## Q&A` (stage `implementation`), as "Questions and answers" in
+  `reqs/AGENTS.md` describes. When the developer decides, complete the entry with the
+  answer in their own words and the decision, and update `## Spec`. If the session
+  ends before the answer comes, the entry stays with `A: (pending)`, and the next
+  session asks again. If the file has no `## Q&A` section yet (an older request), add
+  it between `## Original` and `## Notes`.
 - If the request was reopened by a review, the feedback is in `## Notes`. Address every
   point of it.
 - Commit often. One commit holds one reason for change. Follow the commit convention,
   and end every commit with `Refs: REQ-xxxx`.
-- Push after every commit if a remote exists.
+- Push after every commit (see "Pushing" in the skill's ground rules).
 - Add or update the tests in `tests/` for every behavior change in the source code,
   if the project has automated tests. Write them
   carefully, because you cannot run them here.
@@ -60,6 +64,10 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
   requests' files.
 - Do not tick the acceptance criteria. They are ticked during Verify and Review, when
   they have actually been checked.
+- Note every agent behavior file that you change: `AGENTS.md`, `CLAUDE.md`, a file
+  under `.claude/`, a `SKILL.md` or a file in its folder, or a path in `agent-files`
+  (see "Working agreement" in the root `AGENTS.md`). Before you change one, be sure
+  how an agent behaves with the current text, because Step 4 asks for it.
 
 ## Step 3: Check your work
 
@@ -67,7 +75,7 @@ rules" in the source folder's `AGENTS.md`, before you build or change anything.
 2. Bring the branch up to date. If a remote exists, run `git fetch` first. If `develop`
    has new commits (for a hotfix: the main branch), merge it into the request branch
    (`git merge origin/develop`, or `git merge develop` without a remote), resolve the
-   conflicts, and try the build again. Do not rebase, because the branch is pushed.
+   conflicts, and try the build again. Do not rebase: the branch may be pushed.
 3. Read your own diff (`git diff <base>...HEAD`) for leftover debug code, unrelated
    changes, and missing files. Because nothing was run, also read it once more for
    logic errors, as a reviewer would.
@@ -83,12 +91,38 @@ a new request.
    ```markdown
    ### Implementation summary (yyyy-MM-dd)
    - What changed: ...
-   - Architecture: as in the spec / changed with the developer's decision of <date>
-   - Build in the worktree: passed / failed (<reason>) / could not run (<reason>) / not configured
+   - Architecture: as in the spec / changed with the developer's decision in Q<n>
+   - Ran in the worktree: <each command that ran, with `passed` or `failed (<reason>)`; "nothing" if none ran>
+   - Did not run: tests, scripts, and executables (left to Verify); <the build, if it did not run: `not configured` / `could not run (<reason>)`>
+   - Not done: <acceptance criteria or parts of the spec that are not implemented, with the reason; or "none">
    - Verify: <commands, test projects, and scripts to run in the root checkout>
    - Review by hand: <what the developer needs to look at or try, and how to start it>
    - Follow-ups: <out-of-scope findings, if any>
    ```
+
+   Write every line from what happened in this worktree, not from what you expect.
+   "Ran in the worktree" lists only commands that you ran and whose output you saw. A
+   build that failed is `failed`, also when you think that the cause lies outside the
+   request. Keep all the lines: write "none" or "nothing" where that is the fact.
+
+   If the branch changes an agent behavior file
+   (`git diff --name-only <base>...HEAD`, compared with the list in "Working
+   agreement"), also add the entry that "Results and behavior changes" in
+   `reqs/AGENTS.md` describes, with one item for each such file:
+
+   ```markdown
+   ### Behavior changes (yyyy-MM-dd)
+   - `<path>`
+     - Diff: <the changed lines, quoted. For a long change: `git diff <base>...<branch> -- <path>`>
+     - Before: <what an agent did, and in which situation>
+     - After: <what an agent does now>
+   ```
+
+   Describe behavior, not the edit: "Before: the agent pushed after every commit.
+   After: it asks before the first push", and not "reworded the push rule". If a
+   change does not alter any behavior (a typo, a renamed heading that nothing looks
+   up), say exactly that for the file. List these items under "Review by hand" too:
+   no build or test proves them.
 
 2. Set `status: review` in the request file. Commit and push:
 
@@ -101,9 +135,13 @@ a new request.
 3. Confirm that nothing would be lost with the worktree:
    - `git status --porcelain` is empty. Untracked files that matter must be committed
      first.
-   - With a remote: `git log origin/<branch>..HEAD --oneline` is empty.
+   - When pushing is allowed: `git log origin/<branch>..HEAD --oneline` is empty.
+   - When nothing is pushed (no remote, `push-policy: never`, or the developer
+     declined): the commits stay on the local branch, which survives the worktree.
+     Check that the branch exists (`git rev-parse --verify <branch>`) and that `HEAD`
+     is its tip, and keep the list of unpushed commits for the report.
 
-   Do not remove the worktree until both hold.
+   Do not remove the worktree until these hold.
 4. Remove the worktree and keep the branch. Run this from the root checkout, not from
    inside the worktree:
 
@@ -116,10 +154,14 @@ a new request.
    programs and delete it later, and `/ss-workflow:check-req` reports a leftover
    worktree in its overview. Do not use `--force` without asking.
 5. Report to the developer, in `discussion-language`:
-   - What was implemented, criterion by criterion
-   - The build result in the worktree
+   - What was implemented, criterion by criterion, and what was not done
+   - What ran in the worktree, with its result, and what did not run and why
    - That nothing was tested or run yet
+   - The behavior changes, if the request changed agent behavior files
+   - The questions in `## Q&A` that are still pending, if any
    - That the worktree is removed, and the branch `<branch>` holds the work
+   - Whether the branch is on the remote, or which commits the developer still has to
+     push
    - The next step: `/ss-workflow:review REQ-0012` in the root checkout starts Verify
      and Review
 

@@ -52,17 +52,30 @@ check). This guide only merges it.
    If this merge has conflicts, resolve them. For `version-source`, keep the higher
    version. Then run the build and the tests again.
 5. With a remote: pushing the main branch and the tag publishes the release, so ask
-   once more before you push. Then push everything in one step:
+   once more before you push, whatever `push-policy` says. Then push everything in one
+   step:
 
    ```bash
    git push --atomic origin <main branch> develop <tag>
    ```
 
+   With `push-policy: never`, or if the developer says no, do not push. Show this
+   command, and say that the release is merged and tagged in this repository only
+   until the developer runs it. Without a remote, the local tag is the release.
+
+   If the remote refuses the push because the main branch or `develop` is protected,
+   do not work around it. The tag and the merge commits stay local. With a remote
+   platform, ask whether to continue with "Merge request on the remote": then delete
+   the local tag (`git tag -d <tag>`) and undo the two unpublished merge commits
+   (`git reset --hard HEAD^` on each branch, while `HEAD` is that merge commit), so
+   that the tag is created on the commit that the remote produces. Without a platform,
+   stop, and tell the developer what has to be pushed by someone who is allowed to.
 6. Continue with "Finish".
 
 ## Merge request on the remote
 
-1. Push the release branch: `git push -u origin release/<tag>`.
+1. Push the release branch: `git push -u origin release/<tag>`. If you may not push
+   it, stop here, and say which branch the developer has to push.
 2. Create the merge request from `release/<tag>` into the main branch, with the title
    `Release <tag>` and a body that lists the requests closed since the last tag.
 3. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
@@ -70,7 +83,8 @@ check). This guide only merges it.
 4. When it is merged on the remote:
    - `git checkout <main branch>`, then `git pull --ff-only`.
    - Tag the merge commit on the main branch and push the tag:
-     `git tag -a <tag> -m "Release <tag>"`, then `git push origin <tag>`.
+     `git tag -a <tag> -m "Release <tag>"`, then `git push origin <tag>`. Ask before
+     this push. With `push-policy: never`, show the command instead.
    - Merge the release branch into `develop`: locally as in step 4 of "Merge locally",
      then push `develop`. If the remote does not allow direct pushes to `develop`,
      open a second merge request from `release/<tag>` into `develop` and wait for it.
@@ -82,10 +96,12 @@ check). This guide only merges it.
    - `git merge-base --is-ancestor release/<tag> develop`
    - The tag exists, and points to a commit on the main branch.
 2. Run the shared clean-up (Step 5 of the skill). There is no worktree. Delete the
-   local and the remote release branch.
+   local release branch, and the remote one when pushing is allowed. If the release
+   was not pushed, the confirmations above hold for the local branches only: say that
+   the main branch, `develop`, and the tag still have to be pushed.
 3. Leave the root checkout on `develop`.
-4. Offer to create a release on the platform from the tag, and do it only if the
-   developer agrees:
+4. If the tag is on the remote and `remote-platform` is not `none`, offer to create a
+   release on the platform from the tag, and do it only if the developer agrees:
    - GitHub: `gh release create <tag> --generate-notes`, with `--prerelease` when the
      version has a prerelease part
    - GitLab: `glab release create <tag>`
@@ -113,3 +129,4 @@ when `version-source` is `none`.
    ```
 
 4. With a remote, ask, then push: `git push --atomic origin <main branch> <tag>`.
+   With `push-policy: never`, show the command instead.

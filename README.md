@@ -30,7 +30,11 @@ and skills merge and release it by the same rules every time.
   recommended version number.
 - It does not depend on a project type: a Visual Studio solution, a Keil project, an
   ESP32 firmware, or anything else works the same way.
-- It works locally, or with merge requests on GitHub or GitLab.
+- It works without a remote, with any git remote, or with merge requests on GitHub or
+  GitLab. A setting decides whether the agent pushes by itself, asks first, or never
+  pushes.
+- Every request keeps the questions that were asked and what you answered, and every
+  result says what ran, what failed, and what did not run.
 
 > [!WARNING]
 > **Status: 0.4.0, early.** The six skills are written and the plugin manifest
@@ -46,6 +50,7 @@ and skills merge and release it by the same rules every time.
 - [Skills](#skills)
 - [How a request moves](#how-a-request-moves)
 - [Branching model](#branching-model)
+- [Remote and pushing](#remote-and-pushing)
 - [Repository layout after init](#repository-layout-after-init)
 - [Project types](#project-types)
 - [Updating](#updating)
@@ -134,7 +139,16 @@ A request is one Markdown file, `reqs/REQ-0012-20260907-gui-button.md`. Its YAML
 frontmatter is the only place that holds its state, and your original text is kept
 unchanged in its `## Original` section.
 
+| Section | Holds |
+|---------|-------|
+| `## Spec` | The agreed specification: goal, scope, architecture, acceptance criteria, how to verify, out of scope |
+| `## Original` | Your request as you gave it, never edited |
+| `## Q&A` | Every question that changed the request, your answer in your own words, and the decision, in the order asked. An open question has `A: (pending)`. |
+| `## Notes` | Assumptions, the implementation summary, behavior changes, and the Verify, code review, and Review results, each with a date |
+
 - A draft only exists on its `req/` branch. `develop` only holds requests you approved.
+- A request becomes `ready` only when no question in `## Q&A` is pending. Answered
+  entries are never rewritten: a changed decision is a new entry.
 - Creating the request branch is the claim: git creates a branch name only once, so
   two sessions cannot claim the same request.
 - Small problems found during Verify or Review are fixed in the root checkout. A
@@ -147,6 +161,13 @@ unchanged in its `## Original` section.
   runs Claude Code's `/code-review` on the changes of the request only
   (`origin/develop...<request branch>`). You can also ask for it later in the same
   review. Its result is recorded in the request's `## Notes`.
+- Results are reported as they are. Every check is recorded as `passed`, `failed`,
+  `did not run`, or `not configured`, and the implementation summary lists what is not
+  done. A check that did not run is never recorded as passed.
+- A change to a file that tells an agent how to behave (`AGENTS.md`, `CLAUDE.md`,
+  `.claude/`, a skill, or a path in the `agent-files` setting) is reviewed as a change
+  of behavior: the request records what an agent did before and what it does now, and
+  you confirm each item in the Review. No build or test shows such a change.
 
 ## Branching model
 
@@ -166,6 +187,30 @@ unchanged in its `## Original` section.
   of them runs at a time.
 - Every merge uses `--no-ff`. A branch can be merged locally, or through a merge
   request on GitHub or GitLab.
+
+## Remote and pushing
+
+The workflow does not need a remote. Without one, the local `develop` holds the
+approved requests, creating the local branch is the claim, and every branch is merged
+locally. Every step that fetches, pulls, or pushes is skipped.
+
+With a remote, the `push-policy` setting in the root `AGENTS.md` decides what the
+agent pushes:
+
+| `push-policy` | The agent | Fits |
+|---------------|-----------|------|
+| `auto` (default) | Pushes its topic branches after every commit, and `develop` after a merge that you asked for | Several machines or sessions that share a remote: claims and status changes are visible at once |
+| `ask` | Commits locally, and asks before the first push of a skill run | You want to see what leaves the machine |
+| `never` | Never pushes and never deletes a remote branch. Each skill lists what you have to push. | Strict rules about who publishes |
+
+- For every value, the agent asks right before it pushes `master` or a tag, never
+  force-pushes, and never deletes a branch before its merge is confirmed.
+- While nothing is pushed, a claim holds on this machine only.
+- `remote-platform` is a separate setting. It only says whether merge requests can be
+  opened (`github`, `gitlab`). For any other remote it is `none`, and branches are
+  merged locally and pushed.
+- If the remote refuses a push to a protected branch, the skills do not work around
+  it. They open a merge request, or stop and say what has to be merged on the remote.
 
 ## Repository layout after init
 
@@ -196,6 +241,7 @@ from there.
 | What | Where it is stored |
 |------|--------------------|
 | Main project file, version source, and the setup, build, test, and verify commands | "Workflow settings" in the root `AGENTS.md` |
+| Extra files that tell an agent how to behave, such as prompt files that the product ships (`agent-files`) | "Workflow settings" in the root `AGENTS.md` |
 | Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the root `AGENTS.md` |
 | How new files and projects are registered with the build, generated files, naming | "Project rules" in the source folder's `AGENTS.md` |
 | Build output and local files to ignore | `.gitignore` |
@@ -221,6 +267,13 @@ installed version.
 > updates only the blocks marked `<!-- ss-workflow:managed -->`. Your own text outside
 > those blocks stays as it is.
 
+Some versions need more than new rule text, for example a new setting or a change to
+the request file format. Each of them ships a migration file,
+`skills/init/migrations/<version>.md`. The upgrade applies these files in version
+order, from the version that your repository records up to the installed one. For each
+file it first tells you how the workflow behaves differently, then proposes the
+changes outside the managed blocks, and changes nothing there without your answer.
+
 ## Developing this plugin
 
 ```text
@@ -228,13 +281,14 @@ installed version.
 ├─ plugin.json               plugin manifest; "version" is the single version source
 └─ marketplace.json          makes this repository its own marketplace
 skills/
-├─ init/                     SKILL.md, references/, templates/
+├─ init/                     SKILL.md, references/, templates/, migrations/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md, references/
 ├─ review/                   SKILL.md
 ├─ merge/                    SKILL.md, references/
 └─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
+tests/migrations.sh          checks that a template change ships a migration file
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -257,10 +311,21 @@ the agent. Run it again when you change the git steps of a skill:
 bash tests/git-sequences.sh
 ```
 
+The files under `skills/init/templates/` end up in other repositories, and a plugin
+update does not reach them. A version that adds a setting, changes the request file
+format, moves a generated file, renames a skill, or changes how the workflow behaves
+needs a migration file. [skills/init/migrations/README.md](skills/init/migrations/README.md)
+describes when one is needed and its format. This script fails when the templates
+changed since the last release tag and no migration file for a newer version exists:
+
+```bash
+bash tests/migrations.sh
+```
+
 > [!IMPORTANT]
 > When you publish a change, raise `version` in `.claude-plugin/plugin.json`, and the
 > version badge and the status line at the top of both README files. Without a new
-> version, installed copies do not update.
+> version, installed copies do not update. Name the migration file after that version.
 
 The design decisions behind the skills are recorded in
 [ss-workflow-skill.md](ss-workflow-skill.md).

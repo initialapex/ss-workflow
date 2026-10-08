@@ -32,11 +32,23 @@ developer approves the spec.
 - A request or a hotfix must have the effective status `review`, or must already be
   closed on its branch by an earlier run of this skill (merge pending). If it is
   `in-progress`, stop and point to `/ss-workflow:check-req`.
-- If the request's `## Notes` has no passed Review, or no Verify result, say so. Ask
-  the developer whether to run `/ss-workflow:review` first, or to merge anyway. The
-  developer may merge without a review, but must decide it knowingly.
+- If the request's `## Notes` has no passed Review, or no Verify result, say so. Say
+  it too when the last Verify has a check that is `failed` or `did not run`, when a
+  `### Behavior changes` item was not confirmed in the Review, or when `## Q&A` has a
+  pending entry. Ask the developer whether to run `/ss-workflow:review` first, or to
+  merge anyway. The developer may merge without a review, but must decide it
+  knowingly: record the question and the answer in `## Q&A` (stage `review`), in the
+  commit that closes the request.
 - Always merge with `--no-ff`, so that every request, release, and hotfix stays visible
   as one merge commit. Never squash. Never rebase a pushed branch. Never force-push.
+- **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
+  says "push", push only when a remote exists and `push-policy` allows it: `auto`
+  pushes, `ask` asks before the first push of this run, and `never` does not push. A
+  missing `push-policy` means `auto`. Steps that fetch or pull apply only with a
+  remote. When a push is skipped, go on, and list the unpushed branches in the report.
+- Pushing the main branch or a tag publishes a version. Ask right before that push,
+  every time, also with `push-policy: auto`. With `push-policy: never`, do not push:
+  show the command, and the developer runs it.
 - Merge commits use this message, and are exempt from the `<type>(<scope>)` rule:
 
   ```
@@ -79,9 +91,15 @@ developer approves the spec.
 
 ## Step 2: Check the remote state
 
-Skip this step if `remote-platform` is `none`.
+Skip this step if there is no remote.
 
-Look for a merge request of the target branch with `remote-cli`:
+First check git itself, for every branch that the target branch merges into: if
+`git merge-base --is-ancestor <branch> origin/<target>` succeeds, the branch is
+already merged on the remote, with or without a merge request. Skip the merge steps
+of the guide, and go to its "Finish" section.
+
+If `remote-platform` is not `none`, also look for a merge request of the target
+branch with `remote-cli`:
 
 - GitHub: `gh pr view <branch> --json state,url,baseRefName,mergeCommit`
 - GitLab: `glab mr view <branch> --output json`
@@ -93,9 +111,6 @@ Look for a merge request of the target branch with `remote-cli`:
 | Closed without merging | Show it. Ask whether to merge locally, to open a new merge request, or to stop. |
 | None | Continue with Step 3. |
 
-Also check git itself: if `git merge-base --is-ancestor <branch> origin/<target>`
-succeeds, the branch is already merged, even without a merge request.
-
 ## Step 3: Choose the merge method
 
 Read `merge-method` from "Workflow settings":
@@ -103,8 +118,16 @@ Read `merge-method` from "Workflow settings":
 | Value | Action |
 |-------|--------|
 | `local` | Merge locally, then push. |
-| `remote` | Open a merge request on the remote. |
+| `remote` | Open a merge request on the remote. If `remote-platform` is `none`, there is nothing to open it with: say so, and merge locally. |
 | `ask`, or missing | If `remote-platform` is not `none`, ask the developer with AskUserQuestion: "Merge locally and push" or "Open a merge request on the remote". If there is no remote platform, merge locally. |
+
+A merge request needs the branch on the remote, with all its commits. If the branch
+is not pushed and you may not push it (`push-policy: never`, or the developer
+declined), follow the "Prepare" section of the guide, then stop: say which branch the
+developer has to push, and that running this skill again opens the merge request.
+
+Without a remote, "Merge locally" is the whole merge: the steps that pull and push
+are skipped, and the merge is confirmed on the local branches.
 
 ## Step 4: Follow the guide
 
@@ -128,10 +151,15 @@ request in the state "merged".
    squash merge, and the merge request state is "merged", use `git branch -D <branch>`.
 
    `git branch -d` is not a safety check. It also deletes a branch that is pushed but
-   not merged, with only a warning, and in this workflow every branch is pushed. The
+   not merged, with only a warning, and in this workflow most branches are pushed. The
    confirmation at the start of this step is what protects the work, so never skip it.
-4. **Remote branch**: if it still exists, `git push origin --delete <branch>`.
-5. Run `git worktree prune` and `git fetch --prune`.
+4. **Remote branch**: if it still exists and pushing is allowed,
+   `git push origin --delete <branch>`. Otherwise, leave it, and name it in the report
+   as a branch that the developer can delete on the remote.
+5. Run `git worktree prune`, and with a remote `git fetch --prune`.
+
+If the target was merged locally and not pushed, the merge exists in this repository
+only. Keep that in the report: the remote still shows the request as it was.
 
 ## Step 6: Report
 
@@ -139,7 +167,10 @@ Tell the developer, in `discussion-language`:
 
 - What was merged into what, the merge commits, and the tag if there is one
 - That the request is closed, with its id and title
-- What was pushed
+- What was pushed, and what is not on the remote yet: the branches and tags that the
+  developer has to push, with the command
+- What ran before the merge (build, tests, verify script) and its result, what did
+  not run and why, and what the developer accepted although it failed or did not run
 - What was cleaned up, and anything that could not be removed
 - That the root checkout is on `develop`
 - The next step: other requests waiting for `/ss-workflow:review`,
@@ -159,8 +190,11 @@ When the developer wants to close a request without merging its code:
      (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept.
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.
+   - Add the question and the developer's answer to `## Q&A` (stage `review`): that
+     the request is dropped, and why.
    - `git mv reqs/<file> reqs/done/<file>`, then commit `chore(reqs): drop REQ-0012`.
    - Merge it into `develop` with `--no-ff`, push, and delete the `req/…-drop` branch.
 3. Ask separately whether to delete the request branch, because its commits are not
    merged. Only after a clear yes: `git branch -D <branch>`, and delete the remote
-   branch. Otherwise, keep the branch and say that it still exists.
+   branch when pushing is allowed. Otherwise, keep the branch and say that it still
+   exists.

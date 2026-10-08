@@ -22,7 +22,8 @@
 - Verify、可選的 code review 和你的人工 review 都在根目錄的 request branch 上進行。
 - Merge 和 release 依照固定的 gitflow 規則：`--no-ff` merge、tag 和推薦的版本號。
 - 不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware 或其他類型，用法都一樣。
-- 可以只在 local 使用，也可以搭配 GitHub 或 GitLab 的 merge request。
+- 沒有 remote 也能用，可以搭配任何 git remote，也可以搭配 GitHub 或 GitLab 的 merge request。由設定決定 agent 是自動 push、先詢問，還是完全不 push。
+- 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
 > **狀態：0.4.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
@@ -37,6 +38,7 @@
 - [Skills](#skills)
 - [Request 的流程](#request-的流程)
 - [Branching model](#branching-model)
+- [Remote 與 push](#remote-與-push)
 - [Init 之後的檔案結構](#init-之後的檔案結構)
 - [專案形式](#專案形式)
 - [更新](#更新)
@@ -116,11 +118,21 @@ flowchart LR
 
 一個 request 就是一個 Markdown 檔，例如 `reqs/REQ-0012-20260907-gui-button.md`。狀態只記錄在它的 YAML frontmatter 裡，你原始提供的內容會原封不動保留在 `## Original` 區段。
 
+| 區段 | 內容 |
+|------|------|
+| `## Spec` | 確認過的規格：目標、範圍、架構、acceptance criteria、如何驗證、不包含的範圍 |
+| `## Original` | 你原始提供的需求，不會被修改 |
+| `## Q&A` | 每一個影響 request 的問題、你的原話回答和因此做出的決定，依發問順序記錄。還沒回答的問題寫 `A: (pending)`。 |
+| `## Notes` | Assumption、implementation summary、行為變更，以及 Verify、code review、Review 的結果，都帶日期 |
+
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
+- `## Q&A` 裡沒有 pending 的問題，request 才能變成 `ready`。已回答的紀錄不會被改寫：決定改變時是新增一筆。
 - 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
 - Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
+- 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
+- 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
 
 ## Branching model
 
@@ -135,6 +147,23 @@ flowchart LR
 - Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
 - 規格討論、review、merge 和 release 共用根目錄，所以同一時間只能進行其中一項。
 - 所有 merge 都用 `--no-ff`。可以在 local merge，也可以透過 GitHub 或 GitLab 的 merge request。
+
+## Remote 與 push
+
+這個工作流不需要 remote。沒有 remote 時，本機的 `develop` 就是已確認 request 的所在，建立本機 branch 就是認領，所有 branch 都在本機 merge；所有 fetch、pull、push 的步驟都會略過。
+
+有 remote 時，由 root `AGENTS.md` 的 `push-policy` 設定決定 agent 會 push 什麼：
+
+| `push-policy` | Agent 的行為 | 適合 |
+|---------------|--------------|------|
+| `auto`（預設） | 每次 commit 後 push 自己的 topic branch；你要求 merge 之後 push `develop` | 多台機器或多個 session 共用 remote：認領和狀態變更立刻看得到 |
+| `ask` | 只在本機 commit，每次執行 skill 第一次要 push 前先問你 | 想先看過要送出去的內容 |
+| `never` | 不 push，也不刪除 remote branch。每個 skill 結束時列出你需要 push 的項目。 | 對「誰可以發佈」有嚴格規定的環境 |
+
+- 不論設定為何，agent 在 push `master` 或 tag 之前一定會再問一次，不會 force-push，也不會在確認已 merge 之前刪除 branch。
+- 還沒 push 之前，認領只在這台機器上有效。
+- `remote-platform` 是另一個設定，只表示能不能發 merge request（`github`、`gitlab`）。其他 remote 一律是 `none`，branch 在本機 merge 後再 push。
+- Remote 拒絕 push 到受保護的 branch 時，skill 不會繞過：改發 merge request，或停下來告訴你需要在 remote 上 merge 什麼。
 
 ## Init 之後的檔案結構
 
@@ -160,6 +189,7 @@ Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話
 | 內容 | 存放位置 |
 |------|----------|
 | 主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md` 的「Workflow settings」 |
+| 其他會影響 agent 行為的檔案，例如產品內附的 prompt 檔（`agent-files`） | root `AGENTS.md` 的「Workflow settings」 |
 | 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | root `AGENTS.md` 的「Toolchain」 |
 | 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | source 資料夾 `AGENTS.md` 的「Project rules」 |
 | 要忽略的 build 輸出和本機檔案 | `.gitignore` |
@@ -178,6 +208,8 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 > [!IMPORTANT]
 > Plugin 更新不會改動 init 在你專案裡產生的檔案。更新之後，請在專案裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
 
+有些版本需要的不只是新的規則文字，例如新增設定或改變 request 檔的格式。這類版本都會附一份 migration 檔 `skills/init/migrations/<version>.md`。升級時會從你 repo 記錄的版本開始，依版本順序逐一套用到已安裝的版本。每一份都會先告訴你工作流的行為有什麼不同，再提出 managed 區段以外需要的修改；沒有你的回答，不會動那些內容。
+
 ## 開發這個 plugin
 
 ```text
@@ -185,13 +217,14 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ├─ plugin.json               plugin manifest；"version" 是唯一的版本來源
 └─ marketplace.json          讓這個 repo 同時是自己的 marketplace
 skills/
-├─ init/                     SKILL.md、references/、templates/
+├─ init/                     SKILL.md、references/、templates/、migrations/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md、references/
 ├─ review/                   SKILL.md
 ├─ merge/                    SKILL.md、references/
 └─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
+tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
 ss-workflow-skill.md         設計規格
 ```
 
@@ -211,8 +244,14 @@ claude --plugin-dir /path/to/ss-workflow
 bash tests/git-sequences.sh
 ```
 
+`skills/init/templates/` 底下的檔案最後會出現在別的 repo 裡，plugin 更新碰不到它們。新增設定、改變 request 檔格式、搬動產生的檔案、改 skill 名稱，或改變工作流行為的版本，都需要附 migration 檔。什麼情況需要、格式怎麼寫，見 [skills/init/migrations/README.md](skills/init/migrations/README.md)。範本自上一個 release tag 之後有變更，卻沒有更新版本的 migration 檔時，這支 script 會失敗：
+
+```bash
+bash tests/migrations.sh
+```
+
 > [!IMPORTANT]
-> 發佈變更時，要遞增 `.claude-plugin/plugin.json` 的 `version`，並同步更新兩份 README 開頭的版本 badge 和狀態說明。版本沒有變，已安裝的副本就不會更新。
+> 發佈變更時，要遞增 `.claude-plugin/plugin.json` 的 `version`，並同步更新兩份 README 開頭的版本 badge 和狀態說明。版本沒有變，已安裝的副本就不會更新。Migration 檔以該版本命名。
 
 各個 skill 背後的設計決定記錄在 [ss-workflow-skill.md](ss-workflow-skill.md)。
 
