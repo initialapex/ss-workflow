@@ -2,34 +2,48 @@
 
 Check every request against this table. Propose the repair, and apply it only after
 the developer approves. "Status" means the effective status: the one in the request
-file on the request branch, or the one on `develop` when there is no request branch.
+file on the workspace request branch, or the one on `develop` when there is no
+workspace request branch. "Request branch" without more means the workspace branch;
+"project branch" means the branch of the same name in a project of the request.
 
 Normal states, for comparison:
 
-| Status | Request branch | Worktree |
-|--------|----------------|----------|
-| Draft | A `req/REQ-…` branch only | None |
-| `ready` | None | None |
-| `in-progress` | Exists | Exists |
-| `review` | Exists | None. During a review, the root checkout is on the branch. |
-| `done`, not merged ("merge pending") | Exists | None |
-| `done`, merged | Deleted | None |
+| Status | Workspace request branch | Project branches | Worktrees |
+|--------|--------------------------|------------------|-----------|
+| Draft | A `req/REQ-…` branch only | None | None |
+| `ready` | None | None | None |
+| `in-progress` | Exists | One per project of the request (right after the claim commit, possibly not yet) | The workspace worktree, with a project worktree at each `path` |
+| `review` | Exists | Exist | None. During a review, the root checkout and its projects are on the branches. |
+| `done`, not merged ("merge pending") | Exists | Exist, or already merged into their develop branches | None |
+| `done`, merged | Deleted | Deleted | None |
+
+## Two-layer problems
+
+| Symptom | Likely cause | Repair |
+|---------|--------------|--------|
+| `in-progress`, the claim commit exists, but a project of the request has no project branch | The session stopped between the claim and Step 5.5 | Continue: create the project branch and its worktree as Step 5.5 of `SKILL.md` does. |
+| A project branch exists, but there is no workspace request branch for its id | A claim was released or lost after the project branch was created, or the branch was created by hand | Show its commits (`git -C src/<name> log <project develop-ref>..<branch> --oneline`). If it has none, offer to delete it. If it has commits, ask: keep it for a new claim of the request, or delete it with explicit approval. |
+| A project worktree whose workspace worktree is gone (`git -C src/<name> worktree list` shows a path under a removed `.claude/worktrees/…`) | The workspace worktree was deleted by hand, or the removal stopped halfway | Check the project worktree for uncommitted changes and unpushed commits. Then `git -C src/<name> worktree prune` if its folder is gone, or `git -C src/<name> worktree remove <path>` if it still exists. |
+| The workspace worktree cannot be removed: "working trees containing submodules cannot be moved or removed" | A project worktree is still inside it | Remove the project worktrees first, then restore the empty folders, as Step 4 of [implement.md](implement.md) describes. |
+| The workspace worktree shows ` D <path>` | A project worktree was removed, but its empty folder was not put back | `git -C <worktree> restore <path>`. |
+| `review`, and a project branch has commits after the gitlink on the workspace branch (`git -C src/<name> log <gitlink>..<branch> --oneline`) | Fixes were made in the project after the hand-over, or during a review that was interrupted before it recorded its result | Report it. During an open review this is normal; the next commit that records a result stages the gitlink. Otherwise, ask whether the commits belong to the review. |
+| The root checkout's project is on a project branch while the root checkout itself is on `develop` | A review or a merge stopped halfway, or the branch was checked out by hand | Git cannot create a project worktree for that branch. If the project has no uncommitted changes, offer `git submodule update <path>` in the root checkout, which puts it back at the gitlink. |
 
 ## Branch and worktree problems
 
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
 | A request branch exists, but the request file on it still says `ready`, or the branch has no commits of its own | The session stopped between creating the branch and the claim commit | Ask the developer to choose: (a) continue: recreate the worktree if needed, make the claim commit, and implement; or (b) release the claim: delete the branch locally and on the remote. The request is `ready` again. |
-| `in-progress`; the branch exists only on the remote | The work was done on another machine, or the local clone was recreated | Ask first, because another machine may still be working on it. To take it over: `git worktree add <worktree path> <branch>`, which tracks `origin/<branch>`. |
-| `in-progress`; the local branch exists, but there is no worktree | The request was reopened by a review, or the worktree folder was deleted | Not a problem by itself: the request waits for a session to continue it. To continue: `git worktree prune`, then `git worktree add <worktree path> <branch>`. |
-| `review` or `done`, and a worktree still exists | The worktree could not be removed after the implementation, usually because the folder was in use | Check that it has no uncommitted changes, and, when pushing is allowed, no unpushed commits. Then `git worktree remove <worktree path>`. |
+| `in-progress`; the branches exist only on the remotes | The work was done on another machine, or the local clone was recreated | Ask first, because another machine may still be working on it. To take it over: recreate the worktrees as "Recreate the worktrees" in `SKILL.md` describes, from `origin/<branch>`. |
+| `in-progress`; the local branches exist, but there is no worktree | The request was reopened by a review, or the worktree folders were deleted | Not a problem by itself: the request waits for a session to continue it. To continue: `git worktree prune` (and `git -C src/<name> worktree prune` for each project), then "Recreate the worktrees" in `SKILL.md`. |
+| `review` or `done`, and a worktree still exists | The worktrees could not be removed after the implementation, usually because a folder was in use | Check that they have no uncommitted changes, and, when pushing is allowed, no unpushed commits. Then remove them in the order of Step 4 of [implement.md](implement.md). |
 | `git worktree list` shows an entry as `prunable` | The worktree folder was removed by hand | Run `git worktree prune`. |
 | The local branch has commits that are not on the remote, or the branch is not on the remote at all | A push was skipped or failed. With `push-policy: never`, or after the developer declined a push, this is the normal state and not an anomaly: show it as "waiting for the developer to push". | When pushing is allowed: run `git push` for that branch. If there is no upstream yet, `git push -u origin <branch>`. Otherwise, report it only. |
 | A worktree has uncommitted changes | A session was interrupted in the middle of the work | Do not touch them. Report them. The developer resumes with this skill inside that worktree. |
 | Two request branches contain the same `REQ-<id>` | Two claims raced, or a branch was created by hand | Show both with their commits. Ask which one is the real one. Delete the other only with explicit approval if it has commits. |
 | A branch named `<type>/REQ-xxxx-…` exists, but no request on `develop` has that id | The request was never approved, or the branch was created by hand | Report it. Ask whether to link it to a request or to delete it. Never delete a branch that has unmerged commits without explicit approval. |
 | The root checkout is on a request branch whose request file says `review` or `done`, and nobody is reviewing or merging | A review was paused or interrupted, or a merge stopped after it closed the request | Report it. `/ss-workflow:review` continues a review, and `/ss-workflow:merge` continues a merge. To free the root checkout, the developer switches it back to `develop` once it has no uncommitted changes. |
-| The root checkout is on a request branch whose request file says `in-progress` or `ready` | A review sent the request back for rework, or a claim was interrupted, and the root checkout was not switched back to `develop`. Or the branch was checked out by hand. | Git cannot create a worktree for a branch that the root checkout is on, so apply this repair before any repair or step that creates the worktree. Check that `git status --porcelain` shows no changes to tracked files in the root checkout. If it does, report them, and do not switch. Otherwise, after the developer approves: `git checkout develop` in the root checkout. The request is then an ordinary `in-progress` request without a worktree (or an interrupted claim), and the rows above apply. |
+| The root checkout is on a request branch whose request file says `in-progress` or `ready` | A review sent the request back for rework, or a claim was interrupted, and the root checkout was not switched back to `develop`. Or the branch was checked out by hand. | Git cannot create a worktree for a branch that the root checkout (or a project in it) is on, so apply this repair before any repair or step that creates the worktrees. Check that `git status --porcelain` shows no changes in the root checkout, and `git -C src/<name> status --porcelain` none in each project. If it does, report them, and do not switch. Otherwise, after the developer approves: `git checkout develop` and `git submodule update` in the root checkout, which puts every project back at its gitlink. The request is then an ordinary `in-progress` request without a worktree (or an interrupted claim), and the rows above apply. |
 
 ## Draft problems
 
@@ -58,7 +72,7 @@ request branch.
 
 | Symptom | Repair |
 |---------|--------|
-| The frontmatter is missing, is invalid YAML, or has an unknown `status` / `type` / `priority` value | Show the problem. Fix it with the developer's answer. Commit `docs(reqs): fix REQ-xxxx frontmatter`. |
+| The frontmatter is missing, is invalid YAML, or has an unknown `status` / `type` / `priority` value, or a `projects` entry that is not a project in "Workflow settings" | Show the problem. Fix it with the developer's answer. Commit `docs(reqs): fix REQ-xxxx frontmatter`. |
 | Two files have the same id | Renumber the newer one (both the file name and `id`) to the next free id. If it has a request branch, keep the old branch name and record it in `branch`. |
 | The file name does not match `REQ-<id>-<yyyyMMdd>-<slug>.md`, or its id differs from the frontmatter `id` | Run `git mv` to give it the correct name. The frontmatter `id` wins. |
 | The `## Original` section is missing | Report it. Do not invent its content. Recover it from git history if possible (`git log -p -- <file>`). |
@@ -69,5 +83,5 @@ request branch.
 
 | Symptom | Repair |
 |---------|--------|
-| A worktree whose branch is merged | Remove it: `git worktree remove <path>`. `/ss-workflow:merge` deletes the branch. |
+| A worktree whose branch is merged | Remove it, the project worktrees first (Step 4 of [implement.md](implement.md)). `/ss-workflow:merge` deletes the branches. |
 | A worktree on a branch that no request refers to | Report it. It may be the developer's own worktree, so leave it alone unless they ask. |
