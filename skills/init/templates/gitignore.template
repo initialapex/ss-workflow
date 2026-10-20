@@ -6,8 +6,8 @@
 CLAUDE.local.md
 # --- end ss-workflow ---
 
-# --- Project toolchain ---
-{{IGNORE_PATTERNS}}
+# The build output of the projects in src/ is ignored by each project's own
+# .gitignore, inside its repository.
 
 # --- OS and editors ---
 Thumbs.db

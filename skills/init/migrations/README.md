@@ -61,3 +61,7 @@ Rules for the steps:
   migration says so.
 - Prefer a default that keeps the behavior of the old version. A change of behavior
   is the developer's choice.
+
+The one exception is `0.6.0.md`, the conversion of the single-repository layout into
+a workspace. The old layout cannot be kept, so that migration says so, and the upgrade
+stops if the developer declines it.

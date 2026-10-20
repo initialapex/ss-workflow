@@ -11,7 +11,10 @@ Every answer fills one or more template placeholders. Keep a running answer tabl
 The workflow does not depend on any project type. It works the same for a Visual
 Studio solution, a Keil project, an ESP32 firmware, a web application, or anything
 else. Everything that depends on the project type is an answer in Round 3, not a
-built-in rule.
+built-in rule, and each project of the workspace has its own answers.
+
+In **Add project** mode, ask only Round 3 (and Round 4 for the new project's
+branches), and use the workspace's recorded settings for everything else.
 
 ## Round 1: Languages
 
@@ -24,71 +27,73 @@ built-in rule.
 
 Commit messages are always English. Do not ask about them.
 
-## Round 2: Project
+## Round 2: Workspace
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Project name | Directory name | `{{PROJECT_NAME}}`; `{{PROJECT_SLUG}}` = kebab-case of the name |
+| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{PROJECT_NAME}}`; `{{PROJECT_SLUG}}` = kebab-case of the name |
 | One-sentence description | (free text) | `{{PROJECT_DESCRIPTION}}` |
-| Project type and toolchain | What you detected; otherwise ask in plain text, with no default | `{{PROJECT_TYPE}}` |
-| Library or application? | What you detected | `{{PROJECT_KIND}}` (`library` / `application`) |
+| The projects to add | The URLs and paths in `$ARGUMENTS`; may be none | One entry each, see Round 3 |
 
-`{{PROJECT_TYPE}}` is free text in the developer's own words, specific enough to tell
-the toolchain, for example "Visual Studio solution, old-style C# projects built with
-MSBuild", "Keil MDK-ARM, STM32F4", or "ESP32 firmware with ESP-IDF v5". Do not offer a
-fixed list, and do not assume a type when the directory is empty.
+## Round 3: Each project
 
-## Round 3: Toolchain
+Ask this round once per project. The answers fill the placeholders of
+`templates/projects-entry.yaml` and `templates/src-AGENTS-project.md`. For each one,
+propose a value from what you found in the project and from what you know about that
+toolchain, say that it is a proposal, and let the developer confirm or correct it. If
+you are not sure that a value is right for this toolchain, say so and ask. Do not
+guess a command.
 
-These answers hold everything that is specific to the project type. For each one,
-propose a value from what you found in the repository and from what you know about
-that toolchain, say that it is a proposal, and let the developer confirm or correct
-it. If you are not sure that a value is right for this toolchain, say so and ask. Do
-not guess a command.
+Read the project from its submodule folder after it is added, or from the local path:
+the files that identify a toolchain (solution, workspace, and project files, build
+files, package manifests), its README and agent files, and where the version is set.
 
-Any of these may stay empty. An empty command means that the step is skipped and
-reported as "not configured". The developer can fill it in later in root `AGENTS.md`.
+Any of the commands may stay empty. An empty command means that the step is skipped
+and reported as "not configured". The developer can fill it in later in root
+`AGENTS.md`.
 
 | Question | Placeholder | Notes |
 |----------|-------------|-------|
-| Main project file: the solution, workspace, or top-level build file | `{{PROJECT_FILE}}` | A path from the repository root. By default it lives in the source folder, for example `src/MyApp.sln`. Empty for a new project that has none yet. |
-| Setup command: what a fresh checkout needs before it can build (restore packages, fetch components, generate files) | `{{SETUP_COMMAND}}` | Often empty. |
-| Build command | `{{BUILD_COMMAND}}` | The command that compiles the project from a shell. Empty if the project can only be built inside an IDE. |
-| Test command | `{{TEST_COMMAND}}` | The command that runs the automated tests. Empty if there are none. |
-| Version source: the file and the field that hold the product version | `{{VERSION_SOURCE}}` | For example ``src/SharedAssemblyInfo.cs (AssemblyVersion, AssemblyFileVersion)`` or ``src/main/version.h (#define FW_VERSION)``. `none` if the version only exists as a git tag. |
-| Tool notes: tools that must be installed, how to find tools that are not on `PATH`, and known limits | `{{TOOLCHAIN_NOTES}}` | Free text for the "Toolchain" section of root `AGENTS.md`. Do not put a machine-specific absolute path into a command; describe how to locate the tool instead. |
-| Project rules: what an agent must know to change this project correctly | `{{PROJECT_RULES}}` | Free text for the "Project rules" section of the source folder's `AGENTS.md`. For example: whether new source files must be added to a project file by hand, which files are generated and must not be edited, where build output goes, and naming conventions. |
-| Ignore patterns: build output and local files of this toolchain | `{{IGNORE_PATTERNS}}` | Lines for `.gitignore`, in addition to the ss-workflow block. |
+| Project name | `{{ENTRY_NAME}}` | The repository name by default, for example `SSDisp`. It becomes the folder `src/<name>`, the tag prefix `<name>/v1.2.0`, and the hotfix branch `hotfix/<name>-v1.0.1`. No spaces and no `/`. |
+| One-sentence description | `{{ENTRY_DESCRIPTION}}` | From its README if it has one |
+| Project type and toolchain | `{{ENTRY_TYPE}}` | Free text in the developer's own words, specific enough to tell the toolchain, for example "Visual Studio solution, old-style C# projects built with MSBuild", "Keil MDK-ARM, STM32F4", or "ESP32 firmware with ESP-IDF v5". Do not offer a fixed list, and do not assume a type for an empty repository. |
+| Library or application? | `{{ENTRY_KIND}}` | `library` / `application` |
+| Main project file: the solution, workspace, or top-level build file | `{{ENTRY_PROJECT_FILE}}` | Relative to the project folder, for example `SSDisp.sln`. Empty for a project that has none yet. |
+| Setup command: what a fresh checkout needs before it can build (restore packages, fetch components, generate files) | `{{ENTRY_SETUP_COMMAND}}` | Runs in the project folder. Often empty. |
+| Build command | `{{ENTRY_BUILD_COMMAND}}` | Runs in the project folder. Empty if the project can only be built inside an IDE. |
+| Test command | `{{ENTRY_TEST_COMMAND}}` | Runs in the project folder. Empty if there are no automated tests. |
+| Version source: the file and the field that hold the project's version | `{{ENTRY_VERSION_SOURCE}}` | Relative to the project folder, for example ``SSDisp/Properties/AssemblyInfo.cs (AssemblyVersion, AssemblyFileVersion)`` or ``main/version.h (#define FW_VERSION)``. `none` if the version only exists as a git tag. |
+| Tool notes: tools that must be installed, how to find tools that are not on `PATH`, other places that must carry the version, and known limits | `{{ENTRY_TOOLCHAIN_NOTES}}` | Free text for "Toolchain" in the project's section of `src/AGENTS.md`. Do not put a machine-specific absolute path into a command; describe how to locate the tool instead. |
+| Project rules: what an agent must know to change this project correctly | `{{ENTRY_PROJECT_RULES}}` | Free text for "Project rules" in the project's section. For example: whether new source files must be added to a project file by hand, which files are generated and must not be edited, where build output goes, and naming conventions. |
+| Remote settings of this project, if they differ from the workspace's | `{{ENTRY_REMOTE_PLATFORM}}`, `{{ENTRY_MERGE_METHOD}}`, `{{ENTRY_PUSH_POLICY}}` | Empty means the workspace value. Detect the platform from the project's URL. Propose `push-policy: never` for a project from a local path without a remote (see [add-project.md](add-project.md)). Explain that other people may use the project's repository, so `ask` can fit there even when the workspace uses `auto`. |
 
-In Convert mode, try the build command once after the developer confirms it, so that a
-wrong command is found now and not during the first request.
+After the developer confirms the build command, try it once in the project folder, so
+that a wrong command is found now and not during the first request.
 
-## Round 4: Folders and branches
+Also check whether the project's `.gitignore` covers the build output. Do not change
+it: list what is missing for the report, as a candidate for a request.
 
-`reqs/` and `docs/` are part of the workflow and always exist. The code folders depend
-on the project.
+## Round 4: Branches
 
 | Question | Default | Placeholder / effect |
 |----------|---------|----------------------|
-| Source folder | `src/`. In Convert mode, the existing folder if the developer keeps the current layout. | `{{SOURCE_DIR}}` |
-| Keep `tests/` for automated tests? | Yes if the project has or will have tests that run from a command | `{{HAS_TESTS}}` |
-| Keep `samples/` for sample or demo projects? | Yes if the kind is `library`, otherwise no | `{{HAS_SAMPLES}}` |
-| Keep `external/` for submodules and third-party files? | Yes | `{{HAS_EXTERNAL}}` |
-| Other top-level folders that the toolchain needs, with their purpose | None | Extra rows in the "Repository layout" table of root `AGENTS.md` |
-| Main branch name | `master`; use the existing name if the repo already has `main` | `{{MAIN_BRANCH}}` |
-| Current version (Convert mode only) | The value in the version source, otherwise the latest tag, otherwise `0.1.0` | `{{INITIAL_VERSION}}` (for new projects: `0.1.0`) |
+| Workspace main branch name | `master`; use the existing name if the repo already has `main` | `{{MAIN_BRANCH}}` |
+| Each project's main branch | The branch that its remote's `HEAD` points to (`git ls-remote --symref <url> HEAD`) | `{{ENTRY_MAIN_BRANCH}}` |
+| Each project's develop branch | `develop` if it exists. If it does not exist, ask: create `develop` from the main branch (and push it, as the project's `push-policy` allows), or name an existing branch that serves as develop. | `{{ENTRY_DEVELOP_BRANCH}}` |
 
 ## Round 5: Remote and team
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Remote platform | Detected from `git remote -v`; otherwise "None for now" | `{{REMOTE_PLATFORM}}` (`github` / `gitlab` / `none`). Use `none` for any other remote too, such as a plain git server: it only means that the skills cannot open merge requests. |
-| Remote URL (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
+| Remote platform of the workspace | Detected from `git remote -v`; otherwise "None for now" | `{{REMOTE_PLATFORM}}` (`github` / `gitlab` / `none`). Use `none` for any other remote too, such as a plain git server: it only means that the skills cannot open merge requests. |
+| Remote URL of the workspace (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
 | How to merge finished branches (only when there is a remote platform) | "Ask every time" | `{{MERGE_METHOD}}` (`ask` / `local` / `remote`); `local` when there is no remote platform |
 | Who pushes to the remote (only when there is a remote, or the developer plans one) | "The agent pushes by itself" | `{{PUSH_POLICY}}` (`auto` / `ask` / `never`); `auto` when there is no remote |
 | Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, if the developer can give the marketplace source (`owner/repo` or a git URL) | `{{MARKETPLACE_SOURCE}}`; empty means skip Step 8 |
 
-For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and `none` otherwise.
+These are the workspace values, and the defaults of every project that does not set
+its own in Round 3. For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and
+`none` otherwise.
 
 Explain the three answers to the push question when you ask it:
 
@@ -98,14 +103,15 @@ Explain the three answers to the push question when you ask it:
 | `ask` | The agent commits locally, and asks before the first push of a skill run. | The developer wants to see what leaves the machine |
 | `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. Claims hold on this machine only until then. | Strict rules about who publishes, or a remote that agents must not write to |
 
-For every answer, the agent asks before it pushes the main branch or a tag, and it
+For every answer, the agent asks before it pushes a main branch or a tag, and it
 never force-pushes. The workflow also works without any remote: the questions of this
 round then only record `none`, `local`, and `auto`.
 
 ## Confirmation
 
-Show the full answer table with every placeholder and its value. Ask the developer to
-confirm or correct it. Do not create files before this confirmation.
+Show the full answer table with every placeholder and its value, one block per
+project. Ask the developer to confirm or correct it. Do not create files or add
+submodules before this confirmation.
 
 ## Derived placeholders
 
@@ -113,4 +119,7 @@ confirm or correct it. Do not create files before this confirmation.
 |-------------|-------|
 | `{{SS_WORKFLOW_VERSION}}` | The plugin version: `version` in the plugin's `.claude-plugin/plugin.json`. `SKILL.md` gives the full path of that file at its top. |
 | `{{INIT_DATE}}` | Today's date, `yyyy-MM-dd` |
-| `{{SUBPROJECT_NAME}}` | Folder name of the project or module, used in `project-README.md` |
+| `{{ENTRY_URL}}` | The URL recorded in `.gitmodules` for the project |
+| `{{PROJECTS}}` | `templates/projects-entry.yaml` rendered once per project, in the order the projects were added. ` []` when there is none. |
+| `{{PROJECT_SECTIONS}}` | `templates/src-AGENTS-project.md` rendered once per project. Empty when there is none. |
+| `{{PROJECT_ROWS}}` | One table row per project for the root READMEs: `` \| <name> \| [`src/<name>`](src/<name>) \| <URL> \| <description> \| ``. When there is none, one row that says that no project is added yet, and how to add one. |
