@@ -22,11 +22,13 @@ this way, and not as text: as text, `alpha10` would sort before `alpha2`.
 
 Inputs:
 
-- **Last version**: the last release tag on the main branch, without the `v`. If there
+- **Last version**: the project's last release tag on its main branch, in its own
+  repository, without the `v`. If there
   is no tag yet, there is no last version.
-- **Current version**: the value in `version-source`. If `version-source` is `none`,
+- **Current version**: the value in the project's `version-source`. If it is `none`,
   there is no current version apart from the last tag.
-- **Changes**: the commits on `develop` since the last tag, without merge commits.
+- **Changes**: the commits on the project's develop branch since the last tag, without
+  merge commits.
 
 ### First release (no tag yet)
 
@@ -85,19 +87,22 @@ A version is valid when all of these hold:
 - It is higher than the last version, by the order from "Format". A prerelease is
   lower than its final version: `1.0.0-rc1` < `1.0.0`.
 - The tag `v<version>` exists neither locally (`git tag -l`) nor on the remote
-  (`git ls-remote --tags origin`).
-- No branch `release/v<version>` exists.
+  (`git ls-remote --tags origin`), in the project. The workspace tag `<name>/v<version>`
+  does not exist either.
+- No branch `release/v<version>` exists in the project.
 
 ## Setting the version
 
-The goal: after this step, every place that states the product version says the
-release version.
+The goal: after this step, every place that states the project's version says the
+release version. All of it happens in the project, on its release branch; paths are
+relative to the project folder. The workspace changes nothing here, apart from docs
+in its `docs/` that state the project's current version.
 
 ### 1. The version source
 
-`version-source` in the root `AGENTS.md` names the file and the field that hold the
-product version. How the version is written there depends on the project type, so
-read the current value first and keep its form.
+`version-source` in the project's entry of `projects` names the file and the field
+that hold the project's version. How the version is written there depends on the
+project type, so read the current value first and keep its form.
 
 - If `version-source` is `none`, the version only exists as the git tag. Skip to
   section 3.
@@ -110,17 +115,17 @@ read the current value first and keep its form.
   - Separate numeric defines or constants for major, minor, and patch: set each one.
   - A build number or a date that the build fills in by itself: leave it alone.
 - If a tool of the project's toolchain is the normal way to change the version, and
-  the "Toolchain" section of the root `AGENTS.md` names it, use that tool.
+  "Toolchain" in the project's section of `src/AGENTS.md` names it, use that tool.
 
 ### 2. Other places that carry the version
 
-The "Toolchain" section of the root `AGENTS.md` may list other places that have to
-carry the version. Update each of them.
+"Toolchain" in the project's section of `src/AGENTS.md` may list other places that
+have to carry the version. Update each of them.
 
-Then search the source folder (`source-dir`), `samples/`, and `tests/` for the last
-version string, to find places that nobody listed, such as project files, package
-manifests, resource files, and installer definitions. For each hit that states the
-product version:
+Then search the whole project for the last version string, to find places that
+nobody listed, such as project files, package manifests, resource files, and
+installer definitions, also in its test and sample projects. For each hit that states
+the project's version:
 
 - Set it to the release version, in the form that the place already uses.
 - Do not restructure how the project stores its version during a release, even if a
@@ -129,20 +134,30 @@ product version:
 - If a part carries its own version on purpose (a separately versioned component or
   a third-party library), leave it alone. If you cannot tell, ask the developer.
 
+Other projects of the workspace keep their own versions. If one of them states this
+project's version (a dependency with a pinned version), do not change it in the
+release: mention it in the report, as a possible request for that project.
+
 ### 3. Documentation
 
-Search `README*.md` and `docs/` for the last version string. Update the places that
-state the current version, such as install commands, badges, and "current version"
-lines. Leave history alone: changelog entries, migration notes, and examples that
-mention an old version on purpose. If a hit is unclear, show it and ask.
+Search the project's `README*.md` and docs for the last version string. Update the
+places that state the current version, such as install commands, badges, and
+"current version" lines. Leave history alone: changelog entries, migration notes, and
+examples that mention an old version on purpose. If a hit is unclear, show it and
+ask.
+
+The workspace's `docs/` may state the project's current version too. Such a change is
+made in the workspace on `develop` after the merge, as its own commit
+`docs: update <name> version to <version>`: list the hits for it, and ask.
 
 ### 4. Changelog
 
-If the repository has a `CHANGELOG.md`, add a section for this version at the top,
-with the date and the closed requests grouped by type (id and title). Follow the
-format of the existing entries. Do not create a changelog if there is none.
+If the project has a `CHANGELOG.md`, add a section for this version at the top, with
+the date and the closed requests of this project grouped by type
+(`<workspace-name>#REQ-xxxx` and the title). Follow the format of the existing
+entries. Do not create a changelog if there is none.
 
 ### 5. Check
 
-Search the repository for the last version string once more, outside `reqs/` and the
-git history. Report the hits that remain, and say why each one was left.
+Search the project for the last version string once more, outside the git history.
+Report the hits that remain, and say why each one was left.
