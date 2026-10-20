@@ -1,38 +1,126 @@
-# Merging a request branch into `develop`
+# Merging a request
 
-All of this runs in the root checkout. The request's worktree was removed when its
-implementation was finished, and only the branch is left.
+All of this runs in the root checkout of the workspace. The request's worktrees were
+removed when its implementation was finished, and only the branches are left: the
+workspace request branch, and the branch of the same name in each project of the
+request.
 
-The request file travels with the branch. The request is closed (`status: done`, file
-moved to `reqs/done/`) by the last commit on the request branch, right before the
-merge. The merge then brings the code and the closed request to `develop` together.
+The order is fixed: **each project first, the workspace last.**
+
+1. Each project branch is merged into the project's `develop-branch`, in the project
+   repository.
+2. The request is closed (`status: done`, file moved to `reqs/done/`) by the last
+   commit on the workspace request branch. That commit also sets the gitlink of each
+   project to the merge commit of step 1.
+3. The workspace request branch is merged into `develop`, which brings the closed
+   request and the new gitlinks to `develop` together.
+
+A run that stops after step 1 (a merge request that waits, a protected develop
+branch) is continued by the next run: Step 2 of the skill finds which project
+branches are merged already.
 
 ## Prepare (both methods)
 
-1. Check out the request branch in the root checkout: `git checkout <branch>`. If the
-   branch exists only on the remote, this creates it from `origin/<branch>`. With a
-   remote, run `git pull --ff-only`.
+1. **Workspace branch**: `git checkout <branch>` in the root checkout. If the branch
+   exists only on the remote, this creates it from `origin/<branch>`. With a remote,
+   run `git pull --ff-only`. Then `git submodule update`.
 
-   If a leftover worktree still holds the branch, git refuses the checkout. Remove
-   that worktree first (Step 5.2 of the skill).
+   If a leftover worktree still holds a branch of the request, git refuses the
+   checkout. Remove the worktrees first (Step 5.2 of the skill).
 2. **Status**: the request file on this branch must say `status: review`. If it says
-   `in-progress`, switch back to `develop`, stop, and point to
-   `/ss-workflow:check-req`. If it says `done`, the request was already closed by an
-   earlier run: skip to "Merge locally" or "Finish".
-3. **Up to date**: if `develop` has commits that the branch does not have
-   (`git log HEAD..origin/develop --oneline`, or `HEAD..develop` without a remote),
-   merge `develop` into the branch, and resolve the conflicts here, on the branch.
-4. **Verify again, if the code changed**: if step 3 merged anything, run
-   `build-command` and `test-command`, plus `verify-command` if it is set. They must
-   pass. If they fail, stop: tell the developer, and point to `/ss-workflow:review`.
-   The root checkout stays on the request branch for that. Record the run in
-   `## Notes` as `### Verify before merge (yyyy-MM-dd)`, one line per command, with
-   `passed`, `failed (<reason>)`, or `not configured`. If step 3 merged nothing, do
-   not run them, and do not record a result that you did not produce.
-5. **Close the request on the branch**:
+   `in-progress`, switch back to `develop` (`git submodule update`), stop, and point
+   to `/ss-workflow:check-req`. If it says `done`, the request was already closed by
+   an earlier run: skip to "Merge the workspace" or "Finish".
+3. **Project branches**: for each project of the request that is not merged yet,
+   `git -C <path> checkout <branch>`, and with a remote `git -C <path> pull
+   --ff-only`.
+4. **Up to date**, in each project that is not merged yet: if its `develop-branch` has
+   commits that the project branch does not have (`git -C <path> log
+   HEAD..origin/<develop-branch> --oneline`, or the local branch without a remote),
+   merge it into the project branch, and resolve the conflicts there. Do the same for
+   the workspace branch with `develop`. A gitlink conflict in the workspace is
+   resolved with the project branch's tip (`git update-index --cacheinfo
+   160000,<sha>,<path>`).
+5. **Verify again, if the code changed**: if step 4 merged anything into a project
+   branch, run that project's `build-command` and `test-command`, plus
+   `verify-command` if it is set, in its folder, and also those of a project of the
+   request that depends on it. They must pass. If they fail, stop: tell the developer,
+   and point to `/ss-workflow:review`. The root checkout stays on the request branches
+   for that. Record the run in `## Notes` as `### Verify before merge (yyyy-MM-dd)`,
+   one block per project, one line per command, with `passed`, `failed (<reason>)`, or
+   `not configured`. If step 4 merged nothing into the projects, do not run them, and
+   do not record a result that you did not produce.
+6. Push the updated project branches, then the workspace branch.
+
+## Merge the projects
+
+For each project of the request whose branch is not merged into its develop branch
+yet, by that project's merge method (Step 3 of the skill):
+
+### Locally
+
+1. In the project:
+
+   ```bash
+   git -C <path> checkout <develop-branch>
+   git -C <path> pull --ff-only                      # with a remote
+   git -C <path> merge --no-ff <branch> -m "Merge <branch> into <develop-branch>" -m "<request title>" -m "Refs: <workspace-name>#REQ-0012"
+   ```
+
+   Because the branch already contains the develop branch, this merge has no
+   conflicts. If it does conflict, the develop branch moved in the meantime: abort with
+   `git -C <path> merge --abort`, and repeat "Prepare" from step 4 for this project.
+2. Push the develop branch of the project. If the push is rejected because the remote
+   has new commits, run `git -C <path> pull --no-rebase` (a merge commit must not be
+   rebased), then push again.
+
+   If the remote refuses direct pushes to the develop branch (a protected branch), do
+   not work around it. Undo the local merge (`git -C <path> reset --hard HEAD^` while
+   `HEAD` is that merge commit, which only removes the unpublished merge commit), and
+   put the project back on the request branch. Then:
+   - With a remote platform: continue with "With a merge request" for this project.
+   - Without one: stop. Tell the developer that `<branch>` of `<name>` has to be
+     merged into `<develop-branch>` on the remote by someone who is allowed to, with a
+     merge commit. The request is "merge pending" until then, and running this skill
+     again finds the finished merge and continues.
+
+   If the develop branch is not pushed (no remote, `push-policy: never`, or the
+   developer declined), the merge is complete in this repository. Continue.
+
+### With a merge request
+
+1. Create the merge request from the branch into the develop branch, in the project
+   folder:
+   - GitHub: `gh pr create --base <develop-branch> --head <branch> --title "<title>" --body "<body>"`
+   - GitLab: `glab mr create --source-branch <branch> --target-branch <develop-branch> --title "<title>" --description "<body>"`
+
+   Title: `<type>: <request title> (<workspace-name>#REQ-0012)`.
+   Body: the goal and the acceptance criteria from `## Spec`, the Verify and Review
+   results of this project from `## Notes` as they are recorded (also what failed,
+   what did not run, and what the developer accepted anyway), the
+   `### Behavior changes` items of this project if there are any, and
+   `Refs: <workspace-name>#REQ-0012`. People outside the workspace may review it, so
+   do not link to files that only the workspace has.
+2. Give the developer the URL. Tell them to choose a merge commit on the platform, not
+   a squash merge, so that the request's commits stay in the history.
+3. Continue with the other projects. When every project is merged or has an open merge
+   request, and at least one is open, switch the root checkout back to `develop`
+   (`git submodule update`), and stop. Do not close the request yet. The developer runs
+   `/ss-workflow:merge REQ-0012` again after the merge requests are merged.
+
+## Merge the workspace
+
+Only when every project branch of the request is merged into its develop branch
+(`git -C <path> merge-base --is-ancestor <branch> <develop-ref of the project>`).
+
+1. **Close the request on the workspace branch**:
    - Set `status: done`.
-   - Add a dated line to `## Notes`: `Merged into develop (yyyy-MM-dd)`.
+   - Add a dated line to `## Notes`: `Merged into develop (yyyy-MM-dd)`, with the
+     project merge commits (`<name> <short sha>`).
    - Move the file: `git mv reqs/<file> reqs/done/<file>`.
+   - Set the gitlink of each project of the request to the commit of its develop
+     branch that contains the merge: `git -C <path> checkout --detach <develop-ref of
+     the project>`, then `git add <path>`.
    - Commit and push:
 
      ```
@@ -41,65 +129,57 @@ merge. The merge then brings the code and the closed request to `develop` togeth
      Refs: REQ-0012
      ```
 
-## Merge locally
+   If the workspace branch is already `done` (an earlier run closed it before a merge
+   request), check that its gitlinks point to the develop branches' merge commits. If
+   not, add a commit `chore(reqs): point REQ-0012 to the merged projects` that sets
+   them.
+2. By the workspace's merge method:
+   - **Locally**:
 
-1. `git checkout develop`. With a remote, run `git pull --ff-only`.
-2. Merge:
+     ```bash
+     git checkout develop
+     git pull --ff-only                      # with a remote
+     git merge --no-ff <branch> -m "Merge <branch> into develop" -m "<request title>" -m "Refs: REQ-0012"
+     git submodule update
+     ```
 
-   ```bash
-   git merge --no-ff <branch> -m "Merge <branch> into develop" -m "<request title>" -m "Refs: REQ-0012"
-   ```
+     A gitlink conflict means that `develop` recorded a newer project commit in the
+     meantime (another request, or a gitlink update). Resolve it with the newer of
+     the two commits, which is the one that contains the other (`git -C <path>
+     merge-base --is-ancestor`). If neither contains the other, stop and ask.
 
-   Because the branch already contains `develop`, this merge has no conflicts. If it
-   does conflict, `develop` moved in the meantime: abort with `git merge --abort`, and
-   repeat "Prepare" from step 3.
-3. Push `develop`. If the push is rejected because the remote has new commits, run
-   `git pull --no-rebase` (a merge commit must not be rebased), then push again.
+     Push `develop`. If the push is rejected because the remote has new commits, run
+     `git pull --no-rebase`, then push again. If the remote refuses direct pushes to
+     `develop`, undo the local merge (`git reset --hard HEAD^` while `HEAD` is that
+     merge commit), and continue with the merge request below, or, without a remote
+     platform, stop and tell the developer which branch has to be merged on the
+     remote. If `develop` is not pushed, the merge is complete in this repository.
+   - **With a merge request**: create it from the branch into `develop`, as for a
+     project above, with the title `<type>: <request title> (REQ-0012)`, the same body
+     with `Refs: REQ-0012`, and the project merge commits. Give the developer the URL,
+     switch back to `develop`, and stop. The developer runs this skill again after the
+     merge.
+3. Continue with "Finish".
 
-   If the remote refuses direct pushes to `develop` (a protected branch), do not work
-   around it. Undo the local merge (`git reset --hard HEAD^` while `HEAD` is that
-   merge commit, which only removes the unpublished merge commit). Then:
-   - With a remote platform: continue with "Merge request on the remote".
-   - Without one: switch back to `develop`, and stop. Tell the developer that
-     `<branch>` has to be merged into `develop` on the remote by someone who is
-     allowed to, with a merge commit. The request is "merge pending" until then, and
-     running this skill again finds the finished merge and continues with "Finish".
-
-   If `develop` is not pushed (no remote, `push-policy: never`, or the developer
-   declined), the merge is complete in this repository. Continue.
-4. Continue with "Finish".
-
-## Merge request on the remote
-
-1. Create the merge request from the branch into `develop`:
-   - GitHub: `gh pr create --base develop --head <branch> --title "<title>" --body "<body>"`
-   - GitLab: `glab mr create --source-branch <branch> --target-branch develop --title "<title>" --description "<body>"`
-
-   Title: `<type>: <request title> (REQ-0012)`.
-   Body: the goal and the acceptance criteria from `## Spec`, the Verify and Review
-   results from `## Notes` as they are recorded (also what failed, what did not run,
-   and what the developer accepted anyway), the `### Behavior changes` entry if there
-   is one, and `Refs: REQ-0012`.
-2. Give the developer the URL. Tell them to choose a merge commit on the platform, not
-   a squash merge, so that the request's commits stay in the history.
-3. Switch the root checkout back to `develop`, and stop. Do not delete the branch yet.
-   The developer runs `/ss-workflow:merge REQ-0012` again after the merge request is
-   merged, and the skill then continues with "Finish".
-
-Until then, the branch shows `status: done` while it is not merged. This state means
-"merge pending on the remote". It is the same state when the branch waits for a merge
-that someone else has to do on a remote without a platform. If the remote review asks for changes, the developer
+Until the workspace branch is merged, it shows `status: done` while it is not merged:
+"merge pending on the remote". If a remote review asks for changes, the developer
 runs `/ss-workflow:review REQ-0012` again. That skill reopens the request on the
 branch and continues the review.
 
 ## Finish
 
-1. In the root checkout on `develop`: if a remote exists, run `git pull --ff-only`.
+1. In the root checkout on `develop`: if a remote exists, run `git pull --ff-only`,
+   then `git submodule update`.
 2. Confirm on `develop` that the request file is in `reqs/done/` with `status: done`.
-   If it is not (the branch was merged before it was closed, or it was merged by
-   hand), close it through a short-lived branch, as in "Closing a dropped request" in
-   the skill, with the note `Merged into develop (yyyy-MM-dd)` and the commit
-   `chore(reqs): close REQ-0012`.
-3. Run the shared clean-up (Step 5 of the skill): the local branch and the remote
-   branch. Confirm the merge on the ref that holds it: `origin/develop` when `develop`
-   was pushed or merged on the remote, the local `develop` otherwise.
+   If it is not (the workspace branch was merged before it was closed, or it was
+   merged by hand), close it through a short-lived branch, as in "Closing a dropped
+   request" in the skill, with the note `Merged into develop (yyyy-MM-dd)` and the
+   commit `chore(reqs): close REQ-0012`.
+3. Confirm that the gitlinks on `develop` contain the merges: for each project of the
+   request, `git -C <path> merge-base --is-ancestor <branch> $(git rev-parse
+   develop:<path>)`. If not, offer the gitlink update of "Workspace and projects" in
+   the root `AGENTS.md`.
+4. Run the shared clean-up (Step 5 of the skill): the local and the remote branches,
+   in the workspace and in each project. Confirm each merge on the ref that holds it:
+   `origin/<develop branch>` when it was pushed or merged on the remote, the local
+   branch otherwise.
