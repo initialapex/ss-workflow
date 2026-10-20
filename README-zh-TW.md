@@ -15,8 +15,11 @@
   <a href="README.md">English</a> | 繁體中文
 </p>
 
-一個 Claude Code plugin，在 gitflow 之上為 repo 建立以 request 為核心的開發流程。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
+一個 Claude Code plugin，在 gitflow 之上為你的專案建立以 request 為核心的開發流程，而且不改變專案 repo 原本的檔案架構。外面包一層 workspace repo：它放 request 與工作流的檔案，每個專案以 git submodule 加入。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
 
+- 專案維持自己的檔案架構，以 submodule 加入 workspace (remote URL 或 local 路徑都可以)；一個 workspace 可以有多個專案。
+- 專案的歷史只有實作的 commit。規格討論、request 狀態與 review 結果都 commit 在 workspace。
+- 每個專案有自己的版本號：沒有修改的專案不需要進版。
 - 每個變更都是一個 request 檔，規格（包含軟體架構）經你確認之前不會開始實作。
 - Agent 在各自的 git worktree 裡實作，所以多個 session 可以平行處理多個 request。
 - Verify、可選的 code review 和你的人工 review 都在根目錄的 request branch 上進行。
@@ -39,7 +42,7 @@
 - [Request 的流程](#request-的流程)
 - [Branching model](#branching-model)
 - [Remote 與 push](#remote-與-push)
-- [Init 之後的檔案結構](#init-之後的檔案結構)
+- [Workspace 的檔案結構](#workspace-的檔案結構)
 - [專案形式](#專案形式)
 - [更新](#更新)
 - [開發這個 plugin](#開發這個-plugin)
@@ -68,32 +71,35 @@
 把 `<owner>/ss-workflow` 換成 GitHub repo；其他平台請用完整的 git URL。
 
 > [!TIP]
-> 想讓專案的所有成員都取得這個 plugin，可以讓 `/ss-workflow:init` 把 marketplace 註冊到專案的 `.claude/settings.json`。
+> 想讓 workspace 的所有成員都取得這個 plugin，可以讓 `/ss-workflow:init` 把 marketplace 註冊到 workspace 的 `.claude/settings.json`。
 
 ### 快速開始
 
+在一個新的空資料夾裡，例如 `SSDisp-workspace`：
+
 ```text
-/ss-workflow:init                      設定 repo（回答問題）
-/ss-workflow:new-req 加入深色主題      建立 request 並確認規格
-/ss-workflow:check-req                 認領並在 worktree 實作
-/ss-workflow:review                    在根目錄驗證和 review
-/ss-workflow:merge                     驗收：關閉 request 並 merge 進 develop
-/ss-workflow:release                   釋出新版本
+/ss-workflow:init https://github.com/me/SSDisp.git   建立 workspace 並加入專案 (URL 或 local 路徑)
+/ss-workflow:init --add ../SSLib                      之後再加入其他專案
+/ss-workflow:new-req 加入深色主題                     建立 request 並確認規格
+/ss-workflow:check-req                                認領並在 worktree 實作
+/ss-workflow:review                                   在根目錄驗證和 review
+/ss-workflow:merge                                    驗收：先 merge 各專案，再關閉 request
+/ss-workflow:release SSDisp                           釋出某個專案的新版本
 ```
 
 ## Skills
 
 | Skill | 使用時機 | 在哪裡執行 | 做什麼 |
 |-------|----------|------------|--------|
-| `/ss-workflow:init` | 每個 repo 一次，plugin 更新後再跑一次 | 根目錄 | 建立檔案結構、git branch、`AGENTS.md` / `CLAUDE.md` 和 README。也能轉換既有專案，或升級由舊版建立的 repo。 |
-| `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，`req/` branch | 撰寫 request 檔，跟你討論規格，你確認後以 `ready` 狀態 merge 進 `develop`。 |
-| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和認領在根目錄；實作在 worktree | 列出所有 request、修復異常狀態、建立 branch 和 worktree 來認領一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
-| `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
-| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 關閉 request 並 merge 它的 branch，為 release 和 hotfix 建立 tag，並刪除 branch。 |
-| `/ss-workflow:release` | 要釋出新版本 | 根目錄 | 推薦版本號、建立 release branch、檢查未完成的工作、設定版本號，然後交給 release merge。 |
+| `/ss-workflow:init` | 每個 workspace 一次、加入專案時，以及 plugin 更新後 | 根目錄 | 建立 workspace：git branch、`AGENTS.md` / `CLAUDE.md` 和 README，並以 URL 或 local 路徑把專案加入為 submodule。也能轉換 0.5.0 以下的 repo，或升級由舊版建立的 workspace。 |
+| `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，`req/` branch | 撰寫 request 檔，決定它修改哪些專案，跟你討論規格，你確認後以 `ready` 狀態 merge 進 `develop`。 |
+| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和認領在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，在 workspace 與各專案建立 branch 和 worktree 來認領一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
+| `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
+| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch；為 release 和 hotfix 建立 tag，並刪除 branch。 |
+| `/ss-workflow:release` | 要釋出某個專案的新版本 | 根目錄 | 推薦該專案的版本號、建立它的 release branch、檢查它未完成的工作、設定版本號，然後交給 release merge。 |
 
 > [!NOTE]
-> 根目錄指的是 repo 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
+> 根目錄指的是 workspace 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
 
 每個 skill 都屬於 `ss-workflow` plugin，所以名稱以 `/ss-workflow:` 開頭。請一律輸入這個前綴：後面的名稱很短也很常見，其中像 `/init` 本身就是 Claude Code 的內建指令。
 
@@ -112,11 +118,11 @@ flowchart LR
 |--------|------|------------|----------|
 | `draft` | 規格討論中 | 根目錄，`req/REQ-…` branch | `/ss-workflow:new-req` |
 | `ready` | 你已確認規格，request 在 `develop` 上等待認領 | （無） | `/ss-workflow:new-req` |
-| `in-progress` | 已認領，實作中 | worktree，request branch | `/ss-workflow:check-req` |
+| `in-progress` | 已認領，實作中 | workspace 的 worktree，裡面有各專案的 worktree | `/ss-workflow:check-req` |
 | `review` | 實作完成，worktree 已刪除、branch 保留；等待或正在 Verify 和 Review | 根目錄，request branch | `/ss-workflow:check-req`，接著 `/ss-workflow:review` |
 | `done` | 已關閉，檔案在 `reqs/done/` | 根目錄 | `/ss-workflow:merge` |
 
-一個 request 就是一個 Markdown 檔，例如 `reqs/REQ-0012-20260907-gui-button.md`。狀態只記錄在它的 YAML frontmatter 裡，你原始提供的內容會原封不動保留在 `## Original` 區段。
+一個 request 就是 workspace 裡的一個 Markdown 檔，例如 `reqs/REQ-0012-20260907-gui-button.md`。狀態只記錄在它的 YAML frontmatter 裡，也記錄它修改哪些專案 (`projects: [SSLib, SSDisp]`)；你原始提供的內容會原封不動保留在 `## Original` 區段。
 
 | 區段 | 內容 |
 |------|------|
@@ -127,24 +133,29 @@ flowchart LR
 
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
 - `## Q&A` 裡沒有 pending 的問題，request 才能變成 `ready`。已回答的紀錄不會被改寫：決定改變時是新增一筆。
-- 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。
+- 在 workspace 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。認領之後，request 的每個專案都會建立同名的 branch。
+- 程式碼 commit 在各專案，footer 為 `Refs: <workspace>#REQ-0012`；workspace 以 gitlink 記錄 request 產生了哪些專案 commit。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
-- Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
+- Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並在每個專案用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
 
 ## Branching model
 
-| Branch | 從哪裡開 | Merge 到哪裡 | 範例 |
-|--------|----------|--------------|------|
-| 規格討論 | `develop` | `develop` | `req/REQ-0012-gui-button` |
-| Request | `develop` | `develop` | `feat/REQ-0012-gui-button` |
-| Release | `develop` | `master` 和 `develop`，並建立 tag | `release/v1.0.0-beta1` |
-| Hotfix | `master` | `master` 和 `develop`，並建立 tag | `hotfix/v1.0.1` |
+workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `main`）與 `develop`。
 
-- `master`（或 `main`）只接收 release 和 hotfix。v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
-- Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
+| Branch | Workspace | 專案 | 範例 |
+|--------|-----------|------|------|
+| 規格討論 | 從 `develop` 開、merge 回 `develop` | （無） | `req/REQ-0012-gui-button` |
+| Request | 從 `develop` 開、merge 回 `develop` | 同名，從它的 `develop` 開、merge 回去 | `feat/REQ-0012-gui-button` |
+| Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.0.0-beta1` | 從 `develop` 開，merge 到 `master` 與 `develop`，tag 為 `v1.0.0-beta1` | `release/v1.0.0-beta1` |
+| Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `v1.0.1` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
+
+- 專案的 `master` 只接收它自己的 release 和 hotfix。它的 v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
+- workspace 的 `master` 是各專案最新 release 的組合：每次 release 都把 `develop` merge 進來，並把每個專案指向它自己的 `master`。
+- Request 先逐一 merge 各專案，最後才是 workspace。
+- Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，裡面有各專案的 worktree，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
 - 規格討論、review、merge 和 release 共用根目錄，所以同一時間只能進行其中一項。
 - 所有 merge 都用 `--no-ff`。可以在 local merge，也可以透過 GitHub 或 GitLab 的 merge request。
 
@@ -152,7 +163,7 @@ flowchart LR
 
 這個工作流不需要 remote。沒有 remote 時，本機的 `develop` 就是已確認 request 的所在，建立本機 branch 就是認領，所有 branch 都在本機 merge；所有 fetch、pull、push 的步驟都會略過。
 
-有 remote 時，由 root `AGENTS.md` 的 `push-policy` 設定決定 agent 會 push 什麼：
+workspace 與每個專案各自判斷：專案可以覆寫 workspace 的設定，例如專案的 repo 要求發 merge request，而 workspace 只在你的機器上。有 remote 時，由 root `AGENTS.md` 的 `push-policy` 設定決定 agent 會 push 什麼：
 
 | `push-policy` | Agent 的行為 | 適合 |
 |---------------|--------------|------|
@@ -161,38 +172,44 @@ flowchart LR
 | `never` | 不 push，也不刪除 remote branch。每個 skill 結束時列出你需要 push 的項目。 | 對「誰可以發佈」有嚴格規定的環境 |
 
 - 不論設定為何，agent 在 push `master` 或 tag 之前一定會再問一次，不會 force-push，也不會在確認已 merge 之前刪除 branch。
+- 以沒有 remote 的 local 路徑加入的專案不會 push：它的 remote 會是你自己的 working copy。
 - 還沒 push 之前，認領只在這台機器上有效。
 - `remote-platform` 是另一個設定，只表示能不能發 merge request（`github`、`gitlab`）。其他 remote 一律是 `none`，branch 在本機 merge 後再 push。
 - Remote 拒絕 push 到受保護的 branch 時，skill 不會繞過：改發 merge request，或停下來告訴你需要在 remote 上 merge 什麼。
 
-## Init 之後的檔案結構
+## Workspace 的檔案結構
 
 ```text
-repo/
-├─ AGENTS.md, CLAUDE.md      給 agent 看的流程規則（CLAUDE.md 只 import AGENTS.md）
+SSDisp-workspace/
+├─ AGENTS.md, CLAUDE.md      給 agent 看的流程規則與設定（CLAUDE.md 只 import AGENTS.md）
 ├─ README.md, README-zh-TW.md
-├─ src/                      主要專案檔和原始碼，一個專案（或模組）一個資料夾，
-│                            各有 README.md
 ├─ reqs/                     未完成的 request；完成的在 reqs/done/
-├─ docs/                     專案規格、developer 文件、知識庫
-├─ external/                 submodule 和第三方 binary
-├─ tests/                    測試專案（可選）
-└─ samples/                  sample / demo 專案（可選）
+├─ docs/                     規格、developer 文件、知識庫
+└─ src/
+   ├─ AGENTS.md              各專案的 toolchain 與規則
+   ├─ SSLib/                 submodule：SSLib repo，維持它自己的結構
+   └─ SSDisp/                submodule：SSDisp repo，維持它自己的結構
+      ├─ SSDisp.sln
+      ├─ SSDisp/
+      └─ SSDisp.Test/
 ```
 
-`reqs/`、`docs/` 和 agent 檔案是工作流必要的部分。程式碼相關的資料夾只是預設值：init 會問你要保留哪些、source 資料夾叫什麼名字，既有專案也可以維持原本的結構。
+init 不會寫入專案的任何檔案。專案的測試、sample 與第三方檔案，都依它的 toolchain 放在原本的位置。
+
+> [!IMPORTANT]
+> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。
 
 ## 專案形式
 
-Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話描述專案類型，agent 提出下表各項的建議值讓你確認。這些內容存在專案的 `AGENTS.md` 裡，所有 skill 都從那裡讀取。
+Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
 
 | 內容 | 存放位置 |
 |------|----------|
-| 主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md` 的「Workflow settings」 |
+| 每個專案的 branch、主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
 | 其他會影響 agent 行為的檔案，例如產品內附的 prompt 檔（`agent-files`） | root `AGENTS.md` 的「Workflow settings」 |
-| 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | root `AGENTS.md` 的「Toolchain」 |
-| 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | source 資料夾 `AGENTS.md` 的「Project rules」 |
-| 要忽略的 build 輸出和本機檔案 | `.gitignore` |
+| 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | `src/AGENTS.md` 該專案章節的「Toolchain」 |
+| 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | `src/AGENTS.md` 該專案章節的「Project rules」 |
+| 要忽略的 build 輸出和本機檔案 | 專案自己的 `.gitignore` |
 
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
@@ -206,7 +223,7 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ```
 
 > [!IMPORTANT]
-> Plugin 更新不會改動 init 在你專案裡產生的檔案。更新之後，請在專案裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
+> Plugin 更新不會改動 init 在你 workspace 裡產生的檔案。更新之後，請在 workspace 裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
 
 有些版本需要的不只是新的規則文字，例如新增設定或改變 request 檔的格式。這類版本都會附一份 migration 檔 `skills/init/migrations/<version>.md`。升級時會從你 repo 記錄的版本開始，依版本順序逐一套用到已安裝的版本。每一份都會先告訴你工作流的行為有什麼不同，再提出 managed 區段以外需要的修改；沒有你的回答，不會動那些內容。
 
@@ -238,7 +255,7 @@ claude plugin validate .
 claude --plugin-dir /path/to/ss-workflow
 ```
 
-這些 skill 依賴 git 的特定行為：branch 如何認領 request、關閉的 request 如何進到 `develop`、hotfix 如何 merge。這支 script 會在暫存的沙盒裡跑這些指令並檢查結果。它測的是 git，不是 agent。修改 skill 的 git 步驟後請重跑一次：
+這些 skill 依賴 git 的特定行為：branch 如何認領 request、專案的 worktree 如何放在 workspace 的 worktree 裡並移除、關閉的 request 與它的 gitlink 如何進到 `develop`、release 如何設定 workspace `master` 的 gitlink、hotfix 如何 merge，以及舊 repo 如何轉換。這支 script 會在暫存的沙盒裡跑這些指令並檢查結果。它測的是 git，不是 agent。修改 skill 的 git 步驟後請重跑一次：
 
 ```bash
 bash tests/git-sequences.sh

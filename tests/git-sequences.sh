@@ -210,6 +210,7 @@ yes_ "project worktree with the request branch, from the project's develop" \
 git -C "$A/src/SSDisp" worktree add -q --no-track -b feat/REQ-0001-add-greeting "$WT1/src/SSDisp" origin/develop
 eq_ "the project folder is a worktree of the root checkout's submodule" "$(sed -n 's#.*\(/modules/src/SSDisp/worktrees/\).*#\1#p' "$WT1/src/SSDisp/.git")" "/modules/src/SSDisp/worktrees/"
 eq_ "the workspace worktree is clean right after the claim" "$(git -C "$WT1" status --porcelain | count)" "0"
+eq_ "inside a project worktree, the superproject is the workspace worktree" "$(git -C "$WT1/src/SSDisp" rev-parse --show-superproject-working-tree)" "$WT1"
 yes_ "the project branches are pushed" sh -c "git -C '$WT1/src/SSLib' push -q -u origin feat/REQ-0001-add-greeting && git -C '$WT1/src/SSDisp' push -q -u origin feat/REQ-0001-add-greeting"
 eq_ "the root checkout's branch did not change" "$(git branch --show-current)" "req/REQ-0003-draft-only"
 
