@@ -3,39 +3,33 @@
 All templates are in the `templates/` folder of this skill. `SKILL.md` gives its full
 path under "Ground rules".
 
-The workflow needs the files marked **(workflow)**. Everything else follows the
-answers from the questionnaire, because it depends on the project type.
+The workspace is the only layout that ss-workflow supports. It holds the files below.
+The projects are git submodules in `src/`, and init writes nothing into them.
 
 ```
-repo/
-├─ AGENTS.md                  ← root-AGENTS.md           (workflow)
-├─ CLAUDE.md                  ← CLAUDE.md                (workflow)
-├─ README.md                  ← README.md
+workspace/
+├─ AGENTS.md                  ← root-AGENTS.md           ({{PROJECTS}}: projects-entry.yaml per project)
+├─ CLAUDE.md                  ← CLAUDE.md
+├─ README.md                  ← README.md                ({{PROJECT_ROWS}})
 ├─ README-zh-TW.md            ← README-zh-TW.md          (when zh-TW is in {{README_LANGS}})
-├─ .gitignore                 ← gitignore.template       (workflow: the ss-workflow block)
+├─ .gitignore                 ← gitignore.template       (the ss-workflow block)
+├─ .gitmodules                (written by `git submodule add`)
 ├─ .claude/settings.json      (Step 8, written by `claude plugin ... --scope project`)
-├─ reqs/                      (workflow)
+├─ reqs/
 │   ├── AGENTS.md             ← reqs-AGENTS.md
 │   ├── CLAUDE.md             ← CLAUDE.md
 │   └── done/.gitkeep
-├─ docs/                      (workflow)
+├─ docs/
 │   └── {{PROJECT_SLUG}}-spec.md ← project-spec.md
-├─ {{SOURCE_DIR}}/            (default: src/)
-│   ├── AGENTS.md             ← src-AGENTS.md
-│   ├── CLAUDE.md             ← CLAUDE.md
-│   ├── <main project file>   ({{PROJECT_FILE}}, if the project has one)
-│   └── <project>/README.md   ← project-README.md        (for each project or module without a README)
-├─ external/.gitkeep          (when {{HAS_EXTERNAL}})
-├─ tests/                     (when {{HAS_TESTS}})
-│   ├── AGENTS.md             ← tests-AGENTS.md
-│   └── CLAUDE.md             ← CLAUDE.md
-└─ samples/                   (when {{HAS_SAMPLES}})
-    ├── AGENTS.md             ← samples-AGENTS.md
-    └── CLAUDE.md             ← CLAUDE.md
+└─ src/
+    ├── AGENTS.md             ← src-AGENTS.md            ({{PROJECT_SECTIONS}}: src-AGENTS-project.md per project)
+    ├── CLAUDE.md             ← CLAUDE.md
+    └── <name>/               (submodule; the project's own layout, untouched)
 ```
 
-Other top-level folders that the toolchain needs (from the questionnaire) stay where
-they are. Init only lists them in the "Repository layout" table of root `AGENTS.md`.
+There is no `tests/`, `samples/`, or `external/` folder in the workspace: each project
+keeps its tests, samples, and third-party files where its toolchain puts them, in its
+own repository.
 
 ## Rules
 
@@ -44,38 +38,40 @@ they are. Init only lists them in the "Repository layout" table of root `AGENTS.
 - Language: AGENTS.md and CLAUDE.md files use `{{AGENT_DOC_LANG}}`, and the templates
   are written in English. If `{{AGENT_DOC_LANG}}` is not English, translate the prose,
   but keep headings that other skills look up (for example `## Branching model`,
-  `## Commit convention`, `## Request file format`) in English.
+  `## Commit convention`, `## Request file format`, `## Project: <name>`) and the keys
+  of "Workflow settings" in English.
 - Write `README.md` in English and `README-zh-TW.md` in Traditional Chinese. Each one
   links to the other at the top.
 - The root README files keep the layout of their templates: a centered title, the
-  description, and the badges, then the language links, the feature list, a
-  collapsible table of contents, and the sections. When you fill them in:
+  description, then the language links, the key points, a collapsible table of
+  contents, and the sections. When you fill them in:
   - Keep the table of contents in step with the sections. If you remove or add a
     section, change its entry too.
-  - The version badge shows `{{INITIAL_VERSION}}`. Do not add a badge for something
-    that is not known, such as a license that the project does not have yet.
+  - The workspace has no version, so it has no version badge. Do not add a badge for
+    something that is not known, such as a license that the workspace does not have
+    yet.
   - Tag every code block with a language. For commands, use the tag of the shell that
     they run in (`bash`, `powershell`, `bat`), and `text` when nothing fits.
   - Use GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`) for
     side notes, and not for normal text.
 - `docs/{{PROJECT_SLUG}}-spec.md` uses `{{DOCS_LANG}}`.
-- Init does not create project files, build files, or version files. If the project
-  has no main project file yet, it is created by the developer or by the first
-  request. By default the main project file lives in the source folder, for example
-  `src/MyApp.sln`.
-- `.gitignore`: if the repository already has one, keep it, and add the ss-workflow
-  block and the missing `{{IGNORE_PATTERNS}}`. Otherwise, create it from the template.
+- Init does not create project files, build files, or version files, and does not
+  write into the project repositories. If a project has no main project file yet, it
+  is created by the developer or by the first request, in that project's repository.
+- `.gitignore`: if the workspace already has one, keep it, and add the ss-workflow
+  block. Build output is ignored by each project's own `.gitignore`.
 - Empty folders get a `.gitkeep`, so git keeps them.
-- Remove the lines that mention parts the project does not use: the `samples/` link
-  when there is no `samples/`, an empty build or test command in the README, and the
-  matching rows of the layout table in root `AGENTS.md`.
-- When a free-text answer (`{{TOOLCHAIN_NOTES}}`, `{{PROJECT_RULES}}`,
-  `{{IGNORE_PATTERNS}}`) is empty, write a one-line note that nothing is recorded yet,
-  so that the section is not left blank.
+- When a free-text answer (`{{ENTRY_TOOLCHAIN_NOTES}}`, `{{ENTRY_PROJECT_RULES}}`) is
+  empty, write a one-line note that nothing is recorded yet, so that the section is
+  not left blank. An empty key in a `projects` entry stays empty, without a trailing
+space (`build-command:`).
+- **Add project** mode appends: one entry to `projects` in root `AGENTS.md`, one
+  section to `src/AGENTS.md`, and one row to the project table of each root README.
+  These are outside the managed blocks, so show the change to the developer first.
 - Ownership:
   - Text inside `<!-- ss-workflow:managed -->` blocks is maintained by upgrades.
   - Everything else belongs to the developer after init, and upgrades never rewrite
-    it: the "Workflow settings" values, "Toolchain", "Repository layout", and "Project
-    rules" sections, the READMEs, the spec, and `CLAUDE.md`. When a new version needs
-    a change there, for example a new setting, its migration file says so, and the
-    upgrade proposes that change to the developer.
+    it: the "Workflow settings" values (including `projects`), "Repository layout",
+    the `## Project: <name>` sections, "Project notes", the READMEs, the spec, and
+    `CLAUDE.md`. When a new version needs a change there, for example a new setting,
+    its migration file says so, and the upgrade proposes that change to the developer.

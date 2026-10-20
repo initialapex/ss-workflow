@@ -21,7 +21,8 @@
 
 ## Architecture
 
-<!-- Main components and how they interact. Link to the project READMEs in src/. -->
+<!-- The projects of the workspace (src/), what each one is responsible for, and how
+     they depend on each other. Link to each project's README. -->
 
 ## Functional requirements
 

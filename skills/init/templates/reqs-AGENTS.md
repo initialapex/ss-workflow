@@ -11,8 +11,8 @@ written in the `reqs-language` from root `AGENTS.md`.
 - File name: `REQ-<4-digit id>-<yyyyMMdd>-<slug>.md`, for example
   `REQ-0012-20260907-gui-button.md`.
   - **id**: the highest id in use, plus 1. An id is in use when a file in `reqs/` or
-    `reqs/done/` on `develop` has it, or when a local or remote branch name contains
-    it (`req/REQ-0012-…`, `feat/REQ-0012-…`).
+    `reqs/done/` on `develop` has it, or when a local or remote branch name of the
+    workspace contains it (`req/REQ-0012-…`, `feat/REQ-0012-…`).
   - **date**: the creation date.
   - **slug**: short, lowercase, kebab-case, in English.
 - When a request is closed, `/ss-workflow:merge` moves its file to `reqs/done/` with
@@ -28,6 +28,7 @@ id: REQ-0012
 title: GUI buttonX modification
 status: draft
 type: feat
+projects: [SSDisp]
 priority: normal
 branch:
 created: 2026-09-07
@@ -56,8 +57,9 @@ created: 2026-09-07
 |-------|--------|
 | `status` | `draft`, `ready`, `in-progress`, `review`, `done` |
 | `type` | `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`, `hotfix` |
+| `projects` | The projects that the request changes, by their `name` in "Workflow settings", for example `[SSLib, SSDisp]`. A `hotfix` names exactly one. A request from before the workspace layout may lack the field: it belongs to the one project that the repository had then. |
 | `priority` | `high`, `normal`, `low` |
-| `branch` | Empty until claimed, then the request branch, for example `feat/REQ-0012-gui-button` |
+| `branch` | Empty until claimed, then the workspace request branch, for example `feat/REQ-0012-gui-button`. The projects use the same name, except for a hotfix: `hotfix/SSDisp-v1.0.1` in the workspace, `hotfix/v1.0.1` in the project. |
 
 The frontmatter is the only source of truth for a request's state.
 
@@ -134,15 +136,17 @@ the code review, and the Review.
 |--------|---------|------------------------|---------------------------------|--------|
 | `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | The `req/` branch | `/ss-workflow:new-req` |
 | `ready` | The developer approved the spec; waiting to be claimed | (nothing) | `develop`, after the `req/` branch is merged | `/ss-workflow:new-req` |
-| `in-progress` | Claimed; being implemented | A worktree, on the request branch | The request branch | `/ss-workflow:check-req` |
-| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | The request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it |
-| `done` | Closed; the file is in `reqs/done/` | Root checkout | The request branch, as its last commit before the merge | `/ss-workflow:merge` |
+| `in-progress` | Claimed; being implemented | A worktree of the workspace with a worktree of each project inside, on the request branches | The workspace request branch | `/ss-workflow:check-req` |
+| `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | The workspace request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it |
+| `done` | Closed; the file is in `reqs/done/` | Root checkout | The workspace request branch, as its last commit before the merge | `/ss-workflow:merge` |
 
 Terms:
 
-- **Root checkout**: the repository's primary working tree. Its home branch is
+- **Root checkout**: the workspace's primary working tree. Its home branch is
   `develop`. Spec discussions, Verify, Review, merges, and releases use it, one at a
   time.
+- **Request branches**: the branch of the request in the workspace and the branch
+  with the same name in each project of the request.
 - **Verify**: running the build, the test projects, and the verification scripts.
 - **Review**: the developer checks the result by hand.
 
@@ -152,33 +156,38 @@ Rules:
   requests that the developer approved.
 - Only move a request to `ready` after the developer explicitly approves the spec,
   and only when `## Q&A` has no pending entry.
-- **Creating the request branch is the claim.** The branch
-  `<type>/REQ-<id>-<slug>` is created from `develop`. If a branch for this id already
-  exists, locally or on the remote, the request is claimed. The first commit on the
-  branch sets `status: in-progress` and `branch`.
+- **Creating the workspace request branch is the claim.** The branch
+  `<type>/REQ-<id>-<slug>` is created from `develop`. If a workspace branch for this
+  id already exists, locally or on the remote, the request is claimed. The first
+  commit on the branch sets `status: in-progress` and `branch`.
 - In one repository, git creates a branch name only once, so the claim needs no
   remote. Across machines, the branch and its first commit are pushed (see "Remote
   and pushing" in the root `AGENTS.md`): the machine whose first commit the remote
   accepts holds the claim, and the other one gives up its branch. A claim that is not
   pushed holds in this repository only.
-- `develop` keeps showing `ready` until the merge. The request branch holds the
-  current status (`in-progress`, `review`, or `done`), and that status is the
+- The branches in the projects are created only after the claim holds, from each
+  project's latest `develop-branch` (not from the gitlink).
+- `develop` keeps showing `ready` until the merge. The workspace request branch holds
+  the current status (`in-progress`, `review`, or `done`), and that status is the
   effective one.
+- Code is committed in the projects only. The workspace request branch only holds the
+  request file and the gitlinks of the request's projects.
 - In a worktree, the agent writes code and may try to compile it. It does not run
   tests, scripts, or executables there. Those belong to Verify, in the root checkout.
-- When the implementation is finished, the worktree is removed and the branch is kept.
-  The request waits in `review` until the developer starts `/ss-workflow:review`.
+- When the implementation is finished, the worktrees are removed and the branches are
+  kept. The request waits in `review` until the developer starts `/ss-workflow:review`.
 - Small fixes found during Verify or Review are made in the root checkout, on the
-  request branch. If the request needs larger rework, it goes back to `in-progress`
+  request branches. If the request needs larger rework, it goes back to `in-progress`
   and is implemented in a worktree again.
 - A request is closed when the developer runs `/ss-workflow:merge`.
-- A request that is `done` on its branch while the branch is not merged yet is
-  waiting for its merge on the remote ("merge pending").
-- `type: hotfix` requests use the branch `hotfix/v<version>`, created from the main
-  branch instead of `develop`. The request file is not on the main branch, so the
-  claim commit copies it from `develop` onto the hotfix branch.
+- A request that is `done` on its workspace branch while that branch is not merged
+  yet is waiting for a merge on a remote ("merge pending").
+- `type: hotfix` requests name one project. They use `hotfix/<name>-v<version>` in the
+  workspace, created from its main branch, and `hotfix/v<version>` in the project,
+  created from the project's main branch. The request file is not on the workspace
+  main branch yet, so the claim commit copies it from `develop` onto the hotfix branch.
 - The worktree of a request is `.claude/worktrees/<branch with "/" replaced by "-">`
-  under the repository root.
+  under the workspace root, with the projects at their paths inside it.
 - Never edit the `## Original` section. Never delete the file of a request that
   reached `develop`. A request that is dropped gets `status: done` and a note in
   `## Notes` that explains why.

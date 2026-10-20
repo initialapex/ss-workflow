@@ -1,31 +1,28 @@
-# {{SOURCE_DIR}}/
+# src/
 
-Source code of {{PROJECT_NAME}}.
+The projects of {{PROJECT_NAME}}. Each folder here is a git submodule: a project
+repository with its own layout, branches, and versions. Its entry in `projects`
+(root `AGENTS.md`) holds its settings, and its section below holds its rules.
 
 <!-- ss-workflow:managed id=src-rules -->
 ## Rules
 
-- The main project file, if the project has one, is `project-file` in the root
-  `AGENTS.md`. It lives in this folder.
-- One folder per project or module. Every such folder has a `README.md` that covers
-  what it is for, its main entry points, and how it relates to the others. Update the
-  README when its responsibilities change.
-- The product version is set only in `version-source` (root `AGENTS.md`). Do not set
-  it anywhere else.
-- Third-party code and binaries go to `external/`, not into this folder.
-- Never commit build output.
-- Build with `build-command` from the root `AGENTS.md`. If a fresh checkout or
-  worktree needs preparation first, run `setup-command`.
-- Follow "Project rules" below. They hold what is specific to this project's
+- Do not reorganize a project to fit the workflow. Each project keeps the layout of
+  its toolchain, including where its tests, samples, and third-party files live.
+- Commit code only in the project repository, on the request branch. The workspace
+  records the project commit as a gitlink (see "Workspace and projects" in the root
+  `AGENTS.md`).
+- Paths in a project's settings (`project-file`, `version-source`) are relative to
+  the project folder, and its commands run in that folder.
+- A project's version is set only in its `version-source`. Do not set it anywhere
+  else.
+- Never commit build output. If a project's `.gitignore` misses it, say so; fixing it
+  is a change to that project and needs a request.
+- If a project has its own `AGENTS.md`, `CLAUDE.md`, or README, read and follow them
+  too. If they contradict the workflow rules, ask the developer.
+- Build with the project's `build-command`. If a fresh checkout or worktree needs
+  preparation first, run its `setup-command`.
+- Follow the project's section below. It holds what is specific to that project's
   toolchain.
 <!-- /ss-workflow:managed -->
-
-## Project rules
-
-<!-- Written during initialization, and maintained by the developer. ss-workflow
-     upgrades never modify this section. It says what an agent must know to change
-     this project correctly: how new files and projects are registered with the build,
-     which files are generated and must not be edited, where build output goes, and
-     the naming conventions. -->
-
-{{PROJECT_RULES}}
+{{PROJECT_SECTIONS}}

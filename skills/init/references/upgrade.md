@@ -17,6 +17,24 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 An upgrade has three parts, in this order: the migrations (section 2), the managed
 blocks (section 3), and the version (section 4). Do all of them before you commit.
 
+**A repo version below `0.6.0`** is the single-repository layout, and the upgrade is
+the conversion into a workspace. Do not run sections 2 to 4 in the old repository:
+the current templates are workspace templates, and the old repository's workflow
+files are moved or removed by the conversion anyway. Instead:
+
+1. Tell the developer the "What changes" part of every migration file from the repo
+   version up to `0.6.0`, in version order. They describe how the workflow behaves
+   now.
+2. Follow [convert-legacy.md](convert-legacy.md). The workspace is created from the
+   current templates and records the plugin version. What the earlier migrations
+   would have carried over is handled there: the conversion's questionnaire asks for
+   every setting that the old repository lacks (for example `push-policy`), the texts
+   that the developer wrote move to the workspace (replace old skill names in them,
+   see `0.4.0.md`), and the request files get their new sections from the skills that
+   next write them (see `0.5.0.md`).
+3. If the plugin is newer than `0.6.0`, the later migrations run in the new workspace
+   afterwards: run `/ss-workflow:init` there.
+
 ## 2. Apply the migrations
 
 The folder `migrations/` of this skill (`SKILL.md` gives its full path) holds one file
@@ -89,18 +107,28 @@ leave the changes uncommitted for the developer to look at.
 Report and offer to fix:
 
 - Missing folders, or missing AGENTS.md / CLAUDE.md files.
-- Missing `develop` or main branch.
+- Missing `develop` or main branch, in the workspace or in a project.
 - `.gitignore` missing entries from the ss-workflow block.
+- The entries of `projects` and the submodules of `.gitmodules` differ: a project
+  without a submodule, a submodule without an entry, or a `path` that does not match.
+- A submodule that is not initialized (`git submodule status` starts with `-`).
+- A gitlink of `develop` that is behind its project's develop branch (see "Workspace
+  and projects" in root `AGENTS.md`), and a gitlink of the main branch that is not its
+  project's main branch.
+- Project worktrees (`git -C src/<name> worktree list`) whose workspace worktree is
+  gone, or whose request is already in `review`.
 - The root checkout is not on `develop`. Say which activity holds it: a `req/*` branch
-  is a spec discussion, a request branch is a review, a `release/*` branch is a
-  release.
+  is a spec discussion, a request branch is a review, and a project on a `release/*`
+  branch is a release.
 - Request files on `develop` with invalid frontmatter or an unknown `status`.
 - Request files on `develop` with `status: done` that are not in `reqs/done/`.
 - Keys of the "Workflow settings" block that the template has and root `AGENTS.md`
   lacks, or values that are not allowed for their key (for example a `push-policy`
   other than `auto`, `ask`, or `never`).
 - `remote-platform` that says `github` or `gitlab` while `git remote` lists nothing,
-  or `merge-method: remote` while `remote-platform` is `none`.
+  or `merge-method: remote` while `remote-platform` is `none`, for the workspace or a
+  project.
+- A project from a local path without a remote whose `push-policy` is not `never`.
 - Worktrees from `git worktree list` whose branch has already been merged into
   `develop`, or whose request is already in `review`.
 - `req/*` branches whose request is already on `develop`.

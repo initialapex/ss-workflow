@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-blue">
+  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -15,17 +15,24 @@
   English | <a href="README-zh-TW.md">繁體中文</a>
 </p>
 
-A Claude Code plugin that gives a repository a request-driven development workflow on
-top of gitflow. Every change starts as a request file whose spec you approve. An agent
-implements it in its own git worktree, you verify and review it in the root checkout,
-and skills merge and release it by the same rules every time.
+A Claude Code plugin that gives your projects a request-driven development workflow on
+top of gitflow, without changing their repositories' layout. A workspace repository
+wraps them: it holds the requests and the workflow files, and each project is a git
+submodule in it. Every change starts as a request file whose spec you approve. An
+agent implements it in its own git worktree, you verify and review it in the root
+checkout, and skills merge and release it by the same rules every time.
 
+- Your project keeps its own layout. It joins a workspace as a submodule, from a
+  remote URL or a local path, and a workspace can hold several projects.
+- The project's history only gets implementation commits. Spec discussions, request
+  status, and review results are committed in the workspace.
+- Every project has its own version: a project that did not change is not released.
 - Every change is a request file, and nothing is implemented before you approve its
   spec, including the software architecture.
 - Agents implement in separate git worktrees, so several sessions can work on several
   requests in parallel.
 - Verify, an optional code review, and your manual review happen in the root checkout,
-  on the request branch.
+  on the request branches.
 - Merges and releases follow fixed gitflow rules: `--no-ff` merges, tags, and a
   recommended version number.
 - It does not depend on a project type: a Visual Studio solution, a Keil project, an
@@ -37,7 +44,7 @@ and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.5.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.6.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -51,7 +58,7 @@ and skills merge and release it by the same rules every time.
 - [How a request moves](#how-a-request-moves)
 - [Branching model](#branching-model)
 - [Remote and pushing](#remote-and-pushing)
-- [Repository layout after init](#repository-layout-after-init)
+- [Workspace layout](#workspace-layout)
 - [Project types](#project-types)
 - [Updating](#updating)
 - [Developing this plugin](#developing-this-plugin)
@@ -82,33 +89,36 @@ Replace `<owner>/ss-workflow` with the GitHub repository, or use the full git UR
 another host.
 
 > [!TIP]
-> To let everyone who works in a project get the plugin, `/ss-workflow:init` can
-> register the marketplace in the project's `.claude/settings.json`.
+> To let everyone who works in a workspace get the plugin, `/ss-workflow:init` can
+> register the marketplace in the workspace's `.claude/settings.json`.
 
 ### Quick start
 
+In a new, empty folder, for example `SSDisp-workspace`:
+
 ```text
-/ss-workflow:init                      set up the repository (answer the questions)
-/ss-workflow:new-req add a dark theme  create a request and agree on its spec
-/ss-workflow:check-req                 claim it and implement it in a worktree
-/ss-workflow:review                    verify it and review it in the root checkout
-/ss-workflow:merge                     accept it: close it and merge it into develop
-/ss-workflow:release                   release a new version
+/ss-workflow:init https://github.com/me/SSDisp.git   set up the workspace with a project (a URL or a local path)
+/ss-workflow:init --add ../SSLib                      add another project later
+/ss-workflow:new-req add a dark theme                 create a request and agree on its spec
+/ss-workflow:check-req                                claim it and implement it in worktrees
+/ss-workflow:review                                   verify it and review it in the root checkout
+/ss-workflow:merge                                    accept it: merge the projects, then close it
+/ss-workflow:release SSDisp                           release a new version of one project
 ```
 
 ## Skills
 
 | Skill | When to use it | Where it runs | What it does |
 |-------|----------------|---------------|--------------|
-| `/ss-workflow:init` | Once per repository, and again after a plugin update | Root checkout | Creates the folder layout, the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files. Converts an existing project, or upgrades a repository made by an older version. |
-| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
-| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; a worktree for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branch and worktree, and implements it. Then it marks the request for review and removes the worktree. |
-| `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branch | Verify: runs the build, the tests, and the verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
-| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Closes the request and merges its branch, creates the tag for releases and hotfixes, and deletes the branches. |
-| `/ss-workflow:release` | You want to release a new version | Root checkout | Recommends the version, creates the release branch, checks for unfinished work, sets the version number, and hands over to the release merge. |
+| `/ss-workflow:init` | Once per workspace, to add a project, and again after a plugin update | Root checkout | Creates the workspace: the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files, and adds projects as submodules from a URL or a local path. Converts a repository of version 0.5.0 or older, or upgrades a workspace made by an older version. |
+| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, settles which projects it changes, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
+| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; worktrees for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branches and worktrees in the workspace and in its projects, and implements it. Then it marks the request for review and removes the worktrees. |
+| `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
+| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. Creates the tags for releases and hotfixes, and deletes the branches. |
+| `/ss-workflow:release` | You want to release a new version of a project | Root checkout | Recommends the project's version, creates its release branch, checks for its unfinished work, sets the version number, and hands over to the release merge. |
 
 > [!NOTE]
-> The root checkout is the repository's primary working tree. Tests, scripts, and
+> The root checkout is the workspace's primary working tree. Tests, scripts, and
 > executables only run there. In a worktree, the agent writes code and tries to compile
 > it, because running things in a worktree is more restricted.
 
@@ -131,13 +141,14 @@ flowchart LR
 |--------|---------|------------------------|--------|
 | `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
 | `ready` | You approved the spec; the request is on `develop` and waits to be claimed | (nothing) | `/ss-workflow:new-req` |
-| `in-progress` | Claimed; being implemented | A worktree, on the request branch | `/ss-workflow:check-req` |
-| `review` | Implemented; the worktree is removed and the branch is kept; waiting for or under Verify and Review | Root checkout, on the request branch | `/ss-workflow:check-req`, then `/ss-workflow:review` |
+| `in-progress` | Claimed; being implemented | A worktree of the workspace, with a worktree of each project inside it | `/ss-workflow:check-req` |
+| `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | `/ss-workflow:check-req`, then `/ss-workflow:review` |
 | `done` | Closed; the file is in `reqs/done/` | Root checkout | `/ss-workflow:merge` |
 
-A request is one Markdown file, `reqs/REQ-0012-20260907-gui-button.md`. Its YAML
-frontmatter is the only place that holds its state, and your original text is kept
-unchanged in its `## Original` section.
+A request is one Markdown file in the workspace,
+`reqs/REQ-0012-20260907-gui-button.md`. Its YAML frontmatter is the only place that
+holds its state, and names the projects that it changes (`projects: [SSLib, SSDisp]`).
+Your original text is kept unchanged in its `## Original` section.
 
 | Section | Holds |
 |---------|-------|
@@ -149,8 +160,11 @@ unchanged in its `## Original` section.
 - A draft only exists on its `req/` branch. `develop` only holds requests you approved.
 - A request becomes `ready` only when no question in `## Q&A` is pending. Answered
   entries are never rewritten: a changed decision is a new entry.
-- Creating the request branch is the claim: git creates a branch name only once, so
-  two sessions cannot claim the same request.
+- Creating the request branch in the workspace is the claim: git creates a branch
+  name only once, so two sessions cannot claim the same request. Then each project of
+  the request gets a branch with the same name.
+- Code is committed in the projects, with `Refs: <workspace>#REQ-0012`. The workspace
+  records which project commits a request produced, as gitlinks.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
 - You can change code by hand during a review. `/ss-workflow:review` lists every
@@ -158,8 +172,8 @@ unchanged in its `## Original` section.
   request (committed), a generated file (added to `.gitignore`), or unwanted
   (discarded). A Verify result only counts when it ran on a clean working tree.
 - A code review is optional. `/ss-workflow:review` offers it after Verify passed, and
-  runs Claude Code's `/code-review` on the changes of the request only
-  (`origin/develop...<request branch>`). You can also ask for it later in the same
+  runs Claude Code's `/code-review` on the changes of the request only, in each
+  project (`origin/develop...<request branch>`). You can also ask for it later in the same
   review. Its result is recorded in the request's `## Notes`.
 - Results are reported as they are. Every check is recorded as `passed`, `failed`,
   `did not run`, or `not configured`, and the implementation summary lists what is not
@@ -171,18 +185,25 @@ unchanged in its `## Original` section.
 
 ## Branching model
 
-| Branch | Created from | Merges into | Example |
-|--------|--------------|-------------|---------|
-| Spec discussion | `develop` | `develop` | `req/REQ-0012-gui-button` |
-| Request | `develop` | `develop` | `feat/REQ-0012-gui-button` |
-| Release | `develop` | `master` and `develop`, plus a tag | `release/v1.0.0-beta1` |
-| Hotfix | `master` | `master` and `develop`, plus a tag | `hotfix/v1.0.1` |
+Both the workspace and every project follow gitflow, each with its own `master` (or
+`main`) and `develop`.
 
-- `master` (or `main`) only receives releases and hotfixes. Before v1.0.0, `develop`
-  may also be merged into it directly.
+| Branch | Workspace | Project | Example |
+|--------|-----------|---------|---------|
+| Spec discussion | From and into `develop` | (none) | `req/REQ-0012-gui-button` |
+| Request | From and into `develop` | Same name, from and into its `develop` | `feat/REQ-0012-gui-button` |
+| Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.0.0-beta1` | From `develop`, into `master` and `develop`, tagged `v1.0.0-beta1` | `release/v1.0.0-beta1` |
+| Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, and into `develop`, tagged `v1.0.1` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
+
+- A project's `master` only receives its releases and hotfixes. Before its v1.0.0,
+  its `develop` may also be merged into it directly.
+- The workspace `master` is the set of the latest released projects: each release
+  merges `develop` into it and points every project to its own `master`.
+- A request is merged project by project, and the workspace last.
 - Request and hotfix branches are implemented in git worktrees under
-  `.claude/worktrees/`, so several sessions can implement several requests in
-  parallel. A worktree only lives during the implementation.
+  `.claude/worktrees/`, with a worktree of each project inside, so several sessions
+  can implement several requests in parallel. A worktree only lives during the
+  implementation.
 - Spec discussions, reviews, merges, and releases share the root checkout, so only one
   of them runs at a time.
 - Every merge uses `--no-ff`. A branch can be merged locally, or through a merge
@@ -194,8 +215,10 @@ The workflow does not need a remote. Without one, the local `develop` holds the
 approved requests, creating the local branch is the claim, and every branch is merged
 locally. Every step that fetches, pulls, or pushes is skipped.
 
-With a remote, the `push-policy` setting in the root `AGENTS.md` decides what the
-agent pushes:
+The workspace and each project decide this on their own: a project can override the
+workspace's settings, for example when its repository requires merge requests while
+the workspace lives on your machine only. With a remote, the `push-policy` setting in
+the root `AGENTS.md` decides what the agent pushes:
 
 | `push-policy` | The agent | Fits |
 |---------------|-----------|------|
@@ -203,8 +226,10 @@ agent pushes:
 | `ask` | Commits locally, and asks before the first push of a skill run | You want to see what leaves the machine |
 | `never` | Never pushes and never deletes a remote branch. Each skill lists what you have to push. | Strict rules about who publishes |
 
-- For every value, the agent asks right before it pushes `master` or a tag, never
+- For every value, the agent asks right before it pushes a `master` or a tag, never
   force-pushes, and never deletes a branch before its merge is confirmed.
+- A project added from a local path without a remote never pushes: its remote would
+  be your own working copy.
 - While nothing is pushed, a claim holds on this machine only.
 - `remote-platform` is a separate setting. It only says whether merge requests can be
   opened (`github`, `gitlab`). For any other remote it is `none`, and branches are
@@ -212,39 +237,47 @@ agent pushes:
 - If the remote refuses a push to a protected branch, the skills do not work around
   it. They open a merge request, or stop and say what has to be merged on the remote.
 
-## Repository layout after init
+## Workspace layout
 
 ```text
-repo/
-├─ AGENTS.md, CLAUDE.md      workflow rules for agents (CLAUDE.md imports AGENTS.md)
+SSDisp-workspace/
+├─ AGENTS.md, CLAUDE.md      workflow rules and settings for agents (CLAUDE.md imports AGENTS.md)
 ├─ README.md, README-zh-TW.md
-├─ src/                      the main project file and the source code, one folder
-│                            per project or module, each with a README.md
 ├─ reqs/                     open requests; finished ones in reqs/done/
-├─ docs/                     project spec, developer docs, knowledge base
-├─ external/                 submodules and third-party binaries
-├─ tests/                    test projects (optional)
-└─ samples/                  sample and demo projects (optional)
+├─ docs/                     specs, developer docs, knowledge base
+└─ src/
+   ├─ AGENTS.md              the toolchain and the rules of each project
+   ├─ SSLib/                 a submodule: the SSLib repository, in its own layout
+   └─ SSDisp/                a submodule: the SSDisp repository, in its own layout
+      ├─ SSDisp.sln
+      ├─ SSDisp/
+      └─ SSDisp.Test/
 ```
 
-`reqs/`, `docs/`, and the agent files are what the workflow needs. The code folders
-are a default: init asks which ones to keep and what the source folder is called, and
-an existing project can keep its own layout.
+Init writes nothing into the projects. Their tests, samples, and third-party files
+stay where their toolchain puts them.
+
+> [!IMPORTANT]
+> Repositories set up by ss-workflow 0.5.0 or older kept the code and the requests in
+> one repository. Running `/ss-workflow:init` there converts it: the old repository
+> becomes the project repository, with its remote, history, and tags, and goes back to
+> the layout of its toolchain. A new workspace next to it takes the requests, the
+> drafts, and the docs. No request, release, or hotfix may be in progress.
 
 ## Project types
 
 The plugin ships no templates or commands for any toolchain. During init you describe
-the project type in your own words, and the agent proposes the values below for you
-to confirm. They are stored in the project's `AGENTS.md`, and every skill reads them
-from there.
+the type of each project in your own words, and the agent proposes the values below
+for you to confirm. They are stored in the workspace, and every skill reads them from
+there.
 
 | What | Where it is stored |
 |------|--------------------|
-| Main project file, version source, and the setup, build, test, and verify commands | "Workflow settings" in the root `AGENTS.md` |
+| Branches, main project file, version source, and the setup, build, test, and verify commands of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
 | Extra files that tell an agent how to behave, such as prompt files that the product ships (`agent-files`) | "Workflow settings" in the root `AGENTS.md` |
-| Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the root `AGENTS.md` |
-| How new files and projects are registered with the build, generated files, naming | "Project rules" in the source folder's `AGENTS.md` |
-| Build output and local files to ignore | `.gitignore` |
+| Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the project's section of `src/AGENTS.md` |
+| How new files and projects are registered with the build, generated files, naming | "Project rules" in the project's section of `src/AGENTS.md` |
+| Build output and local files to ignore | The project's own `.gitignore` |
 
 > [!NOTE]
 > A command may stay empty, for example when a project can only be built inside an
@@ -261,8 +294,8 @@ installed version.
 ```
 
 > [!IMPORTANT]
-> A plugin update does not change the files that init generated in your project. After
-> an update, run `/ss-workflow:init` in the project again. It compares the
+> A plugin update does not change the files that init generated in your workspace.
+> After an update, run `/ss-workflow:init` in the workspace again. It compares the
 > `ss-workflow-version` recorded in the root `AGENTS.md` with the plugin version, and
 > updates only the blocks marked `<!-- ss-workflow:managed -->`. Your own text outside
 > those blocks stays as it is.
@@ -303,8 +336,11 @@ claude --plugin-dir /path/to/ss-workflow
 ```
 
 The skills rely on git behaving in specific ways: how a branch claims a request, how
-a closed request reaches `develop`, how a hotfix is merged. This script runs those
-command sequences in a temporary sandbox and checks the results. It tests git, not
+project worktrees sit inside a workspace worktree and are removed, how a closed
+request and its gitlinks reach `develop`, how a release sets the gitlinks of the
+workspace `master`, how a hotfix is merged, and how an old repository is converted.
+This script runs those command sequences in a temporary sandbox and checks the
+results. It tests git, not
 the agent. Run it again when you change the git steps of a skill:
 
 ```bash
