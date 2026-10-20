@@ -21,8 +21,9 @@ Input: `$ARGUMENTS`
 - Talk to the developer in `discussion-language`. Write the request in `reqs-language`.
   Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English,
   because other skills look them up.
-- This skill runs in the root checkout, not in a worktree.
-- A `req/` branch changes only its own request file.
+- This skill runs in the root checkout of the workspace, not in a worktree.
+- A `req/` branch changes only its own request file. Nothing is committed in the
+  project repositories.
 - One request per `req/` branch.
 - Never edit the `## Original` section after it is written.
 - A request moves to `ready` only after the developer explicitly approves the spec.
@@ -39,7 +40,9 @@ Input: `$ARGUMENTS`
 ## Step 1: Preconditions
 
 1. If the root `AGENTS.md` has no `ss-workflow-version:`, stop and tell the developer to
-   run `/ss-workflow:init` first.
+   run `/ss-workflow:init` first. If the version is below `0.6.0`, the repository has
+   the single-repository layout: stop, and point to `/ss-workflow:init`, which
+   converts it into a workspace.
 2. If this is a linked worktree (`git rev-parse --git-dir` and `--git-common-dir`
    give different paths), stop. Explain that spec discussions run in the root
    checkout.
@@ -48,9 +51,9 @@ Input: `$ARGUMENTS`
 
 | Current branch | Action |
 |----------------|--------|
-| `develop` | Check that `git status --porcelain` shows no changes to tracked files. If it does, stop and report them. With a remote, run `git pull --ff-only`. Continue with Step 2. |
+| `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them: for a project (` M src/<name>`), `git -C src/<name> status --porcelain` and `git -C src/<name> branch --show-current` tell what it is. A project on a `release/*` branch means that a release is open. With a remote, run `git pull --ff-only` and `git submodule update`. Continue with Step 2. |
 | A `req/REQ-…` branch | A spec discussion is open here. If `$ARGUMENTS` is empty or names this request, resume it at Step 5. Otherwise, ask whether to pause this draft first (commit it, push it, and switch to `develop`). |
-| Any other branch | The root checkout is busy: a request branch means a review, and a `release/*` branch means a release. Say which one, and stop. |
+| Any other branch | The root checkout is busy: a request or hotfix branch means a review. Say which one, and stop. |
 
 ## Step 2: Decide what to do with the input
 
@@ -107,6 +110,9 @@ Then check the following:
 1. Write `reqs/REQ-<id>-<yyyyMMdd>-<slug>.md` in the format from `reqs/AGENTS.md`,
    with `status: draft`, an empty `branch:`, and today's date in `created`. The
    `branch` field is for the implementation branch, not for this `req/` branch.
+   `projects` holds the projects that the input names or clearly means, by their
+   `name` in "Workflow settings", and `[]` when it is not clear yet. The spec
+   discussion settles it.
 2. Put the original input into `## Original`, byte for byte. If the input came from a
    file, add one line above it: `Source: <original path>`. `## Q&A` starts empty, apart
    from its comment.
@@ -125,8 +131,14 @@ Then check the following:
 
 Before you ask the developer anything, read what the request touches:
 
-- `docs/*-spec.md` and the `README.md` of each affected project in `src/`
-- The relevant source files, enough to know what exists today
+- `docs/*-spec.md`, and for each affected project its section in `src/AGENTS.md` and
+  its own `README.md`
+- The relevant source files, enough to know what exists today. The root checkout has
+  each project at the commit that `develop` records, which may be behind the
+  project's develop branch. Read the latest one without checking anything out:
+  `git -C src/<name> fetch`, then `git -C src/<name> show
+  origin/<develop-branch>:<file>` (or `git -C src/<name> grep <pattern>
+  origin/<develop-branch>`).
 - Related requests in `reqs/` and `reqs/done/`
 
 Do not ask the developer questions that the repository already answers.
@@ -139,6 +151,7 @@ may have an "Open questions" part in its spec:
 - Turn each open question into an entry with `A: (pending)` and today's date, and
   remove the "Open questions" part.
 - Leave earlier decisions in `## Notes` where they are. Do not turn them into entries.
+- A draft from before the workspace layout lacks `projects`: add it after `type:`.
 
 ## Step 6: Discuss and write the spec
 
@@ -159,8 +172,8 @@ only if the developer wants to.
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes: behavior, UI, commands, file formats, API, data, and the projects affected |
-| Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. If the change needs no architectural decision, say so in one sentence and name the place it goes into. Do not leave this part out. |
+| Scope | The concrete changes: behavior, UI, commands, file formats, API, and data. When the request changes more than one project, list the changes per project. |
+| Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Do not leave this part out. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify) or by hand (Review). |
 | Out of scope | What this request deliberately does not cover |
@@ -168,9 +181,15 @@ only if the developer wants to.
 The spec has no "Open questions" part. A question that is not decided yet is an entry
 in `## Q&A` with `A: (pending)`.
 
-For `type: hotfix`, also state the affected released version and the hotfix version
-(the next patch version after the latest tag on the main branch, in the form that
-"Versioning" in the root `AGENTS.md` describes).
+The spec also settles `projects` in the frontmatter: every project that the request
+changes. A project that the request only needs to read (a dependency that does not
+change) is not listed. A request with an empty `projects` cannot be approved.
+
+For `type: hotfix`, `projects` names exactly one project. Also state the affected
+released version of that project and the hotfix version: the next patch version
+after the latest tag on the project's main branch (`git -C src/<name> describe --tags
+--abbrev=0 origin/<main-branch>`), in the form that "Versioning" in the root
+`AGENTS.md` describes.
 
 ### How to start
 
@@ -234,9 +253,9 @@ each with the date.
 
 ## Step 7: Approval
 
-When `## Q&A` has no pending entry and "Architecture" is filled in, show the final
-spec and ask with AskUserQuestion. While entries are pending, list them, and leave
-out the "Approve" option.
+When `## Q&A` has no pending entry, "Architecture" is filled in, and `projects` names
+at least one project, show the final spec and ask with AskUserQuestion. While
+entries are pending, list them, and leave out the "Approve" option.
 
 | Option | Action |
 |--------|--------|
@@ -287,7 +306,7 @@ out the "Approve" option.
 
 Tell the developer, in `discussion-language`:
 
-- The request id, title, type, priority, and status
+- The request id, title, type, projects, priority, and status
 - Where it is: on `develop` (`ready`), on its `req/` branch (draft), in an open merge
   request, or discarded
 - The questions that are still pending in `## Q&A`, for a draft
