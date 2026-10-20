@@ -63,7 +63,8 @@ own repository.
 - Empty folders get a `.gitkeep`, so git keeps them.
 - When a free-text answer (`{{ENTRY_TOOLCHAIN_NOTES}}`, `{{ENTRY_PROJECT_RULES}}`) is
   empty, write a one-line note that nothing is recorded yet, so that the section is
-  not left blank. An empty key in a `projects` entry stays empty (`build-command:`).
+  not left blank. An empty key in a `projects` entry stays empty, without a trailing
+space (`build-command:`).
 - **Add project** mode appends: one entry to `projects` in root `AGENTS.md`, one
   section to `src/AGENTS.md`, and one row to the project table of each root README.
   These are outside the managed blocks, so show the change to the developer first.
