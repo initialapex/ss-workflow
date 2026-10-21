@@ -112,6 +112,10 @@ Report and offer to fix:
 - The entries of `projects` and the submodules of `.gitmodules` differ: a project
   without a submodule, a submodule without an entry, or a `path` that does not match.
 - A submodule that is not initialized (`git submodule status` starts with `-`).
+- A project without `docs/<name>/spec.md`, or a missing `docs/overview.md`: offer to
+  create it from its template.
+- Request files without `projects` while `legacy-project` is empty, or names a
+  project that is not in `projects`.
 - A gitlink of `develop` that is behind its project's develop branch (see "Workspace
   and projects" in root `AGENTS.md`), and a gitlink of the main branch that is not its
   project's main branch.

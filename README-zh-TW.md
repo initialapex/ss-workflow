@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-blue">
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.6.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.7.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -134,6 +134,7 @@ flowchart LR
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
 - `## Q&A` 裡沒有 pending 的問題，request 才能變成 `ready`。已回答的紀錄不會被改寫：決定改變時是新增一筆。
 - 在 workspace 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。認領之後，request 的每個專案都會建立同名的 branch。
+- request 也可以修改 workspace 自己的檔案：`docs/<專案>/` 的規格、知識庫、`src/AGENTS.md` 的專案規則，這些修改在 Review 由你確認；只改這些檔案的 request 為 `projects: []`。
 - 程式碼 commit 在各專案，footer 為 `Refs: <workspace>#REQ-0012`；workspace 以 gitlink 記錄 request 產生了哪些專案 commit。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
@@ -184,7 +185,10 @@ SSDisp-workspace/
 ├─ AGENTS.md, CLAUDE.md      給 agent 看的流程規則與設定（CLAUDE.md 只 import AGENTS.md）
 ├─ README.md, README-zh-TW.md
 ├─ reqs/                     未完成的 request；完成的在 reqs/done/
-├─ docs/                     規格、developer 文件、知識庫
+├─ docs/
+│  ├─ overview.md            各專案如何一起運作
+│  ├─ SSLib/spec.md          各專案的規格，以及它的其他文件
+│  └─ SSDisp/spec.md
 └─ src/
    ├─ AGENTS.md              各專案的 toolchain 與規則
    ├─ SSLib/                 submodule：SSLib repo，維持它自己的結構

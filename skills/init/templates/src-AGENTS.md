@@ -1,6 +1,6 @@
 # src/
 
-The projects of {{PROJECT_NAME}}. Each folder here is a git submodule: a project
+The projects of {{WORKSPACE_NAME}}. Each folder here is a git submodule: a project
 repository with its own layout, branches, and versions. Its entry in `projects`
 (root `AGENTS.md`) holds its settings, and its section below holds its rules.
 
@@ -24,5 +24,8 @@ repository with its own layout, branches, and versions. Its entry in `projects`
   preparation first, run its `setup-command`.
 - Follow the project's section below. It holds what is specific to that project's
   toolchain.
+- A project's spec and its other docs are in the workspace, in `docs/<name>/`. When a
+  request changes the behavior that they describe, update them on the workspace
+  request branch, in the same request.
 <!-- /ss-workflow:managed -->
 {{PROJECT_SECTIONS}}

@@ -1,11 +1,13 @@
-# {{PROJECT_NAME}} Specification
+# {{ENTRY_NAME}} Specification
 
-<!-- Write this document in docs-language. Requests in reqs/ refine and extend it;
-     when a request changes the behavior described here, update this file in the same branch. -->
+<!-- Write this document in docs-language. Requests in reqs/ refine and extend it.
+     When a request changes the behavior described here, update this file on the
+     request's workspace branch. Other documents about this project (design notes,
+     references, knowledge base) go into this folder too. -->
 
 ## Overview
 
-{{PROJECT_DESCRIPTION}}
+{{ENTRY_DESCRIPTION}}
 
 ## Goals
 
@@ -21,8 +23,9 @@
 
 ## Architecture
 
-<!-- The projects of the workspace (src/), what each one is responsible for, and how
-     they depend on each other. Link to each project's README. -->
+<!-- The main parts of this project, what each one is responsible for, and how they
+     depend on each other. Which other projects of the workspace it uses or is used
+     by, and through which interface (see ../overview.md). -->
 
 ## Functional requirements
 
@@ -31,9 +34,3 @@
 ## Non-functional requirements
 
 <!-- Performance, compatibility, supported platforms, etc. -->
-
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| | |

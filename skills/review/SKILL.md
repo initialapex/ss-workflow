@@ -28,7 +28,10 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
   request's projects in `src/AGENTS.md` first. They are the source of truth.
 - Code is committed in the projects, on their request branches, with
   `Refs: <workspace-name>#REQ-xxxx`. The workspace request branch gets the request
-  file and the gitlinks, with `Refs: REQ-xxxx`.
+  file and the gitlinks, and the request's changes to workspace files (docs, README
+  files, agent files outside their managed blocks), with `Refs: REQ-xxxx`.
+- Changes to workspace files are not built, tested, or code-reviewed. The developer
+  reads each of them in the Review (Step 6).
 - Talk to the developer in `discussion-language`.
 - This skill runs in the root checkout, not in a worktree. Tests, scripts, and
   executables run here, not in worktrees.
@@ -96,7 +99,9 @@ the list holds other changes only. If the output is then empty, go on. Otherwise
 
 3. Commit what belongs to the request as a normal commit in the repository where it
    is: `fix: …` or the type that fits, with `Refs: <workspace-name>#REQ-xxxx` in a
-   project. If the diff does not tell you what a change by the developer is for, ask.
+   project. A change to a workspace file is committed on the workspace request
+   branch, with `Refs: REQ-xxxx`, separately from the request file. If the diff does
+   not tell you what a change by the developer is for, ask.
    Stage with `git add -A` when no entry is kept uncommitted. Otherwise, stage the
    paths by name. Push. A change in a project that is not part of the request does
    not belong to it: ask whether to add the project to `projects` (record it in
@@ -234,9 +239,15 @@ Then check two things that the implementation owes:
 If a `## Q&A` entry is pending, ask the developer that question before the Review
 starts, and complete the entry.
 
+Then list the workspace files that the request changes: `git diff --name-only
+<base>...HEAD` in the workspace, without the request file and the gitlinks. A change
+to a managed block, to `ss-workflow-version`, to `.gitmodules`, or to a `projects`
+entry does not belong to a request: show it, and ask whether to undo it on this
+branch.
+
 Show the developer a short overview: the request, the change per project
-(`git -C <path> diff <base>...HEAD --stat`), the agent behavior files that it
-changes, and the plan for Verify and Review.
+(`git -C <path> diff <base>...HEAD --stat`), the workspace files that it changes, the
+agent behavior files that it changes, and the plan for Verify and Review.
 
 ## Step 4: Verify
 
@@ -259,6 +270,11 @@ tools. A command that is empty is skipped and recorded as "not configured". Do n
 invent a command for it. If neither a build command nor a test command is configured
 for any project of the request, say clearly that Verify checked nothing
 automatically, and that the Review has to cover everything.
+
+A request with `projects: []` has no project to verify. Record
+`- Workspace files only: nothing to run`, say that Verify checked nothing
+automatically, and continue with the Review. Skip the code review (Step 5) too, and
+record it as `- Not applicable (workspace files only)`.
 
 When a project of the request is used by another one (SSDisp builds against SSLib),
 run the dependent project's checks too: they show whether the projects fit together
@@ -320,9 +336,10 @@ or the Review, and it ticks no acceptance criteria.
 3. Check for uncommitted changes (see "Uncommitted changes"). The code review reads
    commits only, so a change that is not committed is not reviewed.
 4. The code review runs once per project of the request, in the project folder,
-   because the code is there. The workspace branch only holds the request file and
-   needs none. The scope is `<base>...<branch>`: three dots, so that only the changes
-   of this request are read, and not what the project's develop branch gained in the
+   because the code is there. The workspace branch needs none: its changes to
+   workspace files are read by the developer in the Review (Step 6). The scope is
+   `<base>...<branch>`: three dots, so that only the changes of this request are
+   read, and not what the project's develop branch gained in the
    meantime. `<base>` is the ref that Step 2 merged from in that project:
    `origin/<develop-branch>` with a remote, the local branch without one, and the
    main branch in the same way for a hotfix. Do not run the code review without a
@@ -377,6 +394,10 @@ Guide the developer through the manual check:
    - every item under `### Behavior changes`: show the developer the diff of the file
      and the "Before" and "After" text, and ask whether this is the behavior they
      want. If the text does not match the diff, correct the text first.
+   - every other workspace file that the request changes (Step 3), such as a spec in
+     `docs/<name>/`: show the diff, and ask whether it is right and whether it
+     matches what the code now does. Also say when the request changes the behavior
+     of a project, and its docs in `docs/<name>/` did not change.
    - every `Assumption` in `## Notes`: ask whether it still holds
    - every check that Verify recorded as `failed` or `did not run`: the developer has
      to know about it before they decide
@@ -393,7 +414,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the project branches, with normal commits in the projects, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review` with the gitlinks, and push. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`), so that the project branches are free for the worktrees. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far, with the gitlinks. Leave the root checkout and its projects on the request branches, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |

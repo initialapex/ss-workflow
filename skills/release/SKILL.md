@@ -87,8 +87,9 @@ Summarize the changes since the last tag:
   the files added to `reqs/done/` (`git diff --name-only --diff-filter=A
   <name>/v<last>..develop -- reqs/done/`, or since the start when there is no such
   tag), whose `projects` contains the project. A request without `projects` is from
-  before the workspace layout, and belongs to the one project that it had. Show each
-  with its id, title, and type.
+  before the workspace layout, and belongs to `legacy-project` in "Workflow
+  settings". A request with `projects: []` changed workspace files only, and belongs
+  to no release. Show each with its id, title, and type.
 - The project commits by type (`feat`, `fix`, …), and every commit that has
   `BREAKING CHANGE:` in its body or `!` after its type
 - Project commits without a `Refs:` footer: changes made outside the workspace. Show
