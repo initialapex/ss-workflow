@@ -131,8 +131,10 @@ Then check the following:
 
 Before you ask the developer anything, read what the request touches:
 
-- `docs/*-spec.md`, and for each affected project its section in `src/AGENTS.md` and
-  its own `README.md`
+- `docs/overview.md`, and for each affected project its docs in `docs/<name>/` (at
+  least `spec.md`), its section in `src/AGENTS.md`, and its own `README.md`. Do not
+  read the docs of every project: only those of the projects that the request
+  touches or uses.
 - The relevant source files, enough to know what exists today. The root checkout has
   each project at the commit that `develop` records, which may be behind the
   project's develop branch. Read the latest one without checking anything out:
@@ -172,7 +174,7 @@ only if the developer wants to.
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes: behavior, UI, commands, file formats, API, and data. When the request changes more than one project, list the changes per project. |
+| Scope | The concrete changes: behavior, UI, commands, file formats, API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. |
 | Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Do not leave this part out. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify) or by hand (Review). |
@@ -183,7 +185,14 @@ in `## Q&A` with `A: (pending)`.
 
 The spec also settles `projects` in the frontmatter: every project that the request
 changes. A project that the request only needs to read (a dependency that does not
-change) is not listed. A request with an empty `projects` cannot be approved.
+change) is not listed. `projects: []` is right only when the request changes
+workspace files and nothing else, for example a knowledge base article, a change to
+`docs/overview.md`, or to a `## Project: <name>` section in `src/AGENTS.md`. Such a
+request has no project branches, and Verify has nothing to run for it, so "How to
+verify" names the Review for every criterion. Managed blocks, `ss-workflow-version`,
+`.gitmodules`, and the `projects` entries are not changed by a request (see
+"Workspace and projects" in the root `AGENTS.md`): point to an ss-workflow upgrade or
+`/ss-workflow:init --add` instead.
 
 For `type: hotfix`, `projects` names exactly one project. Also state the affected
 released version of that project and the hotfix version: the next patch version
@@ -254,7 +263,8 @@ each with the date.
 ## Step 7: Approval
 
 When `## Q&A` has no pending entry, "Architecture" is filled in, and `projects` names
-at least one project, show the final spec and ask with AskUserQuestion. While
+at least one project (or is `[]`, and "Scope" changes workspace files only), show the
+final spec and ask with AskUserQuestion. While
 entries are pending, list them, and leave out the "Approve" option.
 
 | Option | Action |

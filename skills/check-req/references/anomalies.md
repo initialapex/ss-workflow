@@ -12,8 +12,8 @@ Normal states, for comparison:
 |--------|--------------------------|------------------|-----------|
 | Draft | A `req/REQ-…` branch only | None | None |
 | `ready` | None | None | None |
-| `in-progress` | Exists | One per project of the request (right after the claim commit, possibly not yet) | The workspace worktree, with a project worktree at each `path` |
-| `review` | Exists | Exist | None. During a review, the root checkout and its projects are on the branches. |
+| `in-progress` | Exists | One per project of the request (right after the claim commit, possibly not yet); none for `projects: []` | The workspace worktree, with a project worktree at each `path` |
+| `review` | Exists | Exist (none for `projects: []`) | None. During a review, the root checkout and its projects are on the branches. |
 | `done`, not merged ("merge pending") | Exists | Exist, or already merged into their develop branches | None |
 | `done`, merged | Deleted | Deleted | None |
 

@@ -322,6 +322,35 @@ git -C src/SSLib checkout -q --detach origin/develop; git add src/SSLib
 git commit -q -m "chore(workspace): update SSLib to $(git -C src/SSLib rev-parse --short HEAD)"; git push -q 2>/dev/null
 eq_ "after the update, nothing is behind" "$(git -C src/SSLib rev-list --count "$(git rev-parse develop:src/SSLib)..origin/develop")" "0"
 
+# ================================================================ workspace files only
+sec "a request with projects: [] changes workspace files only"
+newreq 0005 lib-spec docs ""
+eq_ "the request names no project" "$(git show origin/develop:reqs/REQ-0005-20261007-lib-spec.md | sed -n 's/^projects: //p')" "[]"
+WT4="$A/.claude/worktrees/docs-REQ-0005-lib-spec"
+links_before="$(git rev-parse develop:src/SSLib) $(git rev-parse develop:src/SSDisp)"
+yes_ "the claim creates the workspace branch; every project is detached" claim "$A" "$WT4" docs/REQ-0005-lib-spec origin/develop origin/develop
+eq_ "no project got a branch" "$(git -C src/SSLib branch -a --list '*REQ-0005-*' | count)$(git -C src/SSDisp branch -a --list '*REQ-0005-*' | count)" "00"
+( cd "$WT4" && setstatus reqs/REQ-0005-20261007-lib-spec.md in-progress \
+  && git commit -q -am "chore(reqs): claim REQ-0005" -m "Refs: REQ-0005" && git push -q -u origin docs/REQ-0005-lib-spec 2>/dev/null \
+  && mkdir -p docs/SSLib && echo "greet() returns a greeting" > docs/SSLib/spec.md && git add docs \
+  && git commit -q -m "docs(SSLib): describe greet()" -m "Refs: REQ-0005" && git push -q 2>/dev/null \
+  && setstatus reqs/REQ-0005-20261007-lib-spec.md review && git add reqs \
+  && git commit -q -m "chore(reqs): mark REQ-0005 for review" -m "Refs: REQ-0005" && git push -q 2>/dev/null )
+eq_ "the workspace diff without the request file is the docs change" "$(git diff --name-only origin/develop...docs/REQ-0005-lib-spec -- . ':!reqs' | tr '\n' ' ')" "docs/SSLib/spec.md "
+eq_ "the detached projects leave the workspace worktree clean" "$(git -C "$WT4" status --porcelain | count)" "0"
+yes_ "the worktrees are removed in the usual order" rmwt "$A" "$WT4"
+git checkout -q docs/REQ-0005-lib-spec; git submodule update -q
+f=REQ-0005-20261007-lib-spec.md; setstatus "reqs/$f" done; git mv "reqs/$f" "reqs/done/$f"; git add reqs
+git commit -q -m "chore(reqs): close REQ-0005" -m "Refs: REQ-0005"; git push -q 2>/dev/null
+git checkout -q develop; git pull -q --ff-only 2>/dev/null
+yes_ "the workspace branch merges into develop with no project step" \
+  git merge -q --no-ff docs/REQ-0005-lib-spec -m "Merge docs/REQ-0005-lib-spec into develop" -m "lib-spec" -m "Refs: REQ-0005"
+git push -q 2>/dev/null; git submodule update -q
+eq_ "develop has the spec" "$(git show develop:docs/SSLib/spec.md)" "greet() returns a greeting"
+eq_ "and its gitlinks did not move" "$(git rev-parse develop:src/SSLib) $(git rev-parse develop:src/SSDisp)" "$links_before"
+yes_ "the workspace branch is deleted after the merge is confirmed" sh -c "git merge-base --is-ancestor docs/REQ-0005-lib-spec origin/develop && git branch -q -d docs/REQ-0005-lib-spec && git push -q origin --delete docs/REQ-0005-lib-spec"
+eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
+
 # ================================================================ release
 sec "release: SSDisp v0.1.0 in its own repository"
 git -C src/SSDisp fetch -q --tags
@@ -551,7 +580,8 @@ sec "convert: the new workspace takes the requests"
 git init -q --bare "$S/W.git"; git -C "$S/W.git" symbolic-ref HEAD refs/heads/master
 git clone -q "$S/W.git" "$W" 2>/dev/null; cd "$W"; git checkout -q -b master
 git submodule add -q "$S/App.git" src/App
-mkdir -p docs; git -C "$L" archive "$BASE" reqs docs/app-spec.md | tar -x
+git -C "$L" archive "$BASE" reqs | tar -x
+mkdir -p docs/App; git -C "$L" show "$BASE:docs/app-spec.md" > docs/App/spec.md
 for x in reqs/AGENTS.md reqs/CLAUDE.md; do echo "new template" > "$x"; done
 for r in reqs/REQ-*.md; do sed -i 's/^type: \(.*\)$/type: \1\nprojects: [App]/' "$r"; done
 git -C src/App checkout -q --detach origin/master; git add -A 2>/dev/null
@@ -561,6 +591,7 @@ git branch develop; git checkout -q develop
 git -C src/App checkout -q --detach origin/develop; git add src/App; git commit -q -m "chore(workspace): point App to develop"
 eq_ "the workspace master points to the released App" "$(git rev-parse master:src/App)" "$(git -C src/App rev-parse 'v0.1.0^{commit}')"
 eq_ "the closed request is copied byte for byte" "$(git show develop:reqs/done/REQ-0000-20261007-old-one.md | md5sum)" "$(git -C "$L" show "$BASE:reqs/done/REQ-0000-20261007-old-one.md" | md5sum)"
+eq_ "the old spec becomes the project's spec in the workspace" "$(git show develop:docs/App/spec.md)" "spec"
 eq_ "the ready request gets its project" "$(git show develop:reqs/REQ-0001-20261007-ready-one.md | sed -n 's/^projects: //p')" "[App]"
 eq_ "and keeps its status" "$(status_of develop:reqs/REQ-0001-20261007-ready-one.md)" "ready"
 git checkout -q -b req/REQ-0002-draft develop
