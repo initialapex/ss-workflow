@@ -22,7 +22,7 @@ SSDisp-workspace/
 ├─ CLAUDE.md / AGENTS.md / README.md / README-zh-TW.md / .gitignore / .gitmodules
 ├─ .claude/settings.json      (extraKnownMarketplaces, enabledPlugins)
 ├─ reqs/                      (需求檔，見 reqs 章節)
-├─ docs/                      (軟體規格、外部參考文件、知識庫)
+├─ docs/                      (overview.md 與各專案的 <專案名稱>/spec.md，見 docs 章節)
 └─ src/
     ├── CLAUDE.md / AGENTS.md (各專案的 Toolchain 與 Project rules)
     ├── SSLib/                (submodule → SSLib repo)
@@ -140,7 +140,7 @@ ss-workflow/
 
 - 建立 workspace repo 時建立 `master` (或 `main`，問答決定) 與 `develop`，並完成第一個 commit
 - 全新的專案 (還沒有任何 source code): developer 先建好一個空的 repo (remote 或 local)，再用 URL 或路徑加入
-- 建立 agent 所需要的檔案 `CLAUDE.md`, `AGENTS.md` 與 Project Spec, `README.md` 等工作流所需文件
+- 建立 agent 所需要的檔案 `CLAUDE.md`, `AGENTS.md`、`docs/overview.md` 與各專案的 `docs/<name>/spec.md`、`README.md` 等工作流所需文件
 - CLAUDE.md / AGENTS.md 分工:
   - `AGENTS.md` 為內容本體 (AGENTS.md 開放格式，其他 agent 也可讀)
   - `CLAUDE.md` 只放 `@AGENTS.md` import，以及 Claude Code 專屬的設定
@@ -148,7 +148,7 @@ ss-workflow/
 - README.md Template 可以參考:
   - https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit
   - 版面: 置中的標題、描述與 badge → 語言連結 → 功能清單 → 可收合的目錄 → 各章節
-  - workspace 的 README 列出各專案 (名稱、路徑、repo、說明)；版本屬於各專案，所以 workspace README 不放版本 badge
+  - workspace 的 README 列出各專案 (名稱、路徑、repo、spec 連結、說明)；版本屬於各專案，所以 workspace README 不放版本 badge
   - 程式碼區塊都標上語言 (指令依執行的 shell 選 `bash` / `powershell` / `bat`)；補充說明用 GitHub alert (`> [!NOTE]` 等)
   - 目錄要和章節一致，移除或新增章節時一併調整
 
@@ -161,6 +161,7 @@ ss-workflow/
 - 新加入專案的 gitlink: workspace master 指向 source main，develop 指向 source develop
 - source repo 缺 develop (或 main 的名稱不同) 時詢問: 建立 develop / 指定既有的 branch 名稱
 - 每個專案各自走一次 toolchain 問答 (見下方)，結果寫入 `projects:` 與 `src/AGENTS.md` 的 `## Project: <name>`
+- 建立該專案的 `docs/<name>/spec.md` (workspace 已有該專案的 spec 時保留，不另外建立)，並在 `docs/overview.md` 的 Projects 加一行
 
 ### 初始化問答
 
@@ -177,6 +178,7 @@ ss-workflow/
 
 - 各專案的 `verify-command`: `/ss-workflow:review` 在 build 與測試之後額外執行的驗證 script
 - `agent-files`: 內建清單以外、會影響 agent 行為的檔案路徑 (glob，逗號分隔，可指向 `src/<P>/...`)，e.g. 產品內附的 prompt 檔，見「如實回報與 agent 行為檔」
+- `legacy-project`: 由「轉換 0.5.0 以下的 repo」寫入的專案名稱，沒有 `projects` 欄位的舊 request 屬於它；不是轉換來的 workspace 留空
 
 ### 轉換 0.5.0 以下的 repo
 
@@ -189,10 +191,10 @@ ss-workflow/
   - `tests/`、`samples/` 內的每個專案逐一詢問: 合併進 source (搬到 toolchain 的位置) 或刪除 (歷史中仍找得回)
   - `external/` 預設原地保留 (build 會參照它)，搬移表中可以改
 - 從 source repo 移除工作流的檔案 (`reqs/`、ss-workflow 產生的 `AGENTS.md` / `CLAUDE.md`、plugin 註冊的 `.claude/settings.json`、`.gitignore` 的 ss-workflow 區段)；developer 寫在這些檔案 managed 區段以外的內容搬到 workspace
-- 舊的 `docs/`: 逐一檔案詢問，預設搬到 workspace；developer 可以指定哪些是產品文件 (e.g. 使用者手冊、API 文件)，留在 source repo
+- 舊的 `docs/`: 逐一檔案詢問，預設搬到 workspace 的 `docs/<name>/` (舊的 `docs/<slug>-spec.md` 變成 `docs/<name>/spec.md`)；developer 可以指定哪些是產品文件 (e.g. 使用者手冊、API 文件)，留在 source repo
 - README 是產品文件，留在 source repo (只修正指向已移除檔案的連結)；workspace 由範本產生新的 README
 - 建立 workspace (預設 `../<Name>-workspace`，可帶 remote URL)，以舊 repo 的 URL 加入為專案
-  - 匯入 request: `reqs/` 與 `reqs/done/` 的檔案原樣複製；`ready` 的 request 補上 `projects: [<name>]`，`reqs/done/` 的檔案不修改 (沒有 `projects` 欄位的 request 視為該專案的)
+  - 匯入 request: `reqs/` 與 `reqs/done/` 的檔案原樣複製；`ready` 的 request 補上 `projects: [<name>]`，`reqs/done/` 的檔案不修改；Workflow settings 的 `legacy-project` 記錄該專案名稱，沒有 `projects` 欄位的 request 屬於它
   - draft: 在 workspace 重建 `req/` branch；確認複製完成且 developer 同意後，才刪除舊 repo 的 `req/` branch
   - workspace master 的 gitlink 指向 source main，並在上面打 `<name>/v<最新版本>` tag，作為之後 release 比對的起點
 - source repo 的 main 在下一次 release 前仍保有舊的檔案，這是預期的
@@ -247,6 +249,7 @@ created: 2026-09-07
 ```
 
 - `branch` 同時是 workspace 與各專案的 branch 名稱 (hotfix 例外: workspace 為 `hotfix/<P>-v<version>`，專案為 `hotfix/v<version>`)
+- `projects: []`: 只修改 workspace 檔案的 request (見「request 修改 workspace 檔案」)；hotfix 一定剛好一個專案
 
 - `## Q&A`: 對話即記錄，事後任何人都能回答「當時為什麼這樣決定」
 
@@ -298,11 +301,26 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - Note:
     - 若 developer 使用 `.md` 的方式加入新需求，原始需求的內容必須保留在 `## Original` 區段
 
+### request 修改 workspace 檔案
+
+程式碼只 commit 在各專案；但 request 也可能需要改 workspace 本身的檔案 (更新 spec、知識庫、專案規則)，否則「所有工作都從 request 開始」與「workspace branch 只有 request 檔與 gitlink」互相矛盾。
+
+- workspace request branch 可以帶的內容: request 檔、gitlink，以及 workspace 檔案的修改: `docs/`、README、`.gitignore`、agent 檔中 managed 區段以外的文字 (e.g. Project notes、`## Project: <name>` 章節、Workflow settings 的值)
+- 不在 request 範圍內: managed 區段與 `ss-workflow-version` (由 upgrade 改)、`.gitmodules` 與 `projects` 清單 (由 `/ss-workflow:init --add` 改)
+- 在 workspace worktree commit，與 request 檔的 commit 分開，帶 `Refs: REQ-xxxx` (e.g. `docs(SSLib): describe the new frame API`)
+- 不 build、不跑 code review；review 列出 workspace 的 diff 由 developer 逐項確認，動到 agent 行為檔時照「如實回報與 agent 行為檔」寫 Behavior changes
+- `projects: []` 的 request: 只有 workspace branch，沒有專案 branch；Verify 沒有可跑的指令 (明講 Verify 沒有自動檢查任何東西)，全部由 Review 確認；merge 只做 workspace；不算進任何專案的 release
+- workspace merge 會多出 docs 的文字衝突 (兩個 request 改同一份 spec)：和程式碼衝突一樣，顯示兩邊後詢問 developer
+
 ## docs
 
-- 最主要是放置 workspace 內各專案的規格
-- 放置所有 developer 可閱讀的文件
-- 過程中有建立相對應的知識庫，也放置在這邊
+- `docs/overview.md`: workspace 整體 — 各專案的職責、彼此的相依與介面、跨專案的需求、共用詞彙
+- `docs/<name>/`: 單一專案的文件，規格在 `docs/<name>/spec.md`；資料夾名稱就是專案的 `name` (與 `src/<name>` 相同，不轉 kebab-case)
+  - 該專案的設計筆記、參考文件、知識庫也放在這個資料夾
+  - 加入專案時建立 `spec.md`；沒有專案的 workspace 只有 overview
+- 跨專案或 workspace 整體的文件直接放在 `docs/`
+- 讀取: new-req / check-req 只讀 overview 與 request 涉及的專案的 `docs/<name>/`，不讀全部專案的 spec
+- 更新: request 改變專案的行為或對外介面時，在同一個 request 的 workspace branch 更新 `docs/<name>/spec.md`；專案之間的關係改變時更新 overview (見「request 修改 workspace 檔案」)
 - 產品本身的文件 (e.g. 使用者手冊) 可以留在 source repo
 
 ## skill: `/ss-workflow:new-req`
@@ -311,10 +329,11 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 
 - 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在某個 `req/` branch 上 (接續該 draft)
 - 從 develop 開 `req/REQ-<id>-<slug>` branch 並立即 push (同時占住流水號)，在上面建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)
-- 讀程式碼前先 fetch 各專案，讀 source 的最新 develop (gitlink 可能落後)
+- 讀程式碼前先 fetch 各專案，讀 source 的最新 develop (gitlink 可能落後)；docs 只讀 `docs/overview.md` 與相關專案的 `docs/<name>/`
 - 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論後 commit + push
   - Spec 內含 Goal / Scope / Architecture / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查或 Review 人工檢查) / Out of scope
   - `projects` 在 Spec 討論時決定；修改多個專案時，Scope 與 Architecture 依專案分別寫，並寫明專案之間的相依 (e.g. SSDisp 需要 SSLib 的新 API)
+  - workspace 檔案的修改 (含要跟著更新的 `docs/<name>/spec.md`) 在 Scope 的「Workspace」小節列出；只改 workspace 檔案時 `projects: []`，How to verify 全部標為 Review
   - 每一輪問過的問題與回答寫入 `## Q&A`；還沒有答案的寫 `A: (pending)`，不另外放 Open questions；有 pending 時不能 Approve
   - 開工前要講定的範圍: developer 或使用者看得到、用得到的東西 (UI、指令、檔案格式、對外 API，寫在 Scope)，以及軟體架構 (寫在 Architecture: 新增或修改的模組 / 元件、各自的責任、呼叫關係、資料流、重要的資料結構與狀態、新的相依)；更細的實作細節留給實作，除非 developer 想談
   - Architecture 不可省略: 不需要架構決定的變更也要用一句話寫明，並指出放在既有結構的哪裡；由 AI 依現有程式碼提出，有多種合理結構時列出取捨並推薦，由 developer 確認
@@ -339,7 +358,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
     - `<develop-ref>`: 無 remote 時為 `develop`；有 remote 且本機 develop 沒有自己的 commit 時為 `origin/develop`；本機 develop 領先時為 `develop` (並提醒其他機器還看不到)；兩邊各有對方沒有的 commit 時以 `develop` 為主、另外讀 `origin/develop` 才有的 request，提醒 developer 先同步，且不認領只有一邊有的 request
     - 各專案依同樣的規則決定自己的 `<develop-ref>` (以該專案的 `develop-branch` 為準)
   - 總覽包含: `req/` branch 上的 draft、develop 上的 request、每個 request 的有效狀態 / 兩層的 branch / worktree，以及 gitlink 落後的專案
-  - 若發現異常 (e.g. branch 已建立但沒有認領 commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch、內層 worktree 殘留)，先排除異常再認領
+  - 若發現異常 (e.g. branch 已建立但沒有認領 commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再認領
   - 若有多個 `ready` 的 request，依 `priority` 排序後讓 developer 選擇
   - 認領: `git worktree add -b <branch> <path> <develop-ref>` 一次建立 workspace branch 與 worktree，push，再做認領 commit (見 reqs 章節)；認領被接受後，為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `src/<P>`
@@ -351,7 +370,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - `review` / `done`: 實作已完成，這個 worktree 不該存在；確認沒有遺漏後刪除，並提示下一步
 - 實作原則
   - 只在 request 的 worktree 內修改，不改根目錄的檔案、不切換根目錄的 branch (唯一例外: 上述 developer 同意的修復，把根目錄切回 develop)
-  - 程式碼只 commit 在各專案的 branch；workspace branch 只有 request 檔與 gitlink 的 commit
+  - 程式碼只 commit 在各專案的 branch；workspace branch 有 request 檔、gitlink，以及 workspace 檔案的 commit (docs 等，見「request 修改 workspace 檔案」)
+  - 對外介面或行為改變時，在 workspace worktree 更新該專案的 `docs/<name>/` 與需要時的 overview，並列在 implementation summary 的 What changed
   - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯，在專案資料夾內)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
   - 動手前先讀 `src/AGENTS.md` 中該專案的 `## Project: <P>` 章節，以及專案本身的 `AGENTS.md` / `CLAUDE.md` / README (若有)；新檔案要依 Project rules 加入 build
   - 依 Spec 的 Architecture 實作，不自行更改架構；Spec 沒有 Architecture 時先提出並由 developer 確認；implementation summary 註明架構是否照 Spec
@@ -380,13 +400,13 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
   2. 根目錄 checkout workspace request branch、`git submodule update`，各 request 專案 checkout 同名 branch，並把各專案 develop (hotfix 為 main) 的新 commit merge 進來
   3. Verify: 對每個 request 的專案依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (在專案資料夾內；留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果依專案寫入 `## Notes`
-  4. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的 request 檔不需要 code review
+  4. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的檔案不跑 code review，改由 Review 讀 diff
      - 不帶範圍不可執行: `/code-review` 預設只看尚未 push 的 commit，而這個工作流每個 commit 都會 push
      - 發現的問題先對照程式碼確認: 小問題當場修 (修完重跑 Verify)、大問題提議退回、不屬於這個 request 的記為 follow-up、不確定的交給 developer 決定
      - 結果 (含 skipped / not available) 寫入 `## Notes`；不打勾 acceptance criteria；不帶 `--fix` / `--comment`
      - 無法呼叫時不以自行讀 diff 代替；雲端的 `ultra` 只能由 developer 自己輸入，skill 只列出指令
      - Review 期間 developer 也可以隨時要求執行
-  5. Review: 列出需要人工確認的項目，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
+  5. Review: 列出需要人工確認的項目 (含 workspace 檔案的每一個 diff，以及行為改了但 `docs/<name>/` 沒跟著改的專案)，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
   6. 詢問結果
      - Review 通過: 其餘 criteria 打勾、記錄結果 (連同 gitlink)、根目錄切回 develop，提示 `/ss-workflow:merge REQ-xxxx` 結案
      - 小修: 直接在根目錄修正，程式碼 commit 在專案的 request branch，workspace 更新 gitlink，重跑 Verify
@@ -443,6 +463,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 順序: 先各專案，最後 workspace
     1. 每個專案: 把專案 develop 的新 commit merge 進專案 branch 並解衝突 (有新 commit 時重新跑 build + test + `verify-command`)，再 `--no-ff` merge 到專案 develop 並 push (或發 merge-request)
     2. workspace: 關閉 request (status 改為 `done`、`git mv` 到 `reqs/done/`，gitlink 設為各專案 develop 的 merge commit) 是 workspace request branch 上的最後一個 commit，隨著 merge 一起進 develop
+    - `projects: []` 的 request 沒有專案 branch，只做第 2 步
   - 任何一步中斷 (merge-request 等待中、受保護的 branch)，下一次執行時以 `merge-base --is-ancestor` (專案 branch 是否已在專案 develop、workspace branch 是否已在 workspace develop) 判斷做到哪裡再接續
   - 發 merge-request 的情況下，專案已合併但 workspace 還沒 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow:review REQ-xxxx` 重新開啟並繼續 review
 
@@ -484,7 +505,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - 若專案已有 release branch，表示接續先前的 release (根目錄停在 develop，專案停在該 release branch)
   - 專案 develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否納入這次 release
 - 每個專案一次只進行一個 release；已有 release branch 時不再建立新的；不同專案可以先後 release
-- 這次 release 包含的 request: 上一個 `<P>/v*` tag 之後 `reqs/done/` 新增、且 `projects` 含該專案的 request (沒有 `projects` 欄位的舊 request 視為轉換前唯一的專案)
+- 這次 release 包含的 request: 上一個 `<P>/v*` tag 之後 `reqs/done/` 新增、且 `projects` 含該專案的 request (沒有 `projects` 欄位的舊 request 屬於 `legacy-project`；`projects: []` 的 request 不屬於任何專案的 release)
 - 版本號格式: `vX.Y.Z-{alpha/beta/rc}{R}`
   - X / Y / Z (MAJOR / MINOR / PATCH) 為 0 到 99 的整數，最多兩位數，不補零
   - 正式版本沒有後綴: `v1.0.0`；prerelease 使用後綴，階段只有 `alpha` / `beta` / `rc`，R 從 1 開始、直接接在階段後面: `v1.0.0-alpha1`、`v1.0.0-beta2`、`v1.0.0-rc1`
@@ -503,7 +524,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及該專案未合併的 hotfix
   - 尚未開始 (`req/` branch 上的 draft、`ready`): 只列出，不阻擋 release
   - developer 的選項: 不含這些直接 release / 先完成 (專案切回 develop 處理，完成後再下一次) / 取消 release (刪除專案的 release branch)
-- 版本號檢查範圍: 該專案的 version-source、`## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方、專案內 README / docs 與 workspace `docs/` 內標示該專案目前版本的地方、既有的 `CHANGELOG.md` (沒有則不建立)
+- 版本號檢查範圍: 該專案的 version-source、`## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方、專案內 README / docs、既有的 `CHANGELOG.md` (沒有則不建立)
+  - workspace 的 `docs/<P>/` 與 `docs/overview.md` 內標示該專案目前版本的地方: workspace 沒有 release branch，由 release merge 在 workspace develop merge 到 master **之前**修改 (master 才會顯示新版本)；hotfix 在 workspace hotfix branch 上修改
   - 版本號的寫法依專案形式而定，沿用該欄位原本的格式 (e.g. 只能放四段數字的欄位寫成 `X.Y.Z.0`)
   - `version-source` 為 `none` 時不改檔案，版本只以 git tag 表示
 - release branch 上只做 release 相關的變更 (版本號、release notes、阻擋 release 的修正)，新功能一律走 request
