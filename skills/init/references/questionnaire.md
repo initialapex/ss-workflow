@@ -31,8 +31,8 @@ Commit messages are always English. Do not ask about them.
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{PROJECT_NAME}}`; `{{PROJECT_SLUG}}` = kebab-case of the name |
-| One-sentence description | (free text) | `{{PROJECT_DESCRIPTION}}` |
+| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{WORKSPACE_NAME}}` |
+| One-sentence description | (free text) | `{{WORKSPACE_DESCRIPTION}}` |
 | The projects to add | The URLs and paths in `$ARGUMENTS`; may be none | One entry each, see Round 3 |
 
 ## Round 3: Each project
@@ -54,7 +54,7 @@ and reported as "not configured". The developer can fill it in later in root
 
 | Question | Placeholder | Notes |
 |----------|-------------|-------|
-| Project name | `{{ENTRY_NAME}}` | The repository name by default, for example `SSDisp`. It becomes the folder `src/<name>`, the tag prefix `<name>/v1.2.0`, and the hotfix branch `hotfix/<name>-v1.0.1`. No spaces and no `/`. |
+| Project name | `{{ENTRY_NAME}}` | The repository name by default, for example `SSDisp`. It becomes the folder `src/<name>`, its docs folder `docs/<name>/`, the tag prefix `<name>/v1.2.0`, and the hotfix branch `hotfix/<name>-v1.0.1`. No spaces and no `/`. |
 | One-sentence description | `{{ENTRY_DESCRIPTION}}` | From its README if it has one |
 | Project type and toolchain | `{{ENTRY_TYPE}}` | Free text in the developer's own words, specific enough to tell the toolchain, for example "Visual Studio solution, old-style C# projects built with MSBuild", "Keil MDK-ARM, STM32F4", or "ESP32 firmware with ESP-IDF v5". Do not offer a fixed list, and do not assume a type for an empty repository. |
 | Library or application? | `{{ENTRY_KIND}}` | `library` / `application` |
@@ -122,4 +122,5 @@ submodules before this confirmation.
 | `{{ENTRY_URL}}` | The URL recorded in `.gitmodules` for the project |
 | `{{PROJECTS}}` | `templates/projects-entry.yaml` rendered once per project, in the order the projects were added. ` []` when there is none. |
 | `{{PROJECT_SECTIONS}}` | `templates/src-AGENTS-project.md` rendered once per project. Empty when there is none. |
-| `{{PROJECT_ROWS}}` | One table row per project for the root READMEs: `` \| <name> \| [`src/<name>`](src/<name>) \| <URL> \| <description> \| ``. When there is none, one row that says that no project is added yet, and how to add one. |
+| `{{PROJECT_ROWS}}` | One table row per project for the root READMEs: `` \| <name> \| [`src/<name>`](src/<name>) \| <URL> \| [`docs/<name>/spec.md`](docs/<name>/spec.md) \| <description> \| ``. When there is none, one row that says that no project is added yet, and how to add one. |
+| `{{LEGACY_PROJECT}}` | The project's `name` when the workspace is created by the conversion in [convert-legacy.md](convert-legacy.md); empty otherwise, without a trailing space (`legacy-project:`) |

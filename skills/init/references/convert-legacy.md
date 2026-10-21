@@ -131,7 +131,7 @@ Then, on `develop`, remove:
 | `src/AGENTS.md`, `src/CLAUDE.md`, `tests/AGENTS.md`, `tests/CLAUDE.md`, `samples/AGENTS.md`, `samples/CLAUDE.md` | Where they still exist after section 3 |
 | `.claude/settings.json` | Only the plugin registration (`extraKnownMarketplaces`, `enabledPlugins` for ss-workflow). Keep other settings. |
 | The ss-workflow block of `.gitignore` | Keep the toolchain patterns |
-| `docs/` | Ask file by file. The spec (`docs/<slug>-spec.md`) moves to the workspace. Every other file moves to the workspace by default; the developer can name files that are product documentation (a user manual, API docs), which stay. |
+| `docs/` | Ask file by file. The spec (`docs/<slug>-spec.md`, where `<slug>` is the kebab-case of the old project name) moves to the workspace as `docs/<name>/spec.md`. Every other file moves to the workspace too by default, into `docs/<name>/` with the same relative path, because it is about this project; the developer can name files that are product documentation (a user manual, API docs), which stay. Show the table of old and new paths. |
 
 - `README.md` and `README-zh-TW.md` are product documentation: they stay. Fix links
   to removed files (`reqs/`, `AGENTS.md`, `samples/`), and the build commands, if
@@ -160,7 +160,8 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
    settings" as the defaults: languages, main branch, remote platform, merge method,
    push policy, marketplace source. Its Round 3 for the project is mostly answered
    by the old settings: the project type and kind, and the commands, project file, and
-   version source rewritten for the new paths in section 3.
+   version source rewritten for the new paths in section 3. `{{LEGACY_PROJECT}}` is
+   the project's name: the requests without `projects` in `reqs/done/` belong to it.
 3. Create the workspace in that folder as **New** mode of `SKILL.md` does (Steps 5 to
    8), with the old repository as its project:
    - URL: the old repository's `origin` URL, as [add-project.md](add-project.md)
@@ -171,8 +172,14 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
    - The project's section in `src/AGENTS.md` gets the old "Toolchain" and "Project
      rules" texts. The old "Project notes" go to "Project notes" of the new root
      `AGENTS.md`. Show both.
-4. Copy the docs that move: `git -C <old repo> archive <base> <paths> | tar -x` in the
-   workspace, then commit `docs: move the docs from <name>`.
+   - If the old repository has a spec, do not create `docs/<name>/spec.md` from the
+     template: the old spec takes its place in step 4. `docs/overview.md` is created
+     from the template.
+4. Copy the docs that move, each to its new path from the table of section 4:
+   `git -C <old repo> show <base>:<old path> > <new path>` in the workspace (create
+   the folder first). Then commit `docs: move the docs from <name>`, with the table
+   of old and new paths in the body. Fix the links between the moved files, and the
+   links to them in the README files.
 
 Already done when: the workspace folder is a git repository with `src/<name>` in
 `.gitmodules`.

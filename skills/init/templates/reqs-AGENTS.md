@@ -1,6 +1,7 @@
 # reqs/
 
-Every change to this repository starts as a request in this folder. Request files are
+Every change starts as a request in this folder: a change to a project, and a change
+to the files of this workspace. Request files are
 written in the `reqs-language` from root `AGENTS.md`.
 
 <!-- ss-workflow:managed id=reqs-files -->
@@ -57,7 +58,7 @@ created: 2026-09-07
 |-------|--------|
 | `status` | `draft`, `ready`, `in-progress`, `review`, `done` |
 | `type` | `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`, `hotfix` |
-| `projects` | The projects that the request changes, by their `name` in "Workflow settings", for example `[SSLib, SSDisp]`. A `hotfix` names exactly one. A request from before the workspace layout may lack the field: it belongs to the one project that the repository had then. |
+| `projects` | The projects that the request changes, by their `name` in "Workflow settings", for example `[SSLib, SSDisp]`. `[]` for a request that changes only workspace files (docs, READMEs, agent files outside their managed blocks). A `hotfix` names exactly one. A request from before the workspace layout may lack the field: it belongs to `legacy-project` in "Workflow settings". |
 | `priority` | `high`, `normal`, `low` |
 | `branch` | Empty until claimed, then the workspace request branch, for example `feat/REQ-0012-gui-button`. The projects use the same name, except for a hotfix: `hotfix/SSDisp-v1.0.1` in the workspace, `hotfix/v1.0.1` in the project. |
 
@@ -112,6 +113,9 @@ the code review, and the Review.
   the reason), `did not run` (with the reason), or `not configured`. A check that did
   not run is never written as passed. A part of the spec that is not implemented is
   listed as not done.
+- Changes to workspace files (docs, READMEs, agent files) are not built, tested, or
+  code-reviewed. The developer reads each of them in the Review, and the Review
+  result names them.
 - A request that changes an agent behavior file (see "Working agreement" in the root
   `AGENTS.md`) has a `### Behavior changes` entry, with one item per file:
 
@@ -170,8 +174,10 @@ Rules:
 - `develop` keeps showing `ready` until the merge. The workspace request branch holds
   the current status (`in-progress`, `review`, or `done`), and that status is the
   effective one.
-- Code is committed in the projects only. The workspace request branch only holds the
-  request file and the gitlinks of the request's projects.
+- Code is committed in the projects only. The workspace request branch holds the
+  request file, the gitlinks of the request's projects, and the request's changes to
+  workspace files (see "Workspace and projects" in the root `AGENTS.md`). A request
+  with `projects: []` has a workspace branch only.
 - In a worktree, the agent writes code and may try to compile it. It does not run
   tests, scripts, or executables there. Those belong to Verify, in the root checkout.
 - When the implementation is finished, the worktrees are removed and the branches are
