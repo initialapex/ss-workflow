@@ -84,6 +84,11 @@ Ask which one the developer wants.
   `AGENTS.md`. If `projects` was `[]`, replace the `[]`.
 - Append the section from `templates/src-AGENTS-project.md` to `src/AGENTS.md`.
 - Add the project's row to the project table of each root README.
+- Create `docs/<name>/spec.md` from `templates/project-spec.md`. If the workspace
+  already has a spec of this project (from a conversion, or written by hand), keep it
+  and do not create another one.
+- Add a line for the project to "Projects" in `docs/overview.md`: what it is
+  responsible for, and a link to `<name>/spec.md`.
 - Show these changes to the developer before you write them: they are outside the
   managed blocks.
 
@@ -92,7 +97,7 @@ Ask which one the developer wants.
 The root checkout must be on `develop` and clean.
 
 1. On `develop`: commit `.gitmodules`, the gitlink (the project's develop branch), and
-   the files of section 4:
+   the files of section 4, including `docs/<name>/spec.md`:
 
    ```
    chore(workspace): add the <name> project

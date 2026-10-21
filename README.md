@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-blue">
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -44,7 +44,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.6.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.7.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -163,6 +163,9 @@ Your original text is kept unchanged in its `## Original` section.
 - Creating the request branch in the workspace is the claim: git creates a branch
   name only once, so two sessions cannot claim the same request. Then each project of
   the request gets a branch with the same name.
+- A request can also change the workspace's own files: a spec in `docs/<project>/`,
+  the knowledge base, or a project's rules in `src/AGENTS.md`. You read those changes
+  in the Review. A request that changes nothing else has `projects: []`.
 - Code is committed in the projects, with `Refs: <workspace>#REQ-0012`. The workspace
   records which project commits a request produced, as gitlinks.
 - Small problems found during Verify or Review are fixed in the root checkout. A
@@ -244,7 +247,10 @@ SSDisp-workspace/
 ├─ AGENTS.md, CLAUDE.md      workflow rules and settings for agents (CLAUDE.md imports AGENTS.md)
 ├─ README.md, README-zh-TW.md
 ├─ reqs/                     open requests; finished ones in reqs/done/
-├─ docs/                     specs, developer docs, knowledge base
+├─ docs/
+│  ├─ overview.md            what the projects do together
+│  ├─ SSLib/spec.md          the spec of each project, with its other docs
+│  └─ SSDisp/spec.md
 └─ src/
    ├─ AGENTS.md              the toolchain and the rules of each project
    ├─ SSLib/                 a submodule: the SSLib repository, in its own layout

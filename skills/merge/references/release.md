@@ -34,7 +34,8 @@ open-request check). This guide only merges it.
 6. Show the developer what will be released: the project and the version, the number
    of project commits (`git -C <path> log <main-branch>..HEAD --oneline`), and the
    requests of this project closed since the last workspace tag of the project (files
-   added to `reqs/done/` since `<name>/v*`, whose `projects` contains the project).
+   added to `reqs/done/` since `<name>/v*`, whose `projects` contains the project, or
+   that have no `projects` while the project is `legacy-project`).
    Ask for a go-ahead.
 
 ## Merge the project
@@ -124,6 +125,14 @@ branch, and the project tag exists.
    <path>`. If the gitlink changed, commit `chore(release): update <name> to
    v<version>`. If the release had no commit of its own, the develop branch did not
    move, and nothing changes: no commit.
+
+   Then the workspace docs that state the project's current version: search
+   `docs/<name>/` and `docs/overview.md` for the previous version (from the last
+   `<name>/v*` tag), as "Documentation" in the release skill's
+   `references/version.md` describes. Show the hits, and change the ones that the
+   developer agrees to, on `develop` and before step 2, so that the workspace main
+   branch shows the released version too. Commit `docs(<name>): update the version
+   to v<version>`. No hit, or no agreement: no commit.
 2. Merge `develop` into the workspace main branch, with every project at its latest
    release:
 

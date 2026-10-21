@@ -1,7 +1,7 @@
-<h1 align="center">{{PROJECT_NAME}}</h1>
+<h1 align="center">{{WORKSPACE_NAME}}</h1>
 
 <p align="center">
-  {{PROJECT_DESCRIPTION}}
+  {{WORKSPACE_DESCRIPTION}}
 </p>
 
 <!-- Badges: the workspace has no version of its own; each project has its own
@@ -38,8 +38,8 @@
 Each project is a git submodule in `src/`, with its own repository, versions, and
 README.
 
-| Project | Path | Repository | Description |
-|---------|------|------------|-------------|
+| Project | Path | Repository | Spec | Description |
+|---------|------|------------|------|-------------|
 {{PROJECT_ROWS}}
 
 ## Getting started
@@ -56,7 +56,8 @@ git clone --recurse-submodules <workspace URL>
 
 ## Documentation
 
-- Specification: [docs/{{PROJECT_SLUG}}-spec.md](docs/{{PROJECT_SLUG}}-spec.md)
+- Overview of the workspace: [docs/overview.md](docs/overview.md)
+- The spec of each project: `docs/<project>/spec.md`, linked in [Projects](#projects)
 - Requests: [reqs/](reqs/)
 
 ## Contributing

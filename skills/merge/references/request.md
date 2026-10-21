@@ -19,6 +19,10 @@ A run that stops after step 1 (a merge request that waits, a protected develop
 branch) is continued by the next run: Step 2 of the skill finds which project
 branches are merged already.
 
+A request with `projects: []` changes workspace files only. It has no project
+branches: skip every project step below, and go from "Prepare" to "Merge the
+workspace".
+
 ## Prepare (both methods)
 
 1. **Workspace branch**: `git checkout <branch>` in the root checkout. If the branch
@@ -40,7 +44,9 @@ branches are merged already.
    merge it into the project branch, and resolve the conflicts there. Do the same for
    the workspace branch with `develop`. A gitlink conflict in the workspace is
    resolved with the project branch's tip (`git update-index --cacheinfo
-   160000,<sha>,<path>`).
+   160000,<sha>,<path>`). A conflict in a workspace file (two requests changed the
+   same spec in `docs/`, or the same section of an agent file) is resolved like a
+   conflict in code: show both sides, and ask the developer unless it is trivial.
 5. **Verify again, if the code changed**: if step 4 merged anything into a project
    branch, run that project's `build-command` and `test-command`, plus
    `verify-command` if it is set, in its folder, and also those of a project of the
@@ -156,7 +162,8 @@ Only when every project branch of the request is merged into its develop branch
      remote. If `develop` is not pushed, the merge is complete in this repository.
    - **With a merge request**: create it from the branch into `develop`, as for a
      project above, with the title `<type>: <request title> (REQ-0012)`, the same body
-     with `Refs: REQ-0012`, and the project merge commits. Give the developer the URL,
+     with `Refs: REQ-0012`, the project merge commits, and the workspace files that
+     the request changes. Give the developer the URL,
      switch back to `develop`, and stop. The developer runs this skill again after the
      merge.
 3. Continue with "Finish".

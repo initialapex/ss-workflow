@@ -150,6 +150,10 @@ and the project tag exists.
    After this commit, `develop` has the request only in `reqs/done/`, with
    `status: done`, and the project's gitlink is its develop branch, which contains the
    hotfix.
+
+   A conflict in a workspace file, usually a doc that `develop` changed since the
+   release, is resolved before the commit: keep `develop`'s text and add the hotfix's
+   change to it. Show it to the developer unless it is trivial.
 4. With a remote: ask once more before you push, because the main branch and the tag
    publish the hotfix. Then `git push --atomic origin <main branch> develop
    <name>/v<version>`. With `push-policy: never`, or if the developer says no, show the

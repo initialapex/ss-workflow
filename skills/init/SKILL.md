@@ -140,7 +140,8 @@ Generate in this order. Each group becomes one commit (Step 7):
 3. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`, with
    one entry in `projects` and one section in `src/AGENTS.md` per project.
 4. **Folders**: `reqs/done/.gitkeep`.
-5. **Docs**: `docs/{{PROJECT_SLUG}}-spec.md`.
+5. **Docs**: `docs/overview.md`, and `docs/<name>/spec.md` for each project (see
+   [references/add-project.md](references/add-project.md), section 4).
 6. **READMEs**: the root README files, with one row per project.
 
 Init does not create project files, build files, or version files, and it does not
@@ -155,7 +156,7 @@ chore: add gitignore
 chore(workspace): add the SSLib and SSDisp projects
 docs(agents): add ss-workflow AGENTS.md and CLAUDE.md files
 chore: add reqs folder
-docs: add project spec skeleton
+docs: add the workspace overview and the project specs
 docs: add README and README-zh-TW
 ```
 
@@ -209,9 +210,9 @@ Summarize in the discussion language:
 - The projects: name, path, URL in `.gitmodules`, branches, and whether init created
   a `develop` branch in it
 - Created and merged files, plus the commit list (`git log --oneline`)
-- What the developer still needs to fill in, such as the spec in
-  `docs/{{PROJECT_SLUG}}-spec.md`, the README description, and the empty commands of
-  each project
+- What the developer still needs to fill in, such as `docs/overview.md`, the spec of
+  each project in `docs/<name>/spec.md`, the README description, and the empty
+  commands of each project
 - Project repositories whose `.gitignore` misses build output: suggest a request
 - The optional `verify-command` of each project, for a verification script that
   `/ss-workflow:review` runs after the build and the tests

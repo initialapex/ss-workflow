@@ -6,7 +6,16 @@ project on its project branch.
 
 - Code, tests, and project files are committed in the project worktrees, on the
   project branches.
-- The workspace branch only gets commits for the request file and the gitlinks.
+- The workspace branch gets the commits for the request file and the gitlinks, and
+  the request's changes to workspace files: the docs, the README files, and the agent
+  files outside their managed blocks (see "Workspace and projects" in the root
+  `AGENTS.md`). Commit them in the workspace worktree, separately from the request
+  file, with `Refs: REQ-xxxx`, for example `docs(SSLib): describe the new frame API`.
+  Never change a managed block, `ss-workflow-version`, `.gitmodules`, or a `projects`
+  entry.
+- A request with `projects: []` has no project worktree to commit in. Everything it
+  changes is a workspace file, and nothing builds it: skip the build steps below, and
+  record "build: not applicable (workspace files only)".
 
 **What may run in a worktree:** a project's `setup-command`, if the worktree needs
 preparation, and its `build-command`, to compile. Both run in the project folder.
@@ -31,8 +40,8 @@ anything.
 1. Read the request file completely: `## Spec`, `## Original`, `## Q&A`, and
    `## Notes`.
 2. For each project of the request, read what the paragraph above lists, plus the
-   `README.md` of each affected part of the project, and `docs/*-spec.md` of the
-   workspace.
+   `README.md` of each affected part of the project, and its docs in the workspace
+   (`docs/<name>/`, at least `spec.md`). Read `docs/overview.md` too.
 3. For each project, run `setup-command` if the worktree needs it. Then try
    `build-command` once before you change anything, to know the baseline. If the code
    does not compile before your changes, tell the developer before you continue.
@@ -74,7 +83,10 @@ anything.
 - Register every new file with the build in the way that "Project rules" describe.
   A file that the build does not know is a common cause of a failed Verify.
 - When the public interface or the behavior changes, update the affected samples and
-  READMEs in the project, and `docs/*-spec.md` in the workspace branch.
+  READMEs in the project, and in the workspace worktree the project's docs
+  (`docs/<name>/spec.md` and the other files in `docs/<name>/` that describe it). When
+  the way the projects work together changes, update `docs/overview.md`. List these
+  updates under "What changed".
 - When a project of the request uses another project of the request (a new API of
   SSLib that SSDisp calls), the projects refer to each other as their build defines
   it. Do not change how the build finds a neighbor project unless the spec says so.
@@ -101,7 +113,9 @@ anything.
    rebase: the branches may be pushed.
 3. Read your own diff in each project (`git -C <path> diff <project base>...HEAD`) for
    leftover debug code, unrelated changes, and missing files. Because nothing was
-   run, also read it once more for logic errors, as a reviewer would.
+   run, also read it once more for logic errors, as a reviewer would. Read the
+   workspace diff too (`git diff <workspace base>...HEAD`, leaving out the request
+   file and the gitlinks): the docs must match what the code now does.
 
 If something cannot be finished, do not hand the request over as complete. Report what
 is missing, and ask whether to continue, to change the spec, or to split the rest into
@@ -113,7 +127,7 @@ a new request.
 
    ```markdown
    ### Implementation summary (yyyy-MM-dd)
-   - What changed: <per project>
+   - What changed: <per project, and the workspace files, or "workspace files: none">
    - Architecture: as in the spec / changed with the developer's decision in Q<n>
    - Ran in the worktree: <each command that ran, with its project and `passed` or `failed (<reason>)`; "nothing" if none ran>
    - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `could not run (<reason>)`>
@@ -219,6 +233,8 @@ gitlinks, which are their latest releases.
   its notes are committed on the workspace hotfix branch.
 - Set the hotfix version in the project's `version-source` on the project hotfix
   branch as its own commit: `chore(release): bump version to <version>`. Skip this if
-  `version-source` is `none`.
+  `version-source` is `none`. If the workspace docs state the project's current
+  version (`docs/<name>/`, `docs/overview.md`), update them on the workspace hotfix
+  branch: `docs(<name>): update the version to v<version>`.
 - Step 3.2 merges the main branches, not the develop branches. The diff base is the
   project's main branch.

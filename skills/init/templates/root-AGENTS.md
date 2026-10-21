@@ -1,6 +1,6 @@
-# {{PROJECT_NAME}}
+# {{WORKSPACE_NAME}}
 
-{{PROJECT_DESCRIPTION}}
+{{WORKSPACE_DESCRIPTION}}
 
 ## Workflow settings
 
@@ -10,7 +10,7 @@ below; edit them here when they change.
 ```yaml
 ss-workflow-version: {{SS_WORKFLOW_VERSION}}
 initialized: {{INIT_DATE}}
-workspace-name: {{PROJECT_NAME}}
+workspace-name: {{WORKSPACE_NAME}}
 discussion-language: {{DISCUSSION_LANG}}
 readme-languages: {{README_LANGS}}
 agent-doc-language: {{AGENT_DOC_LANG}}
@@ -22,6 +22,7 @@ remote-cli: {{REMOTE_CLI}}
 merge-method: {{MERGE_METHOD}}
 push-policy: {{PUSH_POLICY}}
 agent-files:
+legacy-project: {{LEGACY_PROJECT}}
 projects:{{PROJECTS}}
 ```
 
@@ -50,7 +51,10 @@ The commands run in the project folder (`path`). `push-policy` (`auto`, `ask`, o
 `never`) is explained in "Remote and pushing". `agent-files` lists extra paths, as glob
 patterns separated by commas, whose files tell an agent how to behave, for example
 prompt files that a product ships (`src/<name>/...`). It adds to the built-in list in
-"Working agreement", and it may stay empty.
+"Working agreement", and it may stay empty. `legacy-project` names the project that
+this workspace was converted from (the single-repository layout of ss-workflow 0.5.0
+and older): a request file without `projects` belongs to it. It is empty in a
+workspace that was not converted.
 
 <!-- ss-workflow:managed id=working-agreement -->
 ## Working agreement
@@ -103,7 +107,8 @@ prompt files that a product ships (`src/<name>/...`). It adds to the built-in li
 | Path | Purpose | Rules |
 |------|---------|-------|
 | `reqs/` | Requests: one Markdown file per request; finished requests live in `reqs/done/` | `reqs/AGENTS.md` |
-| `docs/` | Project specs, developer-readable docs, knowledge base | Write for humans in `docs-language` |
+| `docs/overview.md` | What the projects do together, how they depend on each other, shared terms | Write for humans in `docs-language` |
+| `docs/<name>/` | The spec of one project (`spec.md`), and its other developer docs and knowledge base | Write for humans in `docs-language` |
 | `src/<name>/` | One git submodule per entry in `projects`, in the project's own layout | `src/AGENTS.md` |
 
 <!-- ss-workflow:managed id=workspace -->
@@ -115,12 +120,25 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
 - A project repository only receives implementation commits: code, tests, and
   version numbers. Request files, spec discussions, and review results are committed
   in the workspace only.
+- Docs: `docs/overview.md` describes the workspace as a whole, and `docs/<name>/`
+  holds the docs of one project, with its spec in `docs/<name>/spec.md`. The folder
+  name is the project's `name`.
+- A request may also change workspace files: the docs, the README files,
+  `.gitignore`, and the text of the agent files outside their
+  `ss-workflow:managed` blocks (for example "Project notes", a `## Project: <name>`
+  section, or a value in "Workflow settings"). These changes are commits on the
+  workspace request branch. Managed blocks and `ss-workflow-version` are changed only
+  by an ss-workflow upgrade, and `.gitmodules` and the `projects` entries only by
+  `/ss-workflow:init --add`.
+- A request whose `projects` is `[]` changes workspace files only. It has no project
+  branches, and Verify has no command to run for it: the developer checks all of it
+  in the Review.
 - Init writes nothing into a project repository. The workflow's rules for a project
   live in `src/AGENTS.md`. If the project's `.gitignore` misses build output, report
   it and suggest a request; do not change it outside a request.
-- A request names its projects in `projects`. Its branch has the same name in the
-  workspace and in each of those projects (a hotfix is the exception, see "Branching
-  model").
+- A request names the projects that it changes in `projects`. Its branch has the
+  same name in the workspace and in each of those projects (a hotfix is the
+  exception, see "Branching model").
 - Gitlinks (the commit of each project that the workspace records):
   - `develop` records each project's `develop-branch`; `main-branch` records each
     project's `main-branch`, that is, its latest release.

@@ -95,8 +95,9 @@ A version is valid when all of these hold:
 
 The goal: after this step, every place that states the project's version says the
 release version. All of it happens in the project, on its release branch; paths are
-relative to the project folder. The workspace changes nothing here, apart from docs
-in its `docs/` that state the project's current version.
+relative to the project folder. The workspace changes nothing here: the places in
+its docs that state the project's current version are listed now and changed by the
+release merge (section 3).
 
 ### 1. The version source
 
@@ -146,9 +147,12 @@ places that state the current version, such as install commands, badges, and
 examples that mention an old version on purpose. If a hit is unclear, show it and
 ask.
 
-The workspace's `docs/` may state the project's current version too. Such a change is
-made in the workspace on `develop` after the merge, as its own commit
-`docs: update <name> version to <version>`: list the hits for it, and ask.
+The workspace's docs may state the project's current version too, mostly in
+`docs/<name>/` and `docs/overview.md`. Search them for the last version string, list
+the hits, and ask. The workspace has no release branch, so these changes are not made
+here: the release merge makes them on the workspace `develop`, before it merges
+`develop` into the workspace main branch (step 1 of "Merge the workspace" in the
+merge skill's `references/release.md`).
 
 ### 4. Changelog
 

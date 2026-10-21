@@ -188,6 +188,9 @@ Creating the workspace branch is the claim.
   anything: show both branches to the developer, who decides which claim stands.
 - The project branches are created only after the claim holds (step 5), so a lost
   claim leaves nothing in the projects.
+- A request with `projects: []` changes workspace files only. It gets the workspace
+  branch and no project branch: step 1 checks the workspace only, and step 5 creates
+  the detached project worktrees only.
 
 1. **Check the remotes first**:
    - Workspace: `git ls-remote --heads origin "*REQ-<id>-*"` (for a hotfix:
@@ -236,7 +239,7 @@ Creating the workspace branch is the claim.
      ```
 
    - Every other project, detached at the gitlink of the workspace branch, because a
-     build may refer to it:
+     build may refer to it, and the docs of a workspace-only request may describe it:
 
      ```bash
      git -C <root>/<path> worktree add --detach <worktree path>/<path> $(git -C <worktree path> rev-parse HEAD:<path>)
