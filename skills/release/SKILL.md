@@ -39,8 +39,8 @@ Supporting file:
   one after the other.
 - A release branch takes only release work: the version number, release notes, and
   fixes for problems that block the release. New features go through requests.
-- Release commits are made in the project, with no `Refs:` footer unless a fix belongs
-  to a request.
+- Release commits are made in the project. Like every project commit, they carry no
+  request id, no workspace name, and no `Refs:` footer that points to the workspace.
 - Never force-push. Never rebase a pushed branch.
 - **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`, for the project
   with its entry's `push-policy` (the workspace value when the entry leaves it empty).
@@ -92,8 +92,17 @@ Summarize the changes since the last tag:
   to no release. Show each with its id, title, and type.
 - The project commits by type (`feat`, `fix`, …), and every commit that has
   `BREAKING CHANGE:` in its body or `!` after its type
-- Project commits without a `Refs:` footer: changes made outside the workspace. Show
-  them, because no request describes them.
+- Project changes made outside this workspace: by people who work on the project
+  without it, or from another developer's own workspace. Project commits carry no
+  request id, so find them through the requests: each closed request above names its
+  project merge commits in the `Merged into develop` line of its `## Notes`
+  (`<name> <short sha>`). On the first-parent line of the project's develop branch
+  since the last tag (`git -C <path> log --first-parent --oneline <last
+  tag>..<project develop-ref>`), every commit that is not one of those merge commits
+  came from outside this workspace. For a closed request without that line (closed
+  by hand), match the merge whose subject names its `project-branch`. Show these
+  changes, because no request of this workspace describes them. They count for the
+  version and the changelog like the requests.
 
 ## Step 3: Choose the version
 

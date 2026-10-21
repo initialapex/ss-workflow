@@ -69,13 +69,16 @@ anything.
   session asks again. If the file has no `## Q&A` section yet (an older request), add
   it between `## Original` and `## Notes`.
 - The request needs a project that is not in its `projects`: stop and ask. If the
-  developer agrees, add it to `projects` (record it in `## Q&A`), and create its
-  branch and worktree as Step 5.5 of `SKILL.md` does, replacing the detached one.
+  developer agrees, add it to `projects` (record it in `## Q&A`), check that the
+  request's `project-branch` is free in that project as Step 5.1 of `SKILL.md` does,
+  and create its branch and worktree as Step 5.5 does, replacing the detached one.
 - If the request was reopened by a review, the feedback is in `## Notes`. Address every
   point of it.
 - Commit often, in the project where the change is. One commit holds one reason for
-  change. Follow the commit convention. End every project commit with
-  `Refs: <workspace-name>#REQ-xxxx`, and every workspace commit with `Refs: REQ-xxxx`.
+  change. Follow the commit convention. End every workspace commit with
+  `Refs: REQ-xxxx`. A project commit is written for the project's own history: its
+  subject and body describe the change, and it never mentions the request, its id,
+  the workspace, or a workspace file, and has no `Refs:` footer that points there.
 - Push after every commit (see "Pushing" in the skill's ground rules), each repository
   as its own `push-policy` allows.
 - Add or update the automated tests of the project for every behavior change, if the
@@ -185,7 +188,7 @@ a new request.
      declined): the commits stay on the local branch, which survives the worktree.
      The project branches live in the root checkout's `.git/modules/<path>`. Check
      that each branch exists (`git rev-parse --verify <branch>`, and
-     `git -C <root>/<path> rev-parse --verify <branch>`) and that `HEAD` of each
+     `git -C <root>/<path> rev-parse --verify <project branch>`) and that `HEAD` of each
      worktree is its tip, and keep the list of unpushed commits for the report.
 
    Do not remove the worktrees until these hold.

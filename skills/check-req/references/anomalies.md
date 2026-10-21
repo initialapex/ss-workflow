@@ -4,7 +4,14 @@ Check every request against this table. Propose the repair, and apply it only af
 the developer approves. "Status" means the effective status: the one in the request
 file on the workspace request branch, or the one on `develop` when there is no
 workspace request branch. "Request branch" without more means the workspace branch;
-"project branch" means the branch of the same name in a project of the request.
+"project branch" means the branch that the request's `project-branch` names in a
+project of the request (the name of the workspace branch when `project-branch` is
+empty, for a request claimed before ss-workflow 0.8.0).
+
+Other branches in a project are not anomalies. Other developers create branches
+there from their own workspaces, and a project branch carries no request id, so a
+branch that no request of this workspace names is someone else's work. Never report,
+change, or delete it.
 
 Normal states, for comparison:
 
@@ -22,7 +29,7 @@ Normal states, for comparison:
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
 | `in-progress`, the claim commit exists, but a project of the request has no project branch | The session stopped between the claim and Step 5.5 | Continue: create the project branch and its worktree as Step 5.5 of `SKILL.md` does. |
-| A project branch exists, but there is no workspace request branch for its id | A claim was released or lost after the project branch was created, or the branch was created by hand | Show its commits (`git -C src/<name> log <project develop-ref>..<branch> --oneline`). If it has none, offer to delete it. If it has commits, ask: keep it for a new claim of the request, or delete it with explicit approval. |
+| `project-branch` names a branch that exists in a project, but the branch has commits that are not from this request (its history does not start at the claim, or another person committed on it) | The name was taken by someone else between the check and the claim, or a branch was created by hand | Do not commit on it. Show its commits (`git -C src/<name> log <project develop-ref>..<branch> --oneline`) and ask the developer whose they are. If they are not this request's, pick a new name as in Step 5.1 of `SKILL.md`, record it in `project-branch`, and create the project branch with that name. |
 | A project worktree whose workspace worktree is gone (`git -C src/<name> worktree list` shows a path under a removed `.claude/worktrees/…`) | The workspace worktree was deleted by hand, or the removal stopped halfway | Check the project worktree for uncommitted changes and unpushed commits. Then `git -C src/<name> worktree prune` if its folder is gone, or `git -C src/<name> worktree remove <path>` if it still exists. |
 | The workspace worktree cannot be removed: "working trees containing submodules cannot be moved or removed" | A project worktree is still inside it | Remove the project worktrees first, then restore the empty folders, as Step 4 of [implement.md](implement.md) describes. |
 | The workspace worktree shows ` D <path>` | A project worktree was removed, but its empty folder was not put back | `git -C <worktree> restore <path>`. |
@@ -33,7 +40,7 @@ Normal states, for comparison:
 
 | Symptom | Likely cause | Repair |
 |---------|--------------|--------|
-| A request branch exists, but the request file on it still says `ready`, or the branch has no commits of its own | The session stopped between creating the branch and the claim commit | Ask the developer to choose: (a) continue: recreate the worktree if needed, make the claim commit, and implement; or (b) release the claim: delete the branch locally and on the remote. The request is `ready` again. |
+| A request branch exists, but the request file on it still says `ready`, or the branch has no commits of its own | The session stopped between creating the branch and the claim commit | Ask the developer to choose: (a) continue: recreate the worktree if needed, make the claim commit, and implement; or (b) release the claim: delete the branch locally and on the remote. The request is `ready` again. When you release a claim whose request file names a `project-branch`, delete those project branches first if they have no commits of their own, and ask for the others: once the workspace branch is gone, nothing links them to the request. |
 | `in-progress`; the branches exist only on the remotes | The work was done on another machine, or the local clone was recreated | Ask first, because another machine may still be working on it. To take it over: recreate the worktrees as "Recreate the worktrees" in `SKILL.md` describes, from `origin/<branch>`. |
 | `in-progress`; the local branches exist, but there is no worktree | The request was reopened by a review, or the worktree folders were deleted | Not a problem by itself: the request waits for a session to continue it. To continue: `git worktree prune` (and `git -C src/<name> worktree prune` for each project), then "Recreate the worktrees" in `SKILL.md`. |
 | `review` or `done`, and a worktree still exists | The worktrees could not be removed after the implementation, usually because a folder was in use | Check that they have no uncommitted changes, and, when pushing is allowed, no unpushed commits. Then remove them in the order of Step 4 of [implement.md](implement.md). |

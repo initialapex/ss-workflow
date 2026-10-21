@@ -24,8 +24,10 @@ checkout, and skills merge and release it by the same rules every time.
 
 - Your project keeps its own layout. It joins a workspace as a submodule, from a
   remote URL or a local path, and a workspace can hold several projects.
-- The project's history only gets implementation commits. Spec discussions, request
-  status, and review results are committed in the workspace.
+- The project's history only gets implementation commits, named and written like any
+  other branch and commit of that project. Request ids, spec discussions, request
+  status, and review results stay in the workspace, so every developer can keep a
+  workspace of their own for the same projects.
 - Every project has its own version: a project that did not change is not released.
 - Every change is a request file, and nothing is implemented before you approve its
   spec, including the software architecture.
@@ -162,12 +164,15 @@ Your original text is kept unchanged in its `## Original` section.
   entries are never rewritten: a changed decision is a new entry.
 - Creating the request branch in the workspace is the claim: git creates a branch
   name only once, so two sessions cannot claim the same request. Then each project of
-  the request gets a branch with the same name.
+  the request gets a branch named after the change, without the request id
+  (`feat/gui-button`). The request file records that name in `project-branch`.
 - A request can also change the workspace's own files: a spec in `docs/<project>/`,
   the knowledge base, or a project's rules in `src/AGENTS.md`. You read those changes
   in the Review. A request that changes nothing else has `projects: []`.
-- Code is committed in the projects, with `Refs: <workspace>#REQ-0012`. The workspace
-  records which project commits a request produced, as gitlinks.
+- Code is committed in the projects, as plain commits that describe the change. No
+  project commit, merge commit, merge request, or changelog entry names the request
+  or the workspace. The workspace records which project commits a request produced,
+  as gitlinks.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
 - You can change code by hand during a review. `/ss-workflow:review` lists every
@@ -194,7 +199,7 @@ Both the workspace and every project follow gitflow, each with its own `master` 
 | Branch | Workspace | Project | Example |
 |--------|-----------|---------|---------|
 | Spec discussion | From and into `develop` | (none) | `req/REQ-0012-gui-button` |
-| Request | From and into `develop` | Same name, from and into its `develop` | `feat/REQ-0012-gui-button` |
+| Request | From and into `develop` | Named after the change, from and into its `develop` | `feat/REQ-0012-gui-button`, `feat/gui-button` |
 | Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.0.0-beta1` | From `develop`, into `master` and `develop`, tagged `v1.0.0-beta1` | `release/v1.0.0-beta1` |
 | Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, and into `develop`, tagged `v1.0.1` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
 

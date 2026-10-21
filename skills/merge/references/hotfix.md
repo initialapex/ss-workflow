@@ -50,7 +50,7 @@ By the project's merge method (Step 3 of the skill).
    ```bash
    git -C <path> checkout <main-branch>
    git -C <path> pull --ff-only                      # with a remote
-   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <main-branch>" -m "Hotfix v<version>" -m "Refs: <workspace-name>#REQ-0012"
+   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <main-branch>" -m "Hotfix v<version>"
    git -C <path> tag -a v<version> -m "Hotfix v<version>"
    ```
 
@@ -59,7 +59,7 @@ By the project's merge method (Step 3 of the skill).
    ```bash
    git -C <path> checkout <develop-branch>
    git -C <path> pull --ff-only                      # with a remote
-   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <develop-branch>" -m "Hotfix v<version>" -m "Refs: <workspace-name>#REQ-0012"
+   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <develop-branch>" -m "Hotfix v<version>"
    ```
 
    If the develop branch did not change the version since the last release, the
@@ -94,10 +94,11 @@ By the project's merge method (Step 3 of the skill).
 ### With a merge request
 
 1. Create the merge request from `hotfix/v<version>` into the project's main branch,
-   in the project folder. Title: `Hotfix v<version>: <request title>
-   (<workspace-name>#REQ-0012)`. Body: the goal, the Verify and Review results of the
-   request as they are recorded (also what failed or did not run), and
-   `Refs: <workspace-name>#REQ-0012`. It needs the branch on the remote: if you may not
+   in the project folder. Title: `Hotfix v<version>: <what the fix does>`, in
+   English. Body: the goal, and the Verify and Review results of the request as they
+   are recorded (also what failed or did not run), with no request id, no workspace
+   name, and no `Refs:` line (see "Workspace and projects" in the root `AGENTS.md`).
+   It needs the branch on the remote: if you may not
    push it, stop, and say which branch the developer has to push.
 2. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the root checkout back to `develop` (`git submodule update`), and stop. The

@@ -99,8 +99,9 @@ By the project's merge method (Step 3 of the skill).
    may not push it, stop here, and say which branch the developer has to push.
 2. Create the merge request from `release/v<version>` into the project's main branch,
    in the project folder, with the title `Release v<version>` and a body that lists
-   the requests of this project closed since its last release, as
-   `<workspace-name>#REQ-xxxx` with their titles.
+   the changes of this version, grouped by type, one line each in English. Describe
+   each change in the project's terms, with no request id and no workspace name (see
+   "Workspace and projects" in the root `AGENTS.md`).
 3. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the project back to its gitlink (`git submodule update <path>`), and stop.
    The developer runs `/ss-workflow:merge <name> release/v<version>` again after it is

@@ -85,7 +85,9 @@ Then check the following:
    `test`, `chore`). Use `hotfix` only when the problem affects a released version and
    cannot wait for the next release. Confirm `hotfix` with the developer.
 3. **title**: a short imperative phrase. **slug**: lowercase English kebab-case, at
-   most five words.
+   most five words, that names the change (`gui-button`). The project branch takes
+   it too (`feat/gui-button`), so it must make sense in the project's history, where
+   the request id never appears.
 4. **priority**: `normal`, unless the developer says otherwise. Use `high` for
    `hotfix`.
 5. Create the branch, and push it. The local branch reserves the id for the other
@@ -108,8 +110,9 @@ Then check the following:
 ## Step 4: Create the draft file
 
 1. Write `reqs/REQ-<id>-<yyyyMMdd>-<slug>.md` in the format from `reqs/AGENTS.md`,
-   with `status: draft`, an empty `branch:`, and today's date in `created`. The
-   `branch` field is for the implementation branch, not for this `req/` branch.
+   with `status: draft`, an empty `branch:` and `project-branch:`, and today's date
+   in `created`. These fields are for the implementation branches, not for this
+   `req/` branch.
    `projects` holds the projects that the input names or clearly means, by their
    `name` in "Workflow settings", and `[]` when it is not clear yet. The spec
    discussion settles it.

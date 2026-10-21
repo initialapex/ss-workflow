@@ -45,11 +45,17 @@ SSDisp-workspace/
 |------|-----------|-------------|
 | 長期 branch | `master` (= 各專案最新 release 的組合)、`develop` (gitlink 跟著各 source repo 的 develop) | `main-branch`、`develop-branch` |
 | 規格討論 | `req/REQ-0012-<slug>`，從 develop 開 | (無) |
-| request | `feat/REQ-0012-<slug>`，從 develop 開；**建立它就是認領** | 同名 branch，從 source 的 `<develop-ref>` (最新的 develop，不是 gitlink) 開 |
+| request | `feat/REQ-0012-<slug>`，從 develop 開；**建立它就是認領** | `feat/<slug>` (以變更內容命名，不含 request 編號，記錄在 request 的 `project-branch`)，從 source 的 `<develop-ref>` (最新的 develop，不是 gitlink) 開 |
 | hotfix | `hotfix/<P>-v1.0.1`，從 workspace master 開 | `hotfix/v1.0.1`，從 source main 開 |
 | release | 沒有 branch；develop merge 到 master，打 `<P>/v1.2.0` tag | `release/v1.2.0`，merge 到 main 與 develop，打 `v1.2.0` tag |
 
-- 一個 request 可以同時修改多個專案 (`projects: [SSLib, SSDisp]`)，每個專案建立同名 branch；hotfix request 只能有一個專案 (版本號屬於一個專案)
+- 一個 request 可以同時修改多個專案 (`projects: [SSLib, SSDisp]`)，每個專案建立同一個 project branch；hotfix request 只能有一個專案 (版本號屬於一個專案)
+- source repo 的歷史不出現任何 workspace 的資訊: branch 名稱、commit、merge commit、tag、merge request、changelog 都不帶 request 編號、workspace 名稱或指向 workspace 的 `Refs:`，以描述需求/修改內容為主，跟一般專案的 branch 與 commit 一樣
+  - 原因: 多人開發時，每個人都在本機建立自己的 workspace，REQ 編號只在一個 workspace 內有意義
+  - 關聯只由 workspace 單向記錄: request 檔的 `project-branch`，以及 workspace 的 gitlink
+- project branch 的名稱 `<type>/<slug>` 在 request 的每個專案 (local 與 remote) 都必須是新的；已被使用 (可能是別人從自己的 workspace 建立的) 時，提出另一個簡短、描述性的名稱 (e.g. `feat/gui-button-color`) 由 developer 確認
+- skill 只透過 request 的 `project-branch` 找 project branch，不以名稱規則比對；專案內其他 branch 可能是別人的工作，不回報、不修改、不刪除
+- 0.8.0 以前認領的 request 沒有 `project-branch`，其 project branch 與 workspace branch 同名
 - 認領順序: workspace branch 與認領 commit 被 remote 接受之後，才建立各專案的 branch；搶輸的機器不會在 source repo 留下任何 branch
 
 ### gitlink
@@ -230,6 +236,7 @@ status: in-progress        # draft | ready | in-progress | review | done
 type: feat                 # feat | fix | docs | refactor | hotfix ...
 projects: [SSDisp]         # 修改的專案，對應 Workflow settings 的 projects
 branch: feat/REQ-0012-gui-button
+project-branch: feat/gui-button   # 各專案的 branch，不含 request 編號
 priority: normal           # high | normal | low
 created: 2026-09-07
 ---
@@ -287,8 +294,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
     - 跨機器時，單純 push branch 還分不出先後 (兩邊 push 的是同一個起始 commit，remote 都會接受)；由認領 commit 的 push 決定，remote 只接受第一個，另一邊放棄自己的 branch
     - 沒有 push 時 (沒有 remote、`push-policy: never`、developer 拒絕)，認領只在這個 repo 內有效；之後 push 被拒絕表示別台機器已認領，不強推，由 developer 決定保留哪一邊
   - 該編號的 branch 已存在 (local 或 remote) = 已被認領
-  - branch 上的第一個 commit 將 status 改為 `in-progress` 並寫入 `branch`
-  - 認領成功之後才在各專案建立同名 branch 並 push
+  - 認領前先確認 project branch 名稱在 request 的每個專案都還沒被使用
+  - branch 上的第一個 commit 將 status 改為 `in-progress` 並寫入 `branch` 與 `project-branch`
+  - 認領成功之後才在各專案建立 project branch 並 push；名稱在這之間被別人用掉時，改名並以 commit 更新 `project-branch`
   - 認領不需要根目錄在 develop，所以根目錄正在討論規格或 review 時，其他 session 仍可認領
 - 同步到 remote (依「Remote 與 push」，允許 push 時才做，各專案依自己的設定):
   - 建立 branch 後立即 `git push -u`，實作過程中每次 commit 都 push
@@ -376,7 +384,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 動手前先讀 `src/AGENTS.md` 中該專案的 `## Project: <P>` 章節，以及專案本身的 `AGENTS.md` / `CLAUDE.md` / README (若有)；新檔案要依 Project rules 加入 build
   - 依 Spec 的 Architecture 實作，不自行更改架構；Spec 沒有 Architecture 時先提出並由 developer 確認；implementation summary 註明架構是否照 Spec
   - 規格不清楚或有誤時停下來問，不自行猜測；問題與回答寫入 `## Q&A` (階段 `implementation`)，規格異動要更新 `## Spec`；session 結束前還沒有答案時留 `A: (pending)`
-  - workspace 的 commit 帶 `Refs: REQ-xxxx`，source repo 的 commit 帶 `Refs: <workspace>#REQ-xxxx`，每個 commit 都 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
+  - workspace 的 commit 帶 `Refs: REQ-xxxx`；source repo 的 commit 只描述變更內容，不提 request、編號或 workspace，沒有 `Refs:`；每個 commit 都 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把各專案 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary
     - 固定欄位: What changed (依專案) / Architecture / Ran in the worktree (實際跑過的指令與結果) / Did not run (沒跑的與原因) / Not done (沒做完的 criteria 或規格) / Verify / Review by hand / Follow-ups
     - 每一行都依實際發生的事寫，不依預期寫；沒有的欄位寫 "none"，不省略
@@ -398,9 +406,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 兩者都不選: 不做任何變更並停止
 - 流程
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
-  2. 根目錄 checkout workspace request branch、`git submodule update`，各 request 專案 checkout 同名 branch，並把各專案 develop (hotfix 為 main) 的新 commit merge 進來
+  2. 根目錄 checkout workspace request branch、`git submodule update`，各 request 專案 checkout 其 project branch，並把各專案 develop (hotfix 為 main) 的新 commit merge 進來
   3. Verify: 對每個 request 的專案依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (在專案資料夾內；留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果依專案寫入 `## Notes`
-  4. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的檔案不跑 code review，改由 Review 讀 diff
+  4. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<project branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的檔案不跑 code review，改由 Review 讀 diff
      - 不帶範圍不可執行: `/code-review` 預設只看尚未 push 的 commit，而這個工作流每個 commit 都會 push
      - 發現的問題先對照程式碼確認: 小問題當場修 (修完重跑 Verify)、大問題提議退回、不屬於這個 request 的記為 follow-up、不確定的交給 developer 決定
      - 結果 (含 skipped / not available) 寫入 `## Notes`；不打勾 acceptance criteria；不帶 `--fix` / `--comment`
@@ -448,7 +456,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - `req/` branch 不由此 skill 處理 (由 `/ss-workflow:new-req` 在規格確認時 merge)
   - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
   - 一律 `--no-ff`，不 squash、不 rebase 已 push 的 branch、不 force-push
-  - merge commit message: `Merge <source> into <target>` (不套用 `<type>(<scope>)` 格式)，body 帶 request title 與 `Refs: REQ-xxxx` (source repo 為 `Refs: <workspace>#REQ-xxxx`)
+  - merge commit message: `Merge <source> into <target>` (不套用 `<type>(<scope>)` 格式)，workspace 的 body 帶 request title 與 `Refs: REQ-xxxx`；source repo 的 body 為一行描述變更內容的英文，沒有 `Refs:`
+  - source repo 的 merge request: 標題為 `<type>: <變更內容>`，內容不帶 request 編號、workspace 名稱或 workspace 檔案的連結
   - 根目錄有未 commit 的變更 (含各專案)，或正忙著別的事 (在 `req/` branch 或其他 request branch 上) 時停止
   - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
   - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow:merge` 收尾 (刪除 branch)
@@ -457,7 +466,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - request
   - 所有 reqs 都在 develop 開分支出去，完成後 merge 回 develop (兩層都是)
   - request branch(worktree)種類可能會有: feat, fix, docs ... 等類型
-  - branch(worktree) name 範例: `feat/REQ-0012-gui-button`
+  - branch(worktree) name 範例: workspace `feat/REQ-0012-gui-button`，專案 `feat/gui-button`
   - request 實作都開在 worktree 實作；merge 時 worktree 已刪除，全程在根目錄 checkout request branch 進行
   - 只 merge 有效狀態為 `review` 的 request
   - 順序: 先各專案，最後 workspace
@@ -524,7 +533,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及該專案未合併的 hotfix
   - 尚未開始 (`req/` branch 上的 draft、`ready`): 只列出，不阻擋 release
   - developer 的選項: 不含這些直接 release / 先完成 (專案切回 develop 處理，完成後再下一次) / 取消 release (刪除專案的 release branch)
-- 版本號檢查範圍: 該專案的 version-source、`## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方、專案內 README / docs、既有的 `CHANGELOG.md` (沒有則不建立)
+- 版本號檢查範圍: 該專案的 version-source、`## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方、專案內 README / docs、既有的 `CHANGELOG.md` (沒有則不建立；條目以變更內容描述，不帶 request 編號)
+  - workspace 以外的變更: request 不再以 `Refs:` 標示，改由已關閉 request 的 `Merged into develop` 紀錄找出它們的 merge commit；專案 develop 的 first-parent 歷史中其他的 commit 都來自 workspace 以外 (例如別人自己的 workspace)
   - workspace 的 `docs/<P>/` 與 `docs/overview.md` 內標示該專案目前版本的地方: workspace 沒有 release branch，由 release merge 在 workspace develop merge 到 master **之前**修改 (master 才會顯示新版本)；hotfix 在 workspace hotfix branch 上修改
   - 版本號的寫法依專案形式而定，沿用該欄位原本的格式 (e.g. 只能放四段數字的欄位寫成 `X.Y.Z.0`)
   - `version-source` 為 `none` 時不改檔案，版本只以 git tag 表示
@@ -580,6 +590,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - 在實作的過程中，可以一直 commit，讓每一次變動可以看得出為什麼而變動，而不是一大堆的檔案一起包在同一個 commit 上
 - request branch 上的 commit 每次都 push 到 remote (允許 push 時，見「Remote 與 push」)
 - source repo 只有實作的 commit (程式碼、測試、版本號)；需求討論、request 狀態、review 結果的 commit 只在 workspace
+- source repo 的 commit 就是一般專案的 commit: 以描述需求/修改內容為主，不出現 request 編號、workspace 名稱或 workspace 的檔案；專案有自己的 commit 規範時依其規範
 
 ### git commit format
 
@@ -599,7 +610,7 @@ Body: 72-character wrapped. This should answer:
 Footer: 
  - 填寫 request 編號（如果有的話）
    - workspace 的 commit: Refs: REQ-0012
-   - source repo 的 commit: Refs: SSDisp-workspace#REQ-0012 (source repo 可能有 workspace 以外的人在看)
+   - source repo 的 commit: 不寫 (REQ 編號只在一個 workspace 內有意義，每位開發者可能有自己的 workspace)
  - BREAKING CHANGE（可忽略），記錄不兼容的變動，
    以 BREAKING CHANGE: 開頭，後面是對變動的描述、以及變動原因和遷移方法。
 ```

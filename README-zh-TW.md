@@ -18,7 +18,7 @@
 一個 Claude Code plugin，在 gitflow 之上為你的專案建立以 request 為核心的開發流程，而且不改變專案 repo 原本的檔案架構。外面包一層 workspace repo：它放 request 與工作流的檔案，每個專案以 git submodule 加入。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
 
 - 專案維持自己的檔案架構，以 submodule 加入 workspace (remote URL 或 local 路徑都可以)；一個 workspace 可以有多個專案。
-- 專案的歷史只有實作的 commit。規格討論、request 狀態與 review 結果都 commit 在 workspace。
+- 專案的歷史只有實作的 commit，branch 與 commit 的寫法跟該專案其他的 branch、commit 一樣。Request 編號、規格討論、request 狀態與 review 結果都留在 workspace，所以每位開發者都可以為同樣的專案各自建立自己的 workspace。
 - 每個專案有自己的版本號：沒有修改的專案不需要進版。
 - 每個變更都是一個 request 檔，規格（包含軟體架構）經你確認之前不會開始實作。
 - Agent 在各自的 git worktree 裡實作，所以多個 session 可以平行處理多個 request。
@@ -133,9 +133,9 @@ flowchart LR
 
 - Draft 只存在它的 `req/` branch 上，`develop` 上只有你確認過的 request。
 - `## Q&A` 裡沒有 pending 的問題，request 才能變成 `ready`。已回答的紀錄不會被改寫：決定改變時是新增一筆。
-- 在 workspace 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。認領之後，request 的每個專案都會建立同名的 branch。
+- 在 workspace 建立 request branch 就是認領：git 保證同名的 branch 只能建立一次，所以兩個 session 不會認領到同一個 request。認領之後，request 的每個專案會建立一個以變更內容命名、不含 request 編號的 branch (`feat/gui-button`)，名稱記錄在 request 檔的 `project-branch`。
 - request 也可以修改 workspace 自己的檔案：`docs/<專案>/` 的規格、知識庫、`src/AGENTS.md` 的專案規則，這些修改在 Review 由你確認；只改這些檔案的 request 為 `projects: []`。
-- 程式碼 commit 在各專案，footer 為 `Refs: <workspace>#REQ-0012`；workspace 以 gitlink 記錄 request 產生了哪些專案 commit。
+- 程式碼 commit 在各專案，是描述變更內容的一般 commit。專案的 commit、merge commit、merge request 與 changelog 都不會提到 request 或 workspace；workspace 以 gitlink 記錄 request 產生了哪些專案 commit。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
 - Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並在每個專案用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
@@ -149,7 +149,7 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 | Branch | Workspace | 專案 | 範例 |
 |--------|-----------|------|------|
 | 規格討論 | 從 `develop` 開、merge 回 `develop` | （無） | `req/REQ-0012-gui-button` |
-| Request | 從 `develop` 開、merge 回 `develop` | 同名，從它的 `develop` 開、merge 回去 | `feat/REQ-0012-gui-button` |
+| Request | 從 `develop` 開、merge 回 `develop` | 以變更內容命名，從它的 `develop` 開、merge 回去 | `feat/REQ-0012-gui-button`、`feat/gui-button` |
 | Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.0.0-beta1` | 從 `develop` 開，merge 到 `master` 與 `develop`，tag 為 `v1.0.0-beta1` | `release/v1.0.0-beta1` |
 | Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `v1.0.1` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
 

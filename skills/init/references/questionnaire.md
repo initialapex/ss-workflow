@@ -31,7 +31,7 @@ Commit messages are always English. Do not ask about them.
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{WORKSPACE_NAME}}` |
+| Workspace name | The directory name, for example `SSDisp-workspace`. It names the workspace in its own files only: the history of a project never mentions it. | `{{WORKSPACE_NAME}}` |
 | One-sentence description | (free text) | `{{WORKSPACE_DESCRIPTION}}` |
 | The projects to add | The URLs and paths in `$ARGUMENTS`; may be none | One entry each, see Round 3 |
 

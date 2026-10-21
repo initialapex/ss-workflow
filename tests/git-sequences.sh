@@ -54,6 +54,7 @@ type: $3
 projects: [$4]
 priority: normal
 branch:
+project-branch:
 created: 2026-10-07
 ---
 
@@ -84,12 +85,12 @@ seed_src() { # name [folder of the bare remote] -> bare remote with master + dev
 }
 # The projects of the workspace that the helpers below work on.
 P_ALL="SSLib SSDisp"
-claim() { # root wt branch ws-base src-base projects... -> workspace worktree + one per project
-  local root=$1 wt=$2 b=$3 base=$4 sbase=$5 p; shift 5
+claim() { # root wt branch project-branch ws-base src-base projects... -> workspace worktree + one per project
+  local root=$1 wt=$2 b=$3 pb=$4 base=$5 sbase=$6 p; shift 6
   git -C "$root" worktree add -q --no-track -b "$b" "$wt" "$base" || return 1
   for p in $P_ALL; do
     if echo " $* " | grep -q " $p "; then
-      git -C "$root/src/$p" worktree add -q --no-track -b "$b" "$wt/src/$p" "$sbase" || return 1
+      git -C "$root/src/$p" worktree add -q --no-track -b "$pb" "$wt/src/$p" "$sbase" || return 1
     else
       git -C "$root/src/$p" worktree add -q --detach "$wt/src/$p" "$(git -C "$wt" rev-parse "HEAD:src/$p")" || return 1
     fi
@@ -115,6 +116,13 @@ newreq() { # id slug type projects  -> leaves develop with the request as ready
   git merge -q --no-ff "req/REQ-$1-$2" -m "Merge req/REQ-$1-$2 into develop" -m "$2" -m "Refs: REQ-$1"
   git push -q 2>/dev/null
   git branch -q -d "req/REQ-$1-$2"; git push -q origin --delete "req/REQ-$1-$2" 2>/dev/null
+}
+no_ws_info() { # project-folder -> true when no branch, tag, or commit message of the project names the workspace
+  ! { git -C "$1" for-each-ref --format='%(refname)' refs/heads refs/remotes refs/tags; git -C "$1" log --all --format=%B; } \
+    | grep -q 'REQ-\|-workspace\|Refs:'
+}
+pbranch_of() { # ref:path-of-request-file -> its project-branch
+  git show "$1" 2>/dev/null | sed -n 's/^project-branch: *//p' | head -1
 }
 ws_master_merge() { # tag message -> merge develop into the workspace master, gitlinks = each project's master
   local p
@@ -190,12 +198,17 @@ sec "check-req: claim in the workspace, then a branch in each project of the req
 cd "$A"; git fetch -q --prune
 for p in $P_ALL; do git -C "src/$p" fetch -q; done
 WT1="$A/.claude/worktrees/feat-REQ-0001-add-greeting"
+PB1=feat/add-greeting
+for p in $P_ALL; do
+  no_ "the project branch name is free in $p, locally and on the remote" sh -c \
+    "git -C 'src/$p' rev-parse --verify -q 'refs/heads/$PB1' || git -C 'src/$p' ls-remote --exit-code --heads origin '$PB1'"
+done
 yes_ "worktree add -b of the workspace works with the root on a req/ branch" \
   git worktree add -q --no-track -b feat/REQ-0001-add-greeting "$WT1" origin/develop
 eq_ "a new workspace worktree has empty project folders" "$(ls -A "$WT1/src/SSDisp" | count)" "0"
 git -C "$WT1" push -q -u origin feat/REQ-0001-add-greeting 2>/dev/null
 ( cd "$WT1" && setstatus reqs/REQ-0001-20261007-add-greeting.md in-progress \
-  && sed -i 's#^branch:.*#branch: feat/REQ-0001-add-greeting#' reqs/REQ-0001-20261007-add-greeting.md \
+  && sed -i "s#^branch:.*#branch: feat/REQ-0001-add-greeting#; s#^project-branch:.*#project-branch: $PB1#" reqs/REQ-0001-20261007-add-greeting.md \
   && git commit -q -am "chore(reqs): claim REQ-0001" -m "Refs: REQ-0001" && git push -q 2>/dev/null )
 # machine B loses the race: its claim commit is rejected, so it never creates project branches
 ( cd "$B" && git fetch -q && git worktree add -q --no-track -b feat/REQ-0001-add-greeting "$B/wt1" origin/develop \
@@ -203,24 +216,31 @@ git -C "$WT1" push -q -u origin feat/REQ-0001-add-greeting 2>/dev/null
   && git commit -q -am "chore(reqs): claim REQ-0001" -m "Refs: REQ-0001" ) 2>/dev/null
 no_ "B's claim commit is rejected by the workspace remote" git -C "$B/wt1" push -q -u origin feat/REQ-0001-add-greeting
 ( cd "$B" && git worktree remove wt1 && git branch -q -D feat/REQ-0001-add-greeting )
-no_ "B created no branch in any project" git -C "$B/src/SSDisp" ls-remote --exit-code --heads origin 'feat/REQ-0001-*'
+no_ "B created no branch in any project" git -C "$B/src/SSDisp" ls-remote --exit-code --heads origin "$PB1"
 # A won: one worktree per project inside the workspace worktree
-yes_ "project worktree with the request branch, from the project's develop" \
-  git -C "$A/src/SSLib" worktree add -q --no-track -b feat/REQ-0001-add-greeting "$WT1/src/SSLib" origin/develop
-git -C "$A/src/SSDisp" worktree add -q --no-track -b feat/REQ-0001-add-greeting "$WT1/src/SSDisp" origin/develop
+yes_ "project worktree with the project branch, from the project's develop" \
+  git -C "$A/src/SSLib" worktree add -q --no-track -b "$PB1" "$WT1/src/SSLib" origin/develop
+git -C "$A/src/SSDisp" worktree add -q --no-track -b "$PB1" "$WT1/src/SSDisp" origin/develop
 eq_ "the project folder is a worktree of the root checkout's submodule" "$(sed -n 's#.*\(/modules/src/SSDisp/worktrees/\).*#\1#p' "$WT1/src/SSDisp/.git")" "/modules/src/SSDisp/worktrees/"
 eq_ "the workspace worktree is clean right after the claim" "$(git -C "$WT1" status --porcelain | count)" "0"
 eq_ "inside a project worktree, the superproject is the workspace worktree" "$(git -C "$WT1/src/SSDisp" rev-parse --show-superproject-working-tree)" "$WT1"
-yes_ "the project branches are pushed" sh -c "git -C '$WT1/src/SSLib' push -q -u origin feat/REQ-0001-add-greeting && git -C '$WT1/src/SSDisp' push -q -u origin feat/REQ-0001-add-greeting"
+yes_ "the project branches are pushed" sh -c "git -C '$WT1/src/SSLib' push -q -u origin $PB1 && git -C '$WT1/src/SSDisp' push -q -u origin $PB1"
 eq_ "the root checkout's branch did not change" "$(git branch --show-current)" "req/REQ-0003-draft-only"
 
 sec "check-req: a project that the request does not touch is checked out detached at its gitlink"
 WT2="$A/.claude/worktrees/feat-REQ-0002-add-farewell"
-yes_ "claim REQ-0002 (SSDisp only)" claim "$A" "$WT2" feat/REQ-0002-add-farewell origin/develop origin/develop SSDisp
+# another developer's own workspace already pushed a branch with the same name to SSDisp
+( cd "$B/src/SSDisp" && git checkout -q -b feat/add-farewell origin/develop && git push -q -u origin feat/add-farewell 2>/dev/null )
+git -C src/SSDisp fetch -q
+yes_ "the check finds that feat/add-farewell is taken in SSDisp" git -C src/SSDisp ls-remote --exit-code --heads origin feat/add-farewell
+PB2=feat/add-farewell-message
+no_ "the other name is free" git -C src/SSDisp ls-remote --exit-code --heads origin "$PB2"
+yes_ "claim REQ-0002 (SSDisp only) with the other name" claim "$A" "$WT2" feat/REQ-0002-add-farewell "$PB2" origin/develop origin/develop SSDisp
 eq_ "SSLib is detached at the gitlink" "$(git -C "$WT2/src/SSLib" rev-parse HEAD)" "$(git -C "$WT2" rev-parse HEAD:src/SSLib)"
 eq_ "SSLib has no branch in that worktree" "$(git -C "$WT2/src/SSLib" branch --show-current)" ""
 git -C "$WT2" push -q -u origin feat/REQ-0002-add-farewell 2>/dev/null
-git -C "$WT2/src/SSDisp" push -q -u origin feat/REQ-0002-add-farewell 2>/dev/null
+git -C "$WT2/src/SSDisp" push -q -u origin "$PB2" 2>/dev/null
+eq_ "the other developer's branch is untouched" "$(git -C src/SSDisp rev-parse origin/feat/add-farewell)" "$(git -C src/SSDisp rev-parse origin/develop)"
 
 # ================================================================ overview
 sec "check-req: overview without checking anything out"
@@ -229,20 +249,21 @@ eq_ "ls-tree lists the approved requests" "$files" "reqs/REQ-0001-20261007-add-g
 rb=$(git branch -a --list '*REQ-0001-*' --format='%(refname:short)' | grep -v 'req/' | head -1)
 eq_ "workspace request branch found by id" "$rb" "feat/REQ-0001-add-greeting"
 eq_ "effective status from the workspace request branch" "$(status_of "$rb:reqs/REQ-0001-20261007-add-greeting.md")" "in-progress"
-eq_ "the project branch is found on the project's remote" "$(git -C src/SSLib ls-remote --heads origin 'feat/REQ-0001-*' | count)" "1"
+eq_ "the project branch is read from the request file on the workspace branch" "$(pbranch_of "$rb:reqs/REQ-0001-20261007-add-greeting.md")" "$PB1"
+eq_ "the project branch is found on the project's remote" "$(git -C src/SSLib ls-remote --heads origin "$PB1" | count)" "1"
 eq_ "drafts are found as req/ branches" "$(git branch --list 'req/REQ-*' --format='%(refname:short)')" "req/REQ-0003-draft-only"
 
 # ================================================================ implement + hand over
 sec "check-req: commit in the projects, record the gitlinks, hand over"
-( cd "$WT1/src/SSLib" && echo "greet()" >> app.txt && git commit -q -am "feat: add greet()" -m "Refs: A-workspace#REQ-0001" && git push -q 2>/dev/null )
-( cd "$WT1/src/SSDisp" && echo "greeting" >> app.txt && git commit -q -am "feat: show greeting" -m "Refs: A-workspace#REQ-0001" && git push -q 2>/dev/null )
+( cd "$WT1/src/SSLib" && echo "greet()" >> app.txt && git commit -q -am "feat: add greet()" -m "Return a greeting for a name." && git push -q 2>/dev/null )
+( cd "$WT1/src/SSDisp" && echo "greeting" >> app.txt && git commit -q -am "feat: show greeting" -m "Show the greeting on the start screen." && git push -q 2>/dev/null )
 eq_ "the workspace sees both projects as moved" "$(git -C "$WT1" status --porcelain | tr '\n' '|')" " M src/SSDisp| M src/SSLib|"
 yes_ "diff --submodule=log shows the project commits" sh -c "git -C '$WT1' diff --submodule=log | grep -q 'feat: show greeting'"
-eq_ "the source commit carries Refs: <workspace>#REQ-xxxx" "$(git -C "$WT1/src/SSDisp" log -1 --format=%B | grep '^Refs:')" "Refs: A-workspace#REQ-0001"
+eq_ "the project commit has no Refs: footer" "$(git -C "$WT1/src/SSDisp" log -1 --format=%B | grep -c '^Refs:')" "0"
 ( cd "$WT1" && setstatus reqs/REQ-0001-20261007-add-greeting.md review && git add reqs src/SSLib src/SSDisp \
   && git commit -q -m "chore(reqs): mark REQ-0001 for review" -m "Refs: REQ-0001" && git push -q 2>/dev/null )
-eq_ "the hand-over commit records the project branch tip" "$(git rev-parse feat/REQ-0001-add-greeting:src/SSDisp)" "$(git -C src/SSDisp rev-parse feat/REQ-0001-add-greeting)"
-eq_ "nothing unpushed in the project before removal" "$(git -C "$WT1/src/SSDisp" log origin/feat/REQ-0001-add-greeting..HEAD --oneline | count)" "0"
+eq_ "the hand-over commit records the project branch tip" "$(git rev-parse feat/REQ-0001-add-greeting:src/SSDisp)" "$(git -C src/SSDisp rev-parse "$PB1")"
+eq_ "nothing unpushed in the project before removal" "$(git -C "$WT1/src/SSDisp" log "origin/$PB1..HEAD" --oneline | count)" "0"
 no_ "the workspace worktree cannot be removed while it holds project worktrees" git worktree remove "$WT1"
 yes_ "the project worktree is removed from the root checkout's submodule" git -C "$A/src/SSLib" worktree remove "$WT1/src/SSLib"
 eq_ "removing it deletes the folder, which the workspace sees as a deleted gitlink" "$(git -C "$WT1" status --porcelain)" " D src/SSLib"
@@ -250,7 +271,7 @@ yes_ "restore puts back the empty folder" git -C "$WT1" restore src/SSLib
 eq_ "the workspace worktree is clean again" "$(git -C "$WT1" status --porcelain | count)" "0"
 git -C "$A/src/SSDisp" worktree remove "$WT1/src/SSDisp"; git -C "$WT1" restore src/SSDisp
 yes_ "then the workspace worktree is removed without --force" git worktree remove "$WT1"
-yes_ "the project branch is kept in the root checkout's submodule" git -C src/SSDisp rev-parse --verify -q feat/REQ-0001-add-greeting
+yes_ "the project branch is kept in the root checkout's submodule" git -C src/SSDisp rev-parse --verify -q "$PB1"
 yes_ "the workspace branch is kept" git rev-parse --verify -q feat/REQ-0001-add-greeting
 
 # ================================================================ review
@@ -258,8 +279,8 @@ sec "review: check out both layers in the root checkout"
 git checkout -q develop
 yes_ "checkout of the workspace request branch" git checkout -q feat/REQ-0001-add-greeting
 yes_ "submodule update puts each project at the gitlink of the branch" git submodule update -q
-for p in SSLib SSDisp; do git -C "src/$p" checkout -q feat/REQ-0001-add-greeting; done
-eq_ "the project is on the request branch" "$(git -C src/SSDisp branch --show-current)" "feat/REQ-0001-add-greeting"
+for p in SSLib SSDisp; do git -C "src/$p" checkout -q "$PB1"; done
+eq_ "the project is on its project branch" "$(git -C src/SSDisp branch --show-current)" "$PB1"
 eq_ "the root checkout is clean, submodules included" "$(git status --porcelain | count)" "0"
 echo "tmp" > src/SSDisp/tmp.txt
 eq_ "an untracked file in a project shows in the workspace status" "$(git status --porcelain)" " M src/SSDisp"
@@ -273,8 +294,8 @@ git -C src/SSDisp checkout -q -- app.txt; rm src/SSDisp/tmp.txt
 # the project's develop moves on meanwhile (another request, or another team)
 ( cd "$B/src/SSDisp" && git checkout -q develop 2>/dev/null && echo "other" > other.txt && git add -A && git commit -q -m "feat: other work" && git push -q 2>/dev/null )
 git -C src/SSDisp fetch -q
-yes_ "merge the project's develop into the project branch" git -C src/SSDisp merge -q origin/develop -m "Merge develop into feat/REQ-0001-add-greeting"
-echo "fix" >> src/SSDisp/app.txt; git -C src/SSDisp commit -q -am "fix: small fix found in verify" -m "Refs: A-workspace#REQ-0001"
+yes_ "merge the project's develop into the project branch" git -C src/SSDisp merge -q origin/develop -m "Merge develop into $PB1"
+echo "fix" >> src/SSDisp/app.txt; git -C src/SSDisp commit -q -am "fix: keep the greeting on one line"
 git -C src/SSDisp push -q 2>/dev/null
 eq_ "the workspace sees the new project commits" "$(git status --porcelain)" " M src/SSDisp"
 sed -i 's/- \[ \] criterion one/- [x] criterion one/' reqs/REQ-0001-20261007-add-greeting.md
@@ -289,13 +310,16 @@ sec "merge: the projects first, then the workspace"
 git checkout -q feat/REQ-0001-add-greeting; git submodule update -q
 for p in SSLib SSDisp; do
   ( cd "src/$p" && git checkout -q develop 2>/dev/null && git pull -q --ff-only 2>/dev/null \
-    && git merge -q --no-ff feat/REQ-0001-add-greeting -m "Merge feat/REQ-0001-add-greeting into develop" -m "add-greeting" -m "Refs: A-workspace#REQ-0001" \
+    && git merge -q --no-ff "$PB1" -m "Merge $PB1 into develop" -m "Add a greeting to the start screen." \
     && git push -q origin develop 2>/dev/null )
 done
-yes_ "is-ancestor: SSDisp's branch is merged on its remote" git -C src/SSDisp merge-base --is-ancestor feat/REQ-0001-add-greeting origin/develop
+yes_ "is-ancestor: SSDisp's branch is merged on its remote" git -C src/SSDisp merge-base --is-ancestor "$PB1" origin/develop
 no_ "while the workspace branch is not merged yet (a later run continues here)" git merge-base --is-ancestor feat/REQ-0001-add-greeting origin/develop
 f=REQ-0001-20261007-add-greeting.md
-setstatus "reqs/$f" done; git mv "reqs/$f" "reqs/done/$f"
+MERGE_LIB=$(git -C src/SSLib rev-parse --short origin/develop)
+setstatus "reqs/$f" done
+echo "Merged into develop (2026-10-07): SSLib $MERGE_LIB, SSDisp $(git -C src/SSDisp rev-parse --short origin/develop)" >> "reqs/$f"
+git mv "reqs/$f" "reqs/done/$f"
 git add reqs src/SSLib src/SSDisp
 git commit -q -m "chore(reqs): close REQ-0001" -m "Refs: REQ-0001"; git push -q 2>/dev/null
 eq_ "the close commit points to the project's develop merge commit" "$(git rev-parse HEAD:src/SSDisp)" "$(git -C src/SSDisp rev-parse origin/develop)"
@@ -306,9 +330,12 @@ git push -q 2>/dev/null; git submodule update -q
 eq_ "develop's gitlink is the project's develop" "$(git rev-parse develop:src/SSDisp)" "$(git -C src/SSDisp rev-parse origin/develop)"
 eq_ "develop has the request only in reqs/done, as done" "$(status_of develop:reqs/done/$f)" "done"
 eq_ "the source history has no request commits" "$(git -C src/SSDisp log origin/develop --format=%s | grep -c 'reqs')" "0"
+for p in SSLib SSDisp; do
+  yes_ "no branch, tag, or commit message of $p names the workspace or a request" no_ws_info "src/$p"
+done
 yes_ "the project branches are deleted after the merge is confirmed" sh -c \
-  "git -C src/SSLib branch -q -d feat/REQ-0001-add-greeting && git -C src/SSDisp branch -q -d feat/REQ-0001-add-greeting \
-   && git -C src/SSLib push -q origin --delete feat/REQ-0001-add-greeting && git -C src/SSDisp push -q origin --delete feat/REQ-0001-add-greeting"
+  "git -C src/SSLib branch -q -d $PB1 && git -C src/SSDisp branch -q -d $PB1 \
+   && git -C src/SSLib push -q origin --delete $PB1 && git -C src/SSDisp push -q origin --delete $PB1"
 yes_ "the workspace branch too" sh -c "git branch -q -d feat/REQ-0001-add-greeting && git push -q origin --delete feat/REQ-0001-add-greeting"
 eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
 
@@ -328,8 +355,8 @@ newreq 0005 lib-spec docs ""
 eq_ "the request names no project" "$(git show origin/develop:reqs/REQ-0005-20261007-lib-spec.md | sed -n 's/^projects: //p')" "[]"
 WT4="$A/.claude/worktrees/docs-REQ-0005-lib-spec"
 links_before="$(git rev-parse develop:src/SSLib) $(git rev-parse develop:src/SSDisp)"
-yes_ "the claim creates the workspace branch; every project is detached" claim "$A" "$WT4" docs/REQ-0005-lib-spec origin/develop origin/develop
-eq_ "no project got a branch" "$(git -C src/SSLib branch -a --list '*REQ-0005-*' | count)$(git -C src/SSDisp branch -a --list '*REQ-0005-*' | count)" "00"
+yes_ "the claim creates the workspace branch; every project is detached" claim "$A" "$WT4" docs/REQ-0005-lib-spec "" origin/develop origin/develop
+eq_ "no project got a branch" "$(git -C src/SSLib branch -a --list '*lib-spec*' | count)$(git -C src/SSDisp branch -a --list '*lib-spec*' | count)" "00"
 ( cd "$WT4" && setstatus reqs/REQ-0005-20261007-lib-spec.md in-progress \
   && git commit -q -am "chore(reqs): claim REQ-0005" -m "Refs: REQ-0005" && git push -q -u origin docs/REQ-0005-lib-spec 2>/dev/null \
   && mkdir -p docs/SSLib && echo "greet() returns a greeting" > docs/SSLib/spec.md && git add docs \
@@ -378,6 +405,13 @@ eq_ "the last workspace tag of SSDisp" "$(git describe --tags --abbrev=0 --match
 eq_ "requests closed since the last SSDisp tag (none yet)" "$(git diff --name-only --diff-filter=A SSDisp/v0.1.0..develop -- reqs/done/ | count)" "0"
 eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
 
+sec "release: changes made outside this workspace are found through the requests"
+git -C src/SSLib fetch -q
+rec=$(git show develop:reqs/done/REQ-0001-20261007-add-greeting.md | sed -n 's/^Merged into develop.*SSLib \([0-9a-f]*\),.*/\1/p')
+eq_ "the closed request records the project merge commit" "$(git -C src/SSLib log -1 --format=%s "$rec")" "Merge feat/add-greeting into develop"
+outside=$(git -C src/SSLib log --first-parent --format='%H %s' origin/develop | grep -v "^$(git -C src/SSLib rev-parse "$rec") " | cut -d' ' -f2- | tr '\n' '|')
+eq_ "the first-parent line without the request's merge is the outside work" "$outside" "feat: change made outside the workspace|chore: initial commit|"
+
 sec "release: SSLib v0.1.0 later; the master merge resolves the gitlinks"
 ( cd src/SSLib && git checkout -q develop && git pull -q --ff-only 2>/dev/null && git checkout -q -b release/v0.1.0 \
   && echo "0.1.0-lib" > version.txt && git commit -q -am "chore(release): bump version to 0.1.0" \
@@ -417,9 +451,9 @@ git -C "$A/src/SSLib" worktree add -q --detach "$WTH/src/SSLib" "$(git -C "$WTH"
 eq_ "the hotfix starts from the released SSDisp" "$(git -C "$WTH/src/SSDisp" rev-parse HEAD)" "$(git -C src/SSDisp rev-parse 'v0.1.0^{commit}')"
 eq_ "and from the released SSLib" "$(git -C "$WTH/src/SSLib" rev-parse HEAD)" "$(git -C src/SSLib rev-parse 'v0.1.0^{commit}')"
 ( cd "$WTH" && git show "origin/develop:reqs/$f4" > "reqs/$f4" && setstatus "reqs/$f4" in-progress \
-  && sed -i 's#^branch:.*#branch: hotfix/SSDisp-v0.1.1#' "reqs/$f4" && git add -A reqs \
+  && sed -i 's#^branch:.*#branch: hotfix/SSDisp-v0.1.1#; s#^project-branch:.*#project-branch: hotfix/v0.1.1#' "reqs/$f4" && git add -A reqs \
   && git commit -q -m "chore(reqs): claim REQ-0004" -m "Refs: REQ-0004" && git push -q -u origin hotfix/SSDisp-v0.1.1 2>/dev/null )
-( cd "$WTH/src/SSDisp" && echo "crash fixed" >> app.txt && git commit -q -am "fix: crash" -m "Refs: A-workspace#REQ-0004" \
+( cd "$WTH/src/SSDisp" && echo "crash fixed" >> app.txt && git commit -q -am "fix: crash on an empty greeting" \
   && echo "0.1.1" > version.txt && git commit -q -am "chore(release): bump version to 0.1.1" && git push -q -u origin hotfix/v0.1.1 2>/dev/null )
 ( cd "$WTH" && setstatus "reqs/$f4" review && git add reqs src/SSDisp && git commit -q -m "chore(reqs): mark REQ-0004 for review" -m "Refs: REQ-0004" && git push -q 2>/dev/null )
 yes_ "the hotfix worktrees are removed, projects first" rmwt "$A" "$WTH"
@@ -453,6 +487,7 @@ yes_ "the project's develop contains the hotfix" git -C src/SSDisp merge-base --
 eq_ "develop has the request only in reqs/done" "$(status_of develop:reqs/done/$f4)" "done"
 no_ "no stale copy in reqs/ on develop" git cat-file -e "develop:reqs/$f4"
 yes_ "push --atomic of the workspace master, develop and the tag" git push -q --atomic origin master develop SSDisp/v0.1.1
+yes_ "the hotfix left no workspace information in SSDisp" no_ws_info src/SSDisp
 eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
 
 # ================================================================ no remote at all
@@ -481,21 +516,22 @@ localreq() { # id slug -> ready on the local develop
 }
 localreq 0001 local-one
 WC="$C/.claude/worktrees/feat-REQ-0001-local-one"
-yes_ "claim from the local develops of both layers" claim "$C" "$WC" feat/REQ-0001-local-one develop develop Tool
+yes_ "claim from the local develops of both layers" claim "$C" "$WC" feat/REQ-0001-local-one feat/local-one develop develop Tool
 no_ "a second local claim of the same workspace branch fails" git worktree add -q --no-track -b feat/REQ-0001-local-one "$C/.claude/worktrees/dup" develop
 ( cd "$WC" && setstatus reqs/REQ-0001-20261007-local-one.md in-progress && git commit -q -am "chore(reqs): claim REQ-0001" \
-  && cd src/Tool && echo "work" >> version.txt && git commit -q -am "feat: local work" -m "Refs: C-workspace#REQ-0001" \
+  && cd src/Tool && echo "work" >> version.txt && git commit -q -am "feat: local work" \
   && cd ../.. && setstatus reqs/REQ-0001-20261007-local-one.md review && git add reqs src/Tool && git commit -q -m "chore(reqs): mark REQ-0001 for review" )
 yes_ "remove the worktrees without a push" rmwt "$C" "$WC"
-eq_ "the project commit stays on the local project branch" "$(git -C src/Tool log develop..feat/REQ-0001-local-one --oneline | count)" "1"
-git checkout -q feat/REQ-0001-local-one; git submodule update -q; git -C src/Tool checkout -q feat/REQ-0001-local-one
-( cd src/Tool && git checkout -q develop && git merge -q --no-ff feat/REQ-0001-local-one -m "Merge feat/REQ-0001-local-one into develop" )
+eq_ "the project commit stays on the local project branch" "$(git -C src/Tool log develop..feat/local-one --oneline | count)" "1"
+git checkout -q feat/REQ-0001-local-one; git submodule update -q; git -C src/Tool checkout -q feat/local-one
+( cd src/Tool && git checkout -q develop && git merge -q --no-ff feat/local-one -m "Merge feat/local-one into develop" -m "Do the local work." )
 fc=REQ-0001-20261007-local-one.md
 setstatus "reqs/$fc" done; git mv "reqs/$fc" "reqs/done/$fc"; git add reqs src/Tool; git commit -q -m "chore(reqs): close REQ-0001"
 git checkout -q develop
 yes_ "merge --no-ff into the local workspace develop" git merge -q --no-ff feat/REQ-0001-local-one -m "Merge feat/REQ-0001-local-one into develop"
 git submodule update -q
 eq_ "develop's gitlink is the project's local develop" "$(git rev-parse develop:src/Tool)" "$(git -C src/Tool rev-parse develop)"
+yes_ "no workspace information in the local project" no_ws_info src/Tool
 eq_ "the developer's working copy did not get the commit (nothing was pushed)" "$(git -C "$S/localc/Tool" log --oneline develop | count)" "1"
 eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
 P_ALL="SSLib SSDisp"
@@ -518,19 +554,19 @@ echo "ss-workflow-version: 0.6.0" > AGENTS.md; mkdir -p reqs/done; touch reqs/do
 git submodule add -q "$S/Prot.git" src/Prot; git add -A 2>/dev/null; git commit -q -m "chore: add ss-workflow workspace"
 git branch develop; git checkout -q develop; git push -q -u origin master develop 2>/dev/null
 git checkout -q -b feat/REQ-0001-protected develop; git push -q -u origin feat/REQ-0001-protected 2>/dev/null
-( cd src/Prot && git checkout -q -b feat/REQ-0001-protected origin/develop && echo "work" >> app.txt \
-  && git commit -q -am "feat: protected work" && git push -q -u origin feat/REQ-0001-protected 2>/dev/null )
+( cd src/Prot && git checkout -q -b feat/protected origin/develop && echo "work" >> app.txt \
+  && git commit -q -am "feat: protected work" && git push -q -u origin feat/protected 2>/dev/null )
 git add src/Prot; git commit -q -m "chore(reqs): mark REQ-0001 for review"; git push -q 2>/dev/null
-( cd src/Prot && git checkout -q develop 2>/dev/null && git merge -q --no-ff feat/REQ-0001-protected -m "Merge feat/REQ-0001-protected into develop" )
+( cd src/Prot && git checkout -q develop 2>/dev/null && git merge -q --no-ff feat/protected -m "Merge feat/protected into develop" )
 no_ "the push of the project's develop is refused" git -C src/Prot push -q origin develop
 git -C src/Prot reset -q --hard HEAD^
 eq_ "reset --hard HEAD^ puts the project's develop back" "$(git -C src/Prot rev-parse develop)" "$(git -C src/Prot rev-parse origin/develop)"
-no_ "merge pending: the project branch is not merged" git -C src/Prot merge-base --is-ancestor feat/REQ-0001-protected origin/develop
+no_ "merge pending: the project branch is not merged" git -C src/Prot merge-base --is-ancestor feat/protected origin/develop
 no_ "and the workspace was not touched" git merge-base --is-ancestor feat/REQ-0001-protected origin/develop
 ( cd "$S" && git clone -q "$S/Prot.git" e2 2>/dev/null && cd e2 && git checkout -q develop \
-  && git merge -q --no-ff origin/feat/REQ-0001-protected -m "Merge feat/REQ-0001-protected into develop" && ALLOW_DEVELOP=1 git push -q origin develop 2>/dev/null )
+  && git merge -q --no-ff origin/feat/protected -m "Merge feat/protected into develop" && ALLOW_DEVELOP=1 git push -q origin develop 2>/dev/null )
 git -C src/Prot fetch -q --prune
-yes_ "the next run finds the remote merge with is-ancestor, and continues with the workspace" git -C src/Prot merge-base --is-ancestor feat/REQ-0001-protected origin/develop
+yes_ "the next run finds the remote merge with is-ancestor, and continues with the workspace" git -C src/Prot merge-base --is-ancestor feat/protected origin/develop
 git -C src/Prot checkout -q --detach origin/develop; git add src/Prot; git commit -q -m "chore(reqs): close REQ-0001"
 git checkout -q develop; yes_ "the workspace merge" git merge -q --no-ff feat/REQ-0001-protected -m "Merge feat/REQ-0001-protected into develop"
 eq_ "develop's gitlink is the remote merge commit" "$(git rev-parse develop:src/Prot)" "$(git -C src/Prot rev-parse origin/develop)"

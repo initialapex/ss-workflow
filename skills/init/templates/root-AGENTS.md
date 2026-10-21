@@ -120,6 +120,14 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
 - A project repository only receives implementation commits: code, tests, and
   version numbers. Request files, spec discussions, and review results are committed
   in the workspace only.
+- The project's history carries nothing of the workspace. Its branch names, commit
+  messages, merge commits, tags, merge requests, and files (a changelog, for example)
+  never contain a request id, the workspace name, a `Refs:` footer that points to the
+  workspace, or a path of a workspace file. They describe the change in the project's
+  own terms, as any contributor of that project would. Each developer may keep a
+  workspace of their own for the same projects, so a request id means something in
+  one workspace only. The link goes the other way: the request file records its
+  project branch, and the workspace's gitlinks record the project commits.
 - Docs: `docs/overview.md` describes the workspace as a whole, and `docs/<name>/`
   holds the docs of one project, with its spec in `docs/<name>/spec.md`. The folder
   name is the project's `name`.
@@ -136,9 +144,13 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
 - Init writes nothing into a project repository. The workflow's rules for a project
   live in `src/AGENTS.md`. If the project's `.gitignore` misses build output, report
   it and suggest a request; do not change it outside a request.
-- A request names the projects that it changes in `projects`. Its branch has the
-  same name in the workspace and in each of those projects (a hotfix is the
-  exception, see "Branching model").
+- A request names the projects that it changes in `projects`. It has a branch in the
+  workspace, named after the request (`feat/REQ-0012-gui-button`), and one project
+  branch with the same name in each of those projects, named after the change only
+  (`feat/gui-button`). The request file records it in `project-branch` when the
+  request is claimed. A request claimed before ss-workflow 0.8.0 has no
+  `project-branch`: its project branch has the name of its workspace branch. See
+  "Branching model".
 - Gitlinks (the commit of each project that the workspace records):
   - `develop` records each project's `develop-branch`; `main-branch` records each
     project's `main-branch`, that is, its latest release.
@@ -154,9 +166,9 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
   - The workspace worktree: `git worktree add --no-track -b <branch>
     .claude/worktrees/<branch with "/" replaced by "-"> <develop-ref>`.
   - Each project of the request, inside it:
-    `git -C <root>/<path> worktree add --no-track -b <branch> <worktree>/<path>
-    <project develop-ref>`. Its commits are stored in the root checkout's
-    `.git/modules/<path>`, so they survive the removal of the worktree.
+    `git -C <root>/<path> worktree add --no-track -b <project branch>
+    <worktree>/<path> <project develop-ref>`. Its commits are stored in the root
+    checkout's `.git/modules/<path>`, so they survive the removal of the worktree.
   - Every other project: `git -C <root>/<path> worktree add --detach
     <worktree>/<path> <gitlink>`, because a build may refer to a neighboring project.
     Nested submodules of a project: `git -C <worktree>/<path> submodule update --init
@@ -184,12 +196,18 @@ project has its own `main-branch` and `develop-branch`.
 | Branch | Workspace | Project | Name example | Worktree |
 |--------|-----------|---------|--------------|----------|
 | Spec discussion `req/*` | From and into `develop` | (none) | `req/REQ-0012-gui-button` | No |
-| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | From and into `develop` | Same name, from and into `develop-branch` | `feat/REQ-0012-gui-button` | During implementation only, under `.claude/worktrees/` |
+| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `<type>/REQ-<id>-<slug>`, from and into `develop` | `<type>/<slug>` (the request's `project-branch`), from and into `develop-branch` | `feat/REQ-0012-gui-button`, `feat/gui-button` | During implementation only, under `.claude/worktrees/` |
 | Release | No branch: `develop` is merged into `main-branch` and tagged `<name>/v<version>` | `release/v<version>`, from `develop-branch`, into `main-branch` and `develop-branch`, tagged `v<version>` | `release/v1.0.0-beta1` | No |
 | Hotfix | `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
 
 - A `req/*` branch only changes one request file. It is merged into `develop` when
   the developer approves the spec.
+- A project branch is named like any branch of that project: the type and the
+  request's slug, `<type>/<slug>`, with no request id. The name must be new in each
+  project of the request, locally and on its remote, because other developers create
+  branches there from their own workspaces. If it is taken, the developer picks
+  another short, descriptive kebab-case name (for example `feat/gui-button-color`).
+  The request's `project-branch` records the name.
 - Creating the workspace request branch claims the request. The project branches are
   created only after the claim commit is accepted, so a lost claim leaves nothing in
   the projects. When the implementation is finished, the worktrees are removed and
@@ -285,16 +303,24 @@ Commit messages are always in English, in the workspace and in every project.
   differs from before
 - **footer**:
   - In the workspace: `Refs: REQ-0012` when the commit belongs to a request
-  - In a project: `Refs: <workspace-name>#REQ-0012`, because people outside this
-    workspace may read the project's history
+  - In a project: no reference to the workspace (see "Workspace and projects"). A
+    footer the project uses itself, such as a reference to its own issue tracker,
+    follows the project's rules.
   - `BREAKING CHANGE: <what changed, why, and how to migrate>` for incompatible changes
+- In a project, the subject and the body describe the change itself: what the code
+  does now and why. Do not mention the request, its id, the workspace, or its files.
+  Follow the project's own commit rules where it has them (in its `AGENTS.md`,
+  `CLAUDE.md`, `CONTRIBUTING*`, or its history), as long as they keep the workspace
+  out.
 
 Commit often while you implement. Each commit is one reason for change, not a
 bundle of unrelated files. On request branches, push after every commit when
 "Remote and pushing" allows it.
 
 Merge commits are the exception to the header format. They are always created with
-`--no-ff` and use the subject `Merge <source branch> into <target branch>`.
+`--no-ff` and use the subject `Merge <source branch> into <target branch>`. In a
+project, the body is one line in English that describes the change, and there is no
+`Refs:` line.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=versioning -->

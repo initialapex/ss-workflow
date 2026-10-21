@@ -157,9 +157,12 @@ merge skill's `references/release.md`).
 ### 4. Changelog
 
 If the project has a `CHANGELOG.md`, add a section for this version at the top, with
-the date and the closed requests of this project grouped by type
-(`<workspace-name>#REQ-xxxx` and the title). Follow the format of the existing
-entries. Do not create a changelog if there is none.
+the date and the changes of this version grouped by type: the closed requests of this
+project and the changes made outside this workspace (Step 2 of the skill), one line
+each. Describe each change in the project's terms, in the language of the existing
+entries. The changelog is a file of the project, so it names no request id and no
+workspace (see "Workspace and projects" in the root `AGENTS.md`). Follow the format
+of the existing entries. Do not create a changelog if there is none.
 
 ### 5. Check
 

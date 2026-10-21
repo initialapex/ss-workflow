@@ -15,7 +15,8 @@ written in the `reqs-language` from root `AGENTS.md`.
     `reqs/done/` on `develop` has it, or when a local or remote branch name of the
     workspace contains it (`req/REQ-0012-…`, `feat/REQ-0012-…`).
   - **date**: the creation date.
-  - **slug**: short, lowercase, kebab-case, in English.
+  - **slug**: short, lowercase, kebab-case, in English. It names the change, not the
+    request, because the project branch takes it too (`feat/gui-button`).
 - When a request is closed, `/ss-workflow:merge` moves its file to `reqs/done/` with
   `git mv`. The file name does not change.
 <!-- /ss-workflow:managed -->
@@ -32,6 +33,7 @@ type: feat
 projects: [SSDisp]
 priority: normal
 branch:
+project-branch:
 created: 2026-09-07
 ---
 
@@ -60,7 +62,8 @@ created: 2026-09-07
 | `type` | `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`, `hotfix` |
 | `projects` | The projects that the request changes, by their `name` in "Workflow settings", for example `[SSLib, SSDisp]`. `[]` for a request that changes only workspace files (docs, READMEs, agent files outside their managed blocks). A `hotfix` names exactly one. A request from before the workspace layout may lack the field: it belongs to `legacy-project` in "Workflow settings". |
 | `priority` | `high`, `normal`, `low` |
-| `branch` | Empty until claimed, then the workspace request branch, for example `feat/REQ-0012-gui-button`. The projects use the same name, except for a hotfix: `hotfix/SSDisp-v1.0.1` in the workspace, `hotfix/v1.0.1` in the project. |
+| `branch` | Empty until claimed, then the workspace request branch, for example `feat/REQ-0012-gui-button`, or `hotfix/SSDisp-v1.0.1` for a hotfix. |
+| `project-branch` | Empty until claimed, then the branch of the request in each of its projects, named after the change with no request id, for example `feat/gui-button`, or `hotfix/v1.0.1` for a hotfix. Empty for `projects: []`. A request claimed before ss-workflow 0.8.0 lacks the field: its project branch has the name in `branch`. |
 
 The frontmatter is the only source of truth for a request's state.
 
@@ -149,8 +152,8 @@ Terms:
 - **Root checkout**: the workspace's primary working tree. Its home branch is
   `develop`. Spec discussions, Verify, Review, merges, and releases use it, one at a
   time.
-- **Request branches**: the branch of the request in the workspace and the branch
-  with the same name in each project of the request.
+- **Request branches**: the branch of the request in the workspace (`branch`) and
+  the branch `project-branch` in each project of the request.
 - **Verify**: running the build, the test projects, and the verification scripts.
 - **Review**: the developer checks the result by hand.
 
@@ -163,14 +166,16 @@ Rules:
 - **Creating the workspace request branch is the claim.** The branch
   `<type>/REQ-<id>-<slug>` is created from `develop`. If a workspace branch for this
   id already exists, locally or on the remote, the request is claimed. The first
-  commit on the branch sets `status: in-progress` and `branch`.
+  commit on the branch sets `status: in-progress`, `branch`, and `project-branch`.
 - In one repository, git creates a branch name only once, so the claim needs no
   remote. Across machines, the branch and its first commit are pushed (see "Remote
   and pushing" in the root `AGENTS.md`): the machine whose first commit the remote
   accepts holds the claim, and the other one gives up its branch. A claim that is not
   pushed holds in this repository only.
 - The branches in the projects are created only after the claim holds, from each
-  project's latest `develop-branch` (not from the gitlink).
+  project's latest `develop-branch` (not from the gitlink). Their name has no request
+  id and must be new in each of those projects (see "Branching model" in the root
+  `AGENTS.md`).
 - `develop` keeps showing `ready` until the merge. The workspace request branch holds
   the current status (`in-progress`, `review`, or `done`), and that status is the
   effective one.

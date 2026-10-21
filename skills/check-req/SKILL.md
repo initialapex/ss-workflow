@@ -98,8 +98,12 @@ Build the list of requests without checking anything out.
    - In the workspace: a local or remote branch whose name contains `REQ-<id>-` and
      does not start with `req/`. For `type: hotfix`: a `hotfix/<name>-v*` branch that
      contains the request file in `reqs/` or `reqs/done/`.
-   - In each project of its `projects`: the branch with the same name, local or
-     remote (for a hotfix: `hotfix/v<version>`).
+   - In each project of its `projects`: the branch named in `project-branch` of the
+     request file on the workspace branch, local or remote. If the field is missing
+     or empty, the request was claimed before ss-workflow 0.8.0, and the project
+     branch has the name of the workspace branch (for a hotfix: `hotfix/v<version>`).
+     A project branch is never found by its name alone: other developers create
+     branches in the same projects from their own workspaces.
 4. **The effective status**:
    - No workspace request branch: the status on `<develop-ref>`, normally `ready`.
    - With a workspace request branch: the status in the request file on that branch
@@ -170,7 +174,8 @@ Decide the names first:
 
 | Item | Value |
 |------|-------|
-| Branch | `<type>/REQ-<id>-<slug>`, for example `feat/REQ-0012-gui-button`, in the workspace and in each project. For `type: hotfix`: `hotfix/<name>-v<version>` in the workspace and `hotfix/v<version>` in the project, with the version from the request's spec. |
+| Workspace branch | `<type>/REQ-<id>-<slug>`, for example `feat/REQ-0012-gui-button`. For `type: hotfix`: `hotfix/<name>-v<version>`, with the version from the request's spec. |
+| Project branch | `<type>/<slug>`, for example `feat/gui-button`, the same in each project of the request, with no request id. For `type: hotfix`: `hotfix/v<version>`. None for `projects: []`. Step 1 checks that the name is free. |
 | Workspace base | `<develop-ref>`. For `type: hotfix`: the workspace main branch (`origin/<main branch>` with a remote). |
 | Project base | `<project develop-ref>`, the latest develop branch of the project (not the gitlink). For `type: hotfix`: the project's main branch (`origin/<main-branch>` with a remote). |
 | Worktree path | `<root checkout>/.claude/worktrees/<workspace branch with "/" replaced by "-">`, with each project at its `path` inside it |
@@ -196,9 +201,15 @@ Creating the workspace branch is the claim.
    - Workspace: `git ls-remote --heads origin "*REQ-<id>-*"` (for a hotfix:
      `hotfix/<name>-v<version>`). If it lists a branch other than a `req/` branch, the
      request is already claimed. Go back to Step 4.
-   - Each project of the request: `git -C <root>/<path> ls-remote --heads origin
-     <branch>`. A branch there without a workspace branch is an anomaly: see
-     [references/anomalies.md](references/anomalies.md) before you continue.
+   - Each project of the request: the project branch must not exist yet, locally
+     (`git -C <root>/<path> rev-parse --verify -q refs/heads/<project branch>`) or on
+     the remote (`git -C <root>/<path> ls-remote --heads origin <project branch>`).
+     A branch with that name belongs to someone else's work, not to this request.
+     Propose another short, descriptive kebab-case name after the type (for example
+     `feat/gui-button-color`), check it the same way in every project of the
+     request, and ask the developer to confirm it. For a hotfix, a taken
+     `hotfix/v<version>` means that the version is being fixed already: stop, and
+     tell the developer.
 2. **Create the workspace branch and worktree** in one command:
 
    ```bash
@@ -220,7 +231,10 @@ Creating the workspace branch is the claim.
 4. **Record the claim** as the first commit on the workspace branch, in the worktree:
    - For `type: hotfix`, the request file is not on this branch yet. Copy it first:
      `git show <develop-ref>:reqs/<file> > reqs/<file>`.
-   - Set `status: in-progress` and `branch: <workspace branch>` in the request file.
+   - Set `status: in-progress`, `branch: <workspace branch>`, and
+     `project-branch: <project branch>` in the request file (add the
+     `project-branch:` line after `branch:` if the file has none; leave it empty for
+     `projects: []`).
    - Commit and push:
 
      ```
@@ -237,6 +251,13 @@ Creating the workspace branch is the claim.
      git -C <root>/<path> worktree add --no-track -b <project branch> <worktree path>/<path> <project base>
      git -C <worktree path>/<path> push -u origin <project branch>     # when pushing is allowed for that project
      ```
+
+     If git says that the branch already exists, or the remote rejects the push
+     because the branch appeared there in the meantime, the name was taken after
+     step 1. Remove the project worktrees that you created for this request and
+     their branches (they have no commits yet), pick a new name as in step 1, set it
+     in `project-branch` with a commit `chore(reqs): rename the project branch of
+     REQ-0012`, and create the project worktrees again.
 
    - Every other project, detached at the gitlink of the workspace branch, because a
      build may refer to it, and the docs of a workspace-only request may describe it:
@@ -267,8 +288,9 @@ git -C <root>/<path> worktree add <worktree path>/<path> <project branch>      #
 git -C <root>/<path> worktree add --detach <worktree path>/<path> <gitlink>   # every other project
 ```
 
-Use the local branches if they exist, or `origin/<branch>` (git then creates the
-local branch with tracking). A project branch that is missing for a project of the
+The project branch is the request's `project-branch` (or, when that is empty, the
+name of the workspace branch). Use the local branches if they exist, or
+`origin/<branch>` (git then creates the local branch with tracking). A project branch that is missing for a project of the
 request is an anomaly: see [references/anomalies.md](references/anomalies.md).
 
 ## Step 6: In a request worktree
