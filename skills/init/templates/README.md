@@ -35,7 +35,7 @@
 
 ## Projects
 
-Each project is a git submodule in `src/`, with its own repository, versions, and
+Each project is a git submodule in `projects/`, with its own repository, versions, and
 README.
 
 | Project | Path | Repository | Spec | Description |

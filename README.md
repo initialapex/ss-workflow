@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-blue">
+  <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -38,7 +38,8 @@ checkout, and skills merge and release it by the same rules every time.
 - Merges and releases follow fixed gitflow rules: `--no-ff` merges, tags, and a
   recommended version number.
 - It does not depend on a project type: a Visual Studio solution, a Keil project, an
-  ESP32 firmware, or anything else works the same way.
+  ESP32 firmware, a repository of analysis reports, or anything else works the same
+  way.
 - It works without a remote, with any git remote, or with merge requests on GitHub or
   GitLab. A setting decides whether the agent pushes by itself, asks first, or never
   pushes.
@@ -46,7 +47,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.8.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.9.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -172,7 +173,7 @@ Your original text is kept unchanged in its `## Original` section.
   request id (`feat/gui-button`). The request file records that name in
   `project-branch`.
 - A request can also change the workspace's own files: a spec in `docs/<project>/`,
-  the knowledge base, or a project's rules in `src/AGENTS.md`. You read those changes
+  the knowledge base, or a project's rules in `projects/AGENTS.md`. You read those changes
   in the Review. A request that changes nothing else has `projects: []`.
 - Code is committed in the projects, as plain commits that describe the change. No
   project commit, merge commit, merge request, or changelog entry names the request
@@ -258,7 +259,7 @@ SSDisp-workspace/
 │  ├─ overview.md            what the projects do together
 │  ├─ SSLib/spec.md          the spec of each project, with its other docs
 │  └─ SSDisp/spec.md
-└─ src/
+└─ projects/
    ├─ AGENTS.md              the toolchain and the rules of each project
    ├─ SSLib/                 a submodule: the SSLib repository, in its own layout
    └─ SSDisp/                a submodule: the SSDisp repository, in its own layout
@@ -288,14 +289,19 @@ there.
 |------|--------------------|
 | Branches, main project file, version source, and the setup, build, test, and verify commands of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
 | Extra files that tell an agent how to behave, such as prompt files that the product ships (`agent-files`) | "Workflow settings" in the root `AGENTS.md` |
-| Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the project's section of `src/AGENTS.md` |
-| How new files and projects are registered with the build, generated files, naming | "Project rules" in the project's section of `src/AGENTS.md` |
+| Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the project's section of `projects/AGENTS.md` |
+| How new files and projects are registered with the build, generated files, naming | "Project rules" in the project's section of `projects/AGENTS.md` |
 | Build output and local files to ignore | The project's own `.gitignore` |
 
 > [!NOTE]
 > A command may stay empty, for example when a project can only be built inside an
 > IDE. The skills then skip that step and report it as "not configured". They do not
 > invent a command.
+
+A project does not have to be code. For a repository of documents or analysis
+reports, leave the build and test commands empty, or set `verify-command` to a
+script that checks the reports (links, data, formatting). The Review is where you
+read the result.
 
 ## Updating
 

@@ -119,7 +119,7 @@ Report and offer to fix:
 - A gitlink of `develop` that is behind its project's develop branch (see "Workspace
   and projects" in root `AGENTS.md`), and a gitlink of the main branch that is not its
   project's main branch.
-- Project worktrees (`git -C src/<name> worktree list`) whose workspace worktree is
+- Project worktrees (`git -C projects/<name> worktree list`) whose workspace worktree is
   gone, or whose request is already in `review`.
 - The root checkout is not on `develop`. Say which activity holds it: a request branch
   whose file says `draft` (or a `req/*` branch) is a spec discussion, another request

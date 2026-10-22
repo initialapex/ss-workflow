@@ -25,7 +25,7 @@ root checkout with `/ss-workflow:review`.
 
 Both commands come from the project's entry in `projects` ("Workflow settings" in the
 root `AGENTS.md`), and they depend on the project's toolchain. Read the project's
-section in `src/AGENTS.md` ("Toolchain" and "Project rules"), and the project's own
+section in `projects/AGENTS.md` ("Toolchain" and "Project rules"), and the project's own
 `AGENTS.md`, `CLAUDE.md`, and README if it has them, before you build or change
 anything.
 

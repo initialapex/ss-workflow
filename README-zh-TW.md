@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-blue">
+  <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -24,12 +24,12 @@
 - Agent 在各自的 git worktree 裡實作，所以多個 session 可以平行處理多個 request。
 - Verify、可選的 code review 和你的人工 review 都在根目錄的 request branch 上進行。
 - Merge 和 release 依照固定的 gitflow 規則：`--no-ff` merge、tag 和推薦的版本號。
-- 不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware 或其他類型，用法都一樣。
+- 不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware、分析報告的 repo 或其他類型，用法都一樣。
 - 沒有 remote 也能用，可以搭配任何 git remote，也可以搭配 GitHub 或 GitLab 的 merge request。由設定決定 agent 是自動 push、先詢問，還是完全不 push。
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.8.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.9.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -136,7 +136,7 @@ flowchart LR
 - 討論過程只在建立 draft、暫停與核准時 commit，不會每一輪都 commit。
 - `## Q&A` 裡沒有 pending 的問題，request 才能被核准。已回答的紀錄不會被改寫：決定改變時是新增一筆。
 - 開始實作不需要搶鎖：每位開發者通常都有自己的 workspace。開始時，request 的每個專案會建立一個以變更內容命名、不含 request 編號的 branch (`feat/gui-button`)，名稱記錄在 request 檔的 `project-branch`。
-- request 也可以修改 workspace 自己的檔案：`docs/<專案>/` 的規格、知識庫、`src/AGENTS.md` 的專案規則，這些修改在 Review 由你確認；只改這些檔案的 request 為 `projects: []`。
+- request 也可以修改 workspace 自己的檔案：`docs/<專案>/` 的規格、知識庫、`projects/AGENTS.md` 的專案規則，這些修改在 Review 由你確認；只改這些檔案的 request 為 `projects: []`。
 - 程式碼 commit 在各專案，是描述變更內容的一般 commit。專案的 commit、merge commit、merge request 與 changelog 都不會提到 request 或 workspace；workspace 以 gitlink 記錄 request 產生了哪些專案 commit。
 - Verify 或 Review 發現的小問題，直接在根目錄修正。需要大改的 request 會退回 `in-progress`，回到 worktree 實作。
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
@@ -189,7 +189,7 @@ SSDisp-workspace/
 │  ├─ overview.md            各專案如何一起運作
 │  ├─ SSLib/spec.md          各專案的規格，以及它的其他文件
 │  └─ SSDisp/spec.md
-└─ src/
+└─ projects/
    ├─ AGENTS.md              各專案的 toolchain 與規則
    ├─ SSLib/                 submodule：SSLib repo，維持它自己的結構
    └─ SSDisp/                submodule：SSDisp repo，維持它自己的結構
@@ -211,12 +211,14 @@ Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話
 |------|----------|
 | 每個專案的 branch、主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
 | 其他會影響 agent 行為的檔案，例如產品內附的 prompt 檔（`agent-files`） | root `AGENTS.md` 的「Workflow settings」 |
-| 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | `src/AGENTS.md` 該專案章節的「Toolchain」 |
-| 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | `src/AGENTS.md` 該專案章節的「Project rules」 |
+| 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | `projects/AGENTS.md` 該專案章節的「Toolchain」 |
+| 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | `projects/AGENTS.md` 該專案章節的「Project rules」 |
 | 要忽略的 build 輸出和本機檔案 | 專案自己的 `.gitignore` |
 
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
+
+專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
 ## 更新
 

@@ -6,7 +6,7 @@
 CLAUDE.local.md
 # --- end ss-workflow ---
 
-# The build output of the projects in src/ is ignored by each project's own
+# The build output of the projects in projects/ is ignored by each project's own
 # .gitignore, inside its repository.
 
 # --- OS and editors ---

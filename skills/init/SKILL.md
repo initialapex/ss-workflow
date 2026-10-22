@@ -1,6 +1,6 @@
 ---
 name: init
-description: Initialize an ss-workflow workspace (a repository that holds the requests, docs, and agent files, with each project as a git submodule under src/), add projects to it from a remote URL or a local git path, or upgrade a repository initialized by an older ss-workflow version, including the conversion of the single-repository layout of 0.5.0 and older. Use only when the developer explicitly asks to initialize, add a project, convert, or upgrade the workflow.
+description: Initialize an ss-workflow workspace (a repository that holds the requests, docs, and agent files, with each project as a git submodule under projects/), add projects to it from a remote URL or a local git path, or upgrade a repository initialized by an older ss-workflow version, including the conversion of the single-repository layout of 0.5.0 and older. Use only when the developer explicitly asks to initialize, add a project, convert, or upgrade the workflow.
 argument-hint: "[--upgrade] [--add <url|path>]... [<url|path>...]"
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Set up an ss-workflow workspace. The workspace repository holds the requests, the
 docs, and the agent files. Each project stays in its own repository, with its own
-layout, and is added as a git submodule at `src/<name>`. Work step by step, ask the
+layout, and is added as a git submodule at `projects/<name>`. Work step by step, ask the
 developer before every change that is hard to undo, and never lose existing content
 or git history.
 
@@ -138,7 +138,7 @@ Generate in this order. Each group becomes one commit (Step 7):
    [references/add-project.md](references/add-project.md) says. The gitlinks on
    `{{MAIN_BRANCH}}` point to each project's main branch.
 3. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`, with
-   one entry in `projects` and one section in `src/AGENTS.md` per project.
+   one entry in `projects` and one section in `projects/AGENTS.md` per project.
 4. **Folders**: `reqs/done/.gitkeep`.
 5. **Docs**: `docs/overview.md`, and `docs/<name>/spec.md` for each project (see
    [references/add-project.md](references/add-project.md), section 4).
@@ -170,8 +170,8 @@ Branch placement:
 - **Existing `develop`**: commit on `develop`.
 
 Then point `develop`'s gitlinks to each project's develop branch:
-`git -C src/<name> checkout --detach <develop-ref of the project>` for each project,
-`git add src`, and commit `chore(workspace): point the projects to develop`. Skip the
+`git -C projects/<name> checkout --detach <develop-ref of the project>` for each project,
+`git add projects`, and commit `chore(workspace): point the projects to develop`. Skip the
 commit if no gitlink changed.
 
 ## Step 8: Register the plugin for the team (optional)

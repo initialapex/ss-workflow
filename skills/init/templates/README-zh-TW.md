@@ -30,7 +30,7 @@
 
 ## 專案
 
-每個專案都是 `src/` 底下的 git submodule，有自己的 repo、版本與 README。
+每個專案都是 `projects/` 底下的 git submodule，有自己的 repo、版本與 README。
 
 | 專案 | 路徑 | Repo | 規格 | 說明 |
 |------|------|------|------|------|

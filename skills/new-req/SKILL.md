@@ -57,7 +57,7 @@ Input: `$ARGUMENTS`
 
 | Current branch | Action |
 |----------------|--------|
-| `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them: for a project (` M src/<name>`), `git -C src/<name> status --porcelain` and `git -C src/<name> branch --show-current` tell what it is. A project on a `release/*` branch means that a release is open. With a remote, run `git pull --ff-only` and `git submodule update`. Continue with Step 2. |
+| `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them: for a project (` M projects/<name>`), `git -C projects/<name> status --porcelain` and `git -C projects/<name> branch --show-current` tell what it is. A project on a `release/*` branch means that a release is open. With a remote, run `git pull --ff-only` and `git submodule update`. Continue with Step 2. |
 | A request branch whose request file says `draft`, or a `req/REQ-…` branch from before ss-workflow 0.8.0 | A spec discussion is open here. If `$ARGUMENTS` is empty or names this request, resume it at Step 5. Otherwise, ask whether to pause this draft first (commit it, push it, and switch to `develop`). |
 | Any other branch | The root checkout is busy: a request or hotfix branch in another status means a review. Say which one, and stop. |
 
@@ -143,14 +143,14 @@ Then check the following:
 Before you ask the developer anything, read what the request touches:
 
 - `docs/overview.md`, and for each affected project its docs in `docs/<name>/` (at
-  least `spec.md`), its section in `src/AGENTS.md`, and its own `README.md`. Do not
+  least `spec.md`), its section in `projects/AGENTS.md`, and its own `README.md`. Do not
   read the docs of every project: only those of the projects that the request
   touches or uses.
 - The relevant source files, enough to know what exists today. The root checkout has
   each project at the commit that `develop` records, which may be behind the
   project's develop branch. Read the latest one without checking anything out:
-  `git -C src/<name> fetch`, then `git -C src/<name> show
-  origin/<develop-branch>:<file>` (or `git -C src/<name> grep <pattern>
+  `git -C projects/<name> fetch`, then `git -C projects/<name> show
+  origin/<develop-branch>:<file>` (or `git -C projects/<name> grep <pattern>
   origin/<develop-branch>`).
 - Related requests in `reqs/` and `reqs/done/`
 
@@ -202,7 +202,7 @@ The spec also settles `projects` in the frontmatter: every project that the requ
 changes. A project that the request only needs to read (a dependency that does not
 change) is not listed. `projects: []` is right only when the request changes
 workspace files and nothing else, for example a knowledge base article, a change to
-`docs/overview.md`, or to a `## Project: <name>` section in `src/AGENTS.md`. Such a
+`docs/overview.md`, or to a `## Project: <name>` section in `projects/AGENTS.md`. Such a
 request has no project branches, and Verify has nothing to run for it, so "How to
 verify" names the Review for every criterion. Managed blocks, `ss-workflow-version`,
 `.gitmodules`, and the `projects` entries are not changed by a request (see
@@ -211,7 +211,7 @@ verify" names the Review for every criterion. Managed blocks, `ss-workflow-versi
 
 For `type: hotfix`, `projects` names exactly one project. Also state the affected
 released version of that project and the hotfix version: the next patch version
-after the latest tag on the project's main branch (`git -C src/<name> describe --tags
+after the latest tag on the project's main branch (`git -C projects/<name> describe --tags
 --abbrev=0 origin/<main-branch>`), in the form that "Versioning" in the root
 `AGENTS.md` describes.
 
