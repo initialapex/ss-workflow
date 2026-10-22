@@ -31,7 +31,7 @@ Commit messages are always English. Do not ask about them.
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{WORKSPACE_NAME}}` |
+| Workspace name | The directory name, for example `SSDisp-workspace`. It names the workspace in its own files only: the history of a project never mentions it. | `{{WORKSPACE_NAME}}` |
 | One-sentence description | (free text) | `{{WORKSPACE_DESCRIPTION}}` |
 | The projects to add | The URLs and paths in `$ARGUMENTS`; may be none | One entry each, see Round 3 |
 
@@ -99,9 +99,9 @@ Explain the three answers to the push question when you ask it:
 
 | Answer | What it means | Fits |
 |--------|---------------|------|
-| `auto` (Recommended) | The agent pushes its topic branches after every commit, and `develop` after a merge that the developer asked for. Other sessions and machines see claims and status changes at once. | Several machines or sessions that share a remote |
+| `auto` (Recommended) | The agent pushes its topic branches after every commit, and `develop` after a merge that the developer asked for. Other sessions and machines see new requests and status changes at once. | Several machines or sessions that share a remote |
 | `ask` | The agent commits locally, and asks before the first push of a skill run. | The developer wants to see what leaves the machine |
-| `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. Claims hold on this machine only until then. | Strict rules about who publishes, or a remote that agents must not write to |
+| `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. | Strict rules about who publishes, or a remote that agents must not write to |
 
 For every answer, the agent asks before it pushes a main branch or a tag, and it
 never force-pushes. The workflow also works without any remote: the questions of this

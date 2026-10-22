@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-blue">
+  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -24,8 +24,10 @@ checkout, and skills merge and release it by the same rules every time.
 
 - Your project keeps its own layout. It joins a workspace as a submodule, from a
   remote URL or a local path, and a workspace can hold several projects.
-- The project's history only gets implementation commits. Spec discussions, request
-  status, and review results are committed in the workspace.
+- The project's history only gets implementation commits, named and written like any
+  other branch and commit of that project. Request ids, spec discussions, request
+  status, and review results stay in the workspace, so every developer can keep a
+  workspace of their own for the same projects.
 - Every project has its own version: a project that did not change is not released.
 - Every change is a request file, and nothing is implemented before you approve its
   spec, including the software architecture.
@@ -44,7 +46,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.7.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.8.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -99,8 +101,8 @@ In a new, empty folder, for example `SSDisp-workspace`:
 ```text
 /ss-workflow:init https://github.com/me/SSDisp.git   set up the workspace with a project (a URL or a local path)
 /ss-workflow:init --add ../SSLib                      add another project later
-/ss-workflow:new-req add a dark theme                 create a request and agree on its spec
-/ss-workflow:check-req                                claim it and implement it in worktrees
+/ss-workflow:new-req add a dark theme                 create a request, agree on its spec, and start it
+/ss-workflow:check-req                                see what is pending, start a later request, or continue one
 /ss-workflow:review                                   verify it and review it in the root checkout
 /ss-workflow:merge                                    accept it: merge the projects, then close it
 /ss-workflow:release SSDisp                           release a new version of one project
@@ -111,8 +113,8 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | Skill | When to use it | Where it runs | What it does |
 |-------|----------------|---------------|--------------|
 | `/ss-workflow:init` | Once per workspace, to add a project, and again after a plugin update | Root checkout | Creates the workspace: the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files, and adds projects as submodules from a URL or a local path. Converts a repository of version 0.5.0 or older, or upgrades a workspace made by an older version. |
-| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on a `req/` branch | Writes the request file, settles which projects it changes, discusses the spec with you, and merges it into `develop` as `ready` when you approve. |
-| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the claim; worktrees for the implementation | Lists all requests, repairs inconsistent ones, claims a `ready` request by creating its branches and worktrees in the workspace and in its projects, and implements it. Then it marks the request for review and removes the worktrees. |
+| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
+| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. Creates the tags for releases and hotfixes, and deletes the branches. |
 | `/ss-workflow:release` | You want to release a new version of a project | Root checkout | Recommends the project's version, creates its release branch, checks for its unfinished work, sets the version number, and hands over to the release merge. |
@@ -130,8 +132,9 @@ and some of them, such as `/init`, are also Claude Code's own commands.
 
 ```mermaid
 flowchart LR
-    draft -->|you approve the spec| ready
-    ready -->|a session creates the request branch| in-progress
+    draft -->|you approve and start now| in-progress
+    draft -->|you approve, start later| ready
+    ready -->|check-req starts it| in-progress
     in-progress -->|implemented, worktree removed| review
     review -->|rework needed| in-progress
     review -->|you run the merge skill| done
@@ -139,9 +142,9 @@ flowchart LR
 
 | Status | Meaning | Where the work happens | Set by |
 |--------|---------|------------------------|--------|
-| `draft` | The spec is under discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
-| `ready` | You approved the spec; the request is on `develop` and waits to be claimed | (nothing) | `/ss-workflow:new-req` |
-| `in-progress` | Claimed; being implemented | A worktree of the workspace, with a worktree of each project inside it | `/ss-workflow:check-req` |
+| `draft` | The spec is under discussion | Root checkout, on the request branch | `/ss-workflow:new-req` |
+| `ready` | You approved the spec and chose to start it later | (nothing) | `/ss-workflow:new-req` |
+| `in-progress` | Started; being implemented | A worktree of the workspace, with a worktree of each project inside it | `/ss-workflow:check-req` |
 | `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | `/ss-workflow:check-req`, then `/ss-workflow:review` |
 | `done` | Closed; the file is in `reqs/done/` | Root checkout | `/ss-workflow:merge` |
 
@@ -157,17 +160,24 @@ Your original text is kept unchanged in its `## Original` section.
 | `## Q&A` | Every question that changed the request, your answer in your own words, and the decision, in the order asked. An open question has `A: (pending)`. |
 | `## Notes` | Assumptions, the implementation summary, behavior changes, and the Verify, code review, and Review results, each with a date |
 
-- A draft only exists on its `req/` branch. `develop` only holds requests you approved.
-- A request becomes `ready` only when no question in `## Q&A` is pending. Answered
+- One workspace branch, `feat/REQ-0012-gui-button`, carries the request from the
+  first draft through the implementation and the review. `develop` gets it only with
+  the merge.
+- The discussion is committed when the draft is created, when you pause it, and when
+  you approve it, not after every round.
+- You can approve a request only when no question in `## Q&A` is pending. Answered
   entries are never rewritten: a changed decision is a new entry.
-- Creating the request branch in the workspace is the claim: git creates a branch
-  name only once, so two sessions cannot claim the same request. Then each project of
-  the request gets a branch with the same name.
+- Starting a request needs no lock: every developer usually has a workspace of their
+  own. Each project of the request gets a branch named after the change, without the
+  request id (`feat/gui-button`). The request file records that name in
+  `project-branch`.
 - A request can also change the workspace's own files: a spec in `docs/<project>/`,
   the knowledge base, or a project's rules in `src/AGENTS.md`. You read those changes
   in the Review. A request that changes nothing else has `projects: []`.
-- Code is committed in the projects, with `Refs: <workspace>#REQ-0012`. The workspace
-  records which project commits a request produced, as gitlinks.
+- Code is committed in the projects, as plain commits that describe the change. No
+  project commit, merge commit, merge request, or changelog entry names the request
+  or the workspace. The workspace records which project commits a request produced,
+  as gitlinks.
 - Small problems found during Verify or Review are fixed in the root checkout. A
   request that needs larger rework goes back to `in-progress` and into a worktree.
 - You can change code by hand during a review. `/ss-workflow:review` lists every
@@ -193,8 +203,7 @@ Both the workspace and every project follow gitflow, each with its own `master` 
 
 | Branch | Workspace | Project | Example |
 |--------|-----------|---------|---------|
-| Spec discussion | From and into `develop` | (none) | `req/REQ-0012-gui-button` |
-| Request | From and into `develop` | Same name, from and into its `develop` | `feat/REQ-0012-gui-button` |
+| Request | From and into `develop`, from the first draft on | Named after the change, from and into its `develop` | `feat/REQ-0012-gui-button`, `feat/gui-button` |
 | Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.0.0-beta1` | From `develop`, into `master` and `develop`, tagged `v1.0.0-beta1` | `release/v1.0.0-beta1` |
 | Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, and into `develop`, tagged `v1.0.1` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
 
@@ -214,9 +223,8 @@ Both the workspace and every project follow gitflow, each with its own `master` 
 
 ## Remote and pushing
 
-The workflow does not need a remote. Without one, the local `develop` holds the
-approved requests, creating the local branch is the claim, and every branch is merged
-locally. Every step that fetches, pulls, or pushes is skipped.
+The workflow does not need a remote. Without one, the requests live on local
+branches, and every branch is merged locally. Every step that fetches, pulls, or pushes is skipped.
 
 The workspace and each project decide this on their own: a project can override the
 workspace's settings, for example when its repository requires merge requests while
@@ -225,7 +233,7 @@ the root `AGENTS.md` decides what the agent pushes:
 
 | `push-policy` | The agent | Fits |
 |---------------|-----------|------|
-| `auto` (default) | Pushes its topic branches after every commit, and `develop` after a merge that you asked for | Several machines or sessions that share a remote: claims and status changes are visible at once |
+| `auto` (default) | Pushes its topic branches after every commit, and `develop` after a merge that you asked for | Several machines or sessions that share a remote: new requests and status changes are visible at once |
 | `ask` | Commits locally, and asks before the first push of a skill run | You want to see what leaves the machine |
 | `never` | Never pushes and never deletes a remote branch. Each skill lists what you have to push. | Strict rules about who publishes |
 
@@ -233,7 +241,6 @@ the root `AGENTS.md` decides what the agent pushes:
   force-pushes, and never deletes a branch before its merge is confirmed.
 - A project added from a local path without a remote never pushes: its remote would
   be your own working copy.
-- While nothing is pushed, a claim holds on this machine only.
 - `remote-platform` is a separate setting. It only says whether merge requests can be
   opened (`github`, `gitlab`). For any other remote it is `none`, and branches are
   merged locally and pushed.
@@ -341,8 +348,9 @@ claude plugin validate .
 claude --plugin-dir /path/to/ss-workflow
 ```
 
-The skills rely on git behaving in specific ways: how a branch claims a request, how
-project worktrees sit inside a workspace worktree and are removed, how a closed
+The skills rely on git behaving in specific ways: how a request branch carries a
+request from draft to merge, how project worktrees sit inside a workspace worktree
+and are removed, how a closed
 request and its gitlinks reach `develop`, how a release sets the gitlinks of the
 workspace `master`, how a hotfix is merged, and how an old repository is converted.
 This script runs those command sequences in a temporary sandbox and checks the

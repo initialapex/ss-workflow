@@ -22,8 +22,8 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`, a workspace branch name, or
 | Release `release/v…` of one project | Into its `main-branch` and `develop-branch`, tagged `v<version>` | `develop` into the main branch, tagged `<name>/v<version>` | [references/release.md](references/release.md) |
 | Hotfix of one project | `hotfix/v…` into its `main-branch` and `develop-branch`, tagged `v<version>` | `hotfix/<name>-v…` into the main branch, tagged `<name>/v<version>`, and into `develop` | [references/hotfix.md](references/hotfix.md) |
 
-`req/*` branches are not merged here. `/ss-workflow:new-req` merges them when the
-developer approves the spec.
+A draft or a `ready` request is not merged here: its spec discussion or its
+implementation is not finished.
 
 ## Ground rules
 
@@ -61,18 +61,33 @@ developer approves the spec.
 - Pushing a main branch or a tag publishes a version. Ask right before that push,
   every time, also with `push-policy: auto`. With `push-policy: never`, do not push:
   show the command, and the developer runs it.
-- Merge commits use this message, and are exempt from the `<type>(<scope>)` rule:
+- Branch names: `<branch>` is the workspace branch of the request, and `<project
+  branch>` is the request's `project-branch` in each of its projects. When
+  `project-branch` is missing or empty (a request started before ss-workflow 0.8.0),
+  the project branch has the name of the workspace branch.
+- Merge commits use these messages, and are exempt from the `<type>(<scope>)` rule.
+  In the workspace:
 
   ```
   Merge <source branch> into <target branch>
 
-  <request title, or "Release vX.Y.Z" / "Hotfix vX.Y.Z" (in the workspace: "Release <name> vX.Y.Z")>
+  <request title, or "Release <name> vX.Y.Z" / "Hotfix <name> vX.Y.Z">
 
   Refs: REQ-0012
   ```
 
-  In a project, the footer is `Refs: <workspace-name>#REQ-0012`. Leave out the
-  `Refs:` line for a release.
+  Leave out the `Refs:` line for a release. In a project:
+
+  ```
+  Merge <source branch> into <target branch>
+
+  <one line in English that describes the change, or "Release vX.Y.Z" / "Hotfix vX.Y.Z">
+  ```
+
+  A project merge commit has no `Refs:` line and never names the request or the
+  workspace (see "Workspace and projects" in the root `AGENTS.md`). Write the
+  description from the request's spec in the project's terms: the request title may
+  be in another language, or name things that only the workspace knows.
 - A project's `setup-command`, `build-command`, `test-command`, and `verify-command`
   come from its entry in `projects`, run in its folder, and depend on its toolchain.
   Where a guide says to run them, a command that is empty is skipped: say that it is
@@ -101,12 +116,12 @@ developer approves the spec.
 
 | Situation | Target |
 |-----------|--------|
-| `$ARGUMENTS` is a `REQ-xxxx` id | The request: its workspace branch (the branch whose name contains `REQ-<id>-` and does not start with `req/`, or the `hotfix/<name>-v*` branch that carries its file), and the project branches of its `projects` |
+| `$ARGUMENTS` is a `REQ-xxxx` id | The request: its workspace branch (the branch whose name contains `REQ-<id>-`, or the `hotfix/<name>-v*` branch that carries its file), and in each project of its `projects` the project branch that the request file on that workspace branch names |
 | `$ARGUMENTS` is a workspace branch name | That branch |
 | `$ARGUMENTS` names a project's `release/v…` branch, or the root checkout's project is on one | That release |
 | The root checkout is on a request or `hotfix/*` branch | That branch |
 | The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 sync" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
-| The root checkout is on a `req/*` branch, or on the main branch | Explain what the root checkout is busy with, and stop. |
+| The root checkout is on a request branch whose file says `draft` (a spec discussion), on a `req/*` branch from before ss-workflow 0.8.0, or on the main branch | Explain what the root checkout is busy with, and stop. |
 
 6. If the root checkout is on another branch than the target and than `develop`, it is
    busy with something else. Say what, and stop.
@@ -119,7 +134,8 @@ Do this for each repository of the target that has a remote: each project branch
 then the workspace branch.
 
 First check git itself: if `git merge-base --is-ancestor <branch> origin/<target>`
-succeeds (in a project: `git -C <path> merge-base …`), that branch is already merged
+succeeds (in a project: `git -C <path> merge-base --is-ancestor <project branch>
+…`), that branch is already merged
 on the remote, with or without a merge request. Its merge steps are done: the guide
 continues with the next repository, or with "Finish" when the workspace is merged.
 
@@ -130,7 +146,8 @@ develop branch. The guide continues from where this check finds the work.
 If the repository's `remote-platform` is not `none`, also look for a merge request of
 the branch with its `remote-cli`, in its folder:
 
-- GitHub: `gh pr view <branch> --json state,url,baseRefName,mergeCommit`
+- GitHub: `gh pr view <branch> --json state,url,baseRefName,mergeCommit` (in a
+  project: `<project branch>`)
 - GitLab: `glab mr view <branch> --output json`
 
 | Result | Action |
@@ -178,7 +195,7 @@ repository, or by a merge request in the state "merged".
    gives (the project worktrees first). If a folder is in use, tell the developer to
    close the programs that hold it, and continue.
 3. **Local branches**: `git branch -d <branch>` in the workspace, and
-   `git -C <path> branch -d <branch>` in each project. If git refuses because a remote
+   `git -C <path> branch -d <project branch>` in each project. If git refuses because a remote
    did a squash merge, and the merge request state is "merged", use `-D`.
 
    `git branch -d` is not a safety check. It also deletes a branch that is pushed but
@@ -186,7 +203,7 @@ repository, or by a merge request in the state "merged".
    confirmation at the start of this step is what protects the work, so never skip it.
 4. **Remote branches**: if one still exists and pushing is allowed for that
    repository, `git push origin --delete <branch>` (in a project: `git -C <path>
-   push …`). Otherwise, leave it, and name it in the report as a branch that the
+   push origin --delete <project branch>`). Otherwise, leave it, and name it in the report as a branch that the
    developer can delete on the remote.
 5. Run `git worktree prune` (and `git -C <path> worktree prune` for each project), and
    with a remote `git fetch --prune`.
@@ -213,25 +230,28 @@ Tell the developer, in `discussion-language`:
 
 ## Closing a dropped request
 
-When the developer wants to close a request without merging its code:
+When the developer wants to close an approved request without merging its code (a
+draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
 
 1. Confirm it. Name the branches and the number of commits that will be abandoned, in
    the workspace (`git log develop..<branch> --oneline`) and in each project
-   (`git -C <path> log <project develop-ref>..<branch> --oneline`).
-2. Close the request file on `develop` through a short-lived branch, so that `develop`
-   is only changed by a merge:
-   - `git checkout -b req/REQ-<id>-drop develop`
-   - Take the latest request file from the workspace request branch, if there is one
-     (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept.
+   (`git -C <path> log <project develop-ref>..<project branch> --oneline`).
+2. Record the closed request on `develop` through a short-lived branch, so that
+   `develop` is only changed by a merge, and the request's other changes (code, docs)
+   stay out:
+   - `git checkout -b drop/REQ-<id> develop`
+   - Take the latest request file from the workspace request branch
+     (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept. A
+     request from before ss-workflow 0.8.0 may have its file on `develop` already.
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.
    - Add the question and the developer's answer to `## Q&A` (stage `review`): that
      the request is dropped, and why.
    - `git mv reqs/<file> reqs/done/<file>`, then commit `chore(reqs): drop REQ-0012`.
      The gitlinks do not change: no project code reaches `develop`.
-   - Merge it into `develop` with `--no-ff`, push, and delete the `req/…-drop` branch.
+   - Merge it into `develop` with `--no-ff`, push, and delete the `drop/REQ-<id>` branch.
 3. Ask separately whether to delete the request branches, because their commits are
    not merged. Only after a clear yes, per branch: `git branch -D <branch>` (in a
-   project: `git -C <path> branch -D <branch>`), and delete the remote branch when
+   project: `git -C <path> branch -D <project branch>`), and delete the remote branch when
    pushing is allowed for that repository. Otherwise, keep the branches and say that
    they still exist.

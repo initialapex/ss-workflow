@@ -9,8 +9,9 @@ A hotfix belongs to one project, named in the request's `projects`.
 
 All of this runs in the root checkout. The hotfix worktrees were removed when the
 implementation was finished. The request file was copied onto the workspace hotfix
-branch by the claim commit, so that branch carries its own copy, and `develop` still
-holds the original copy with `status: ready`.
+branch by the start commit, so that branch carries its only copy. A hotfix started
+before ss-workflow 0.8.0 also left an old copy in `reqs/` on `develop`, with
+`status: ready`.
 
 The project goes first, the workspace last, as for a request.
 
@@ -50,7 +51,7 @@ By the project's merge method (Step 3 of the skill).
    ```bash
    git -C <path> checkout <main-branch>
    git -C <path> pull --ff-only                      # with a remote
-   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <main-branch>" -m "Hotfix v<version>" -m "Refs: <workspace-name>#REQ-0012"
+   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <main-branch>" -m "Hotfix v<version>"
    git -C <path> tag -a v<version> -m "Hotfix v<version>"
    ```
 
@@ -59,7 +60,7 @@ By the project's merge method (Step 3 of the skill).
    ```bash
    git -C <path> checkout <develop-branch>
    git -C <path> pull --ff-only                      # with a remote
-   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <develop-branch>" -m "Hotfix v<version>" -m "Refs: <workspace-name>#REQ-0012"
+   git -C <path> merge --no-ff hotfix/v<version> -m "Merge hotfix/v<version> into <develop-branch>" -m "Hotfix v<version>"
    ```
 
    If the develop branch did not change the version since the last release, the
@@ -94,10 +95,11 @@ By the project's merge method (Step 3 of the skill).
 ### With a merge request
 
 1. Create the merge request from `hotfix/v<version>` into the project's main branch,
-   in the project folder. Title: `Hotfix v<version>: <request title>
-   (<workspace-name>#REQ-0012)`. Body: the goal, the Verify and Review results of the
-   request as they are recorded (also what failed or did not run), and
-   `Refs: <workspace-name>#REQ-0012`. It needs the branch on the remote: if you may not
+   in the project folder. Title: `Hotfix v<version>: <what the fix does>`, in
+   English. Body: the goal, and the Verify and Review results of the request as they
+   are recorded (also what failed or did not run), with no request id, no workspace
+   name, and no `Refs:` line (see "Workspace and projects" in the root `AGENTS.md`).
+   It needs the branch on the remote: if you may not
    push it, stop, and say which branch the developer has to push.
 2. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the root checkout back to `develop` (`git submodule update`), and stop. The
@@ -133,15 +135,15 @@ and the project tag exists.
    The project's gitlink on the main branch is now the hotfix release; the other
    projects keep their releases. Check it: `git rev-parse <main branch>:<path>` equals
    `git -C <path> rev-parse v<version>^{commit}`.
-3. `develop`. Do not let git commit this merge by itself: the old copy of the request
-   file has to go, and the gitlink has to point to the project's develop branch, in the
-   same commit:
+3. `develop`. Do not let git commit this merge by itself: the gitlink has to point to
+   the project's develop branch, and an old copy of the request file (from before
+   0.8.0) has to go, in the same commit:
 
    ```bash
    git checkout develop
    git pull --ff-only                      # with a remote
    git merge --no-ff --no-commit hotfix/<name>-v<version>
-   git rm reqs/<file>                      # the old copy that still says "ready"
+   git rm reqs/<file>                      # only if develop has an old copy that says "ready"
    git update-index --cacheinfo 160000,<sha of the project's develop branch>,<path>
    git commit -m "Merge hotfix/<name>-v<version> into develop" -m "Hotfix <name> v<version>" -m "Refs: REQ-0012"
    git submodule update

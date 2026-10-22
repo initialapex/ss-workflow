@@ -1,15 +1,17 @@
 ---
 name: new-req
-description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens a req/ branch in the root checkout, writes the request file, discusses its spec with the developer, and merges it into develop as ready once the developer approves. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
+description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens the request branch in the root checkout, writes the request file, discusses its spec with the developer, and on approval starts the implementation right away or keeps the request ready on its branch. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
 argument-hint: "[requirement.md | REQ-id | short description]"
 ---
 
 # new-req
 
-Discuss one request on its own `req/REQ-<id>-<slug>` branch in the root checkout. When
-the developer approves the spec, merge the branch into `develop`, where the request
-waits as `ready` for a session to claim it. This skill only writes the request. It
-never implements it.
+Discuss one request on its own request branch, `<type>/REQ-<id>-<slug>`, in the root
+checkout. The same branch later carries the implementation and the review, and
+reaches `develop` only with the merge. When the developer approves the spec, start
+the implementation right away through `/ss-workflow:check-req`, or keep the request
+`ready` on its branch for later. This skill writes the request. It never implements
+it itself.
 
 Input: `$ARGUMENTS`
 
@@ -22,11 +24,15 @@ Input: `$ARGUMENTS`
   Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English,
   because other skills look them up.
 - This skill runs in the root checkout of the workspace, not in a worktree.
-- A `req/` branch changes only its own request file. Nothing is committed in the
-  project repositories.
-- One request per `req/` branch.
+- Until the approval, the request branch changes only its own request file. Nothing
+  is committed in the project repositories.
+- One request per request branch.
 - Never edit the `## Original` section after it is written.
-- A request moves to `ready` only after the developer explicitly approves the spec.
+- A request is approved only after the developer explicitly approves the spec.
+- Commit the request file three times at most: when the draft is created (this
+  reserves the id), when the developer pauses the draft, and when the developer
+  approves it. Between those, the discussion only changes the file in the working
+  tree.
 - Every question that you ask the developer about the request, and its answer, goes
   into `## Q&A`, as "Questions and answers" in `reqs/AGENTS.md` describes.
 - **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
@@ -52,17 +58,17 @@ Input: `$ARGUMENTS`
 | Current branch | Action |
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them: for a project (` M src/<name>`), `git -C src/<name> status --porcelain` and `git -C src/<name> branch --show-current` tell what it is. A project on a `release/*` branch means that a release is open. With a remote, run `git pull --ff-only` and `git submodule update`. Continue with Step 2. |
-| A `req/REQ-…` branch | A spec discussion is open here. If `$ARGUMENTS` is empty or names this request, resume it at Step 5. Otherwise, ask whether to pause this draft first (commit it, push it, and switch to `develop`). |
-| Any other branch | The root checkout is busy: a request or hotfix branch means a review. Say which one, and stop. |
+| A request branch whose request file says `draft`, or a `req/REQ-…` branch from before ss-workflow 0.8.0 | A spec discussion is open here. If `$ARGUMENTS` is empty or names this request, resume it at Step 5. Otherwise, ask whether to pause this draft first (commit it, push it, and switch to `develop`). |
+| Any other branch | The root checkout is busy: a request or hotfix branch in another status means a review. Say which one, and stop. |
 
 ## Step 2: Decide what to do with the input
 
 | `$ARGUMENTS` | Action |
 |--------------|--------|
-| A `REQ-xxxx` id | Find its `req/REQ-xxxx-…` branch, locally or on the remote. Check it out, pull it, and resume at Step 5. If the request is already on `develop` (`ready` or later), say so, and ask what the developer wants to change. A change to a `ready` request that nobody has claimed is made on a new `req/` branch with the same id. |
+| A `REQ-xxxx` id | Find its request branch (a local or remote branch whose name contains `REQ-xxxx-`), or a `req/REQ-xxxx-…` branch from before ss-workflow 0.8.0. Read the status in its request file. `draft`: check it out, pull it, and resume at Step 5. `ready`: say so, and ask what the developer wants to change; to change it, check out the branch, set `status: draft`, and continue at Step 5, so that it is approved again. Any later status: the spec is approved and the work has started; point to `/ss-workflow:check-req` (`in-progress`) or `/ss-workflow:review` (`review`). A `ready` request in `reqs/` on `develop` without a branch (from before 0.8.0) is changed on a new request branch with the same id. |
 | A path to a `.md` / text file | Read it. Its full content becomes `## Original`, verbatim. |
 | Free text | That text becomes `## Original`, verbatim. |
-| Empty | List the open drafts: the `req/*` branches, local and remote, each with the title from its request file. Ask whether to continue one of them or to create a new one. For a new one, ask the developer to describe what they need. Their answer becomes `## Original`. |
+| Empty | List the open drafts: the request branches, local and remote, whose request file says `draft` (and `req/*` branches from before 0.8.0), each with its title. Ask whether to continue one of them or to create a new one. For a new one, ask the developer to describe what they need. Their answer becomes `## Original`. |
 
 Then check the following:
 
@@ -70,12 +76,13 @@ Then check the following:
   implemented and reviewed independently, propose splitting it, and ask. Handle the
   resulting requests one after another: finish this skill for the first one, then
   start again for the next one with its part of the original text.
-- **Duplicates**: compare with the titles and specs of the requests in `reqs/` on
-  `develop`, the open drafts on `req/*` branches, and the titles in `reqs/done/`. If
-  one overlaps, show it and ask whether to extend that request (only if it is still a
-  draft, or `ready` and unclaimed), create a follow-up, or continue.
+- **Duplicates**: compare with the titles and specs of the requests on the request
+  branches (any status), the requests in `reqs/` on `develop` from before 0.8.0, and
+  the titles in `reqs/done/`. If one overlaps, show it and ask whether to extend that
+  request (only if it is still a draft, or `ready` and not started), create a
+  follow-up, or continue.
 
-## Step 3: Open the `req/` branch
+## Step 3: Open the request branch
 
 1. **id**: the highest id in use, plus 1. Use `REQ-0001` when none is in use. An id is
    in use when:
@@ -85,15 +92,17 @@ Then check the following:
    `test`, `chore`). Use `hotfix` only when the problem affects a released version and
    cannot wait for the next release. Confirm `hotfix` with the developer.
 3. **title**: a short imperative phrase. **slug**: lowercase English kebab-case, at
-   most five words.
+   most five words, that names the change (`gui-button`). The project branch takes
+   it too (`feat/gui-button`), so it must make sense in the project's history, where
+   the request id never appears.
 4. **priority**: `normal`, unless the developer says otherwise. Use `high` for
    `hotfix`.
-5. Create the branch, and push it. The local branch reserves the id for the other
-   sessions in this repository, and the pushed branch reserves it for other machines:
+5. Create the request branch, and push it after the first commit (Step 4). The local
+   branch reserves the id for the other sessions in this repository, and the pushed
+   branch reserves it for other machines:
 
    ```bash
-   git checkout -b req/REQ-<id>-<slug> develop
-   git push -u origin req/REQ-<id>-<slug>      # when pushing is allowed
+   git checkout -b <type>/REQ-<id>-<slug> develop
    ```
 
    If the remote now has another branch with the same id (fetch and list again),
@@ -108,8 +117,9 @@ Then check the following:
 ## Step 4: Create the draft file
 
 1. Write `reqs/REQ-<id>-<yyyyMMdd>-<slug>.md` in the format from `reqs/AGENTS.md`,
-   with `status: draft`, an empty `branch:`, and today's date in `created`. The
-   `branch` field is for the implementation branch, not for this `req/` branch.
+   with `status: draft`, an empty `branch:` and `project-branch:`, and today's date
+   in `created`. `/ss-workflow:check-req` fills in `branch` and `project-branch`
+   when the request is started.
    `projects` holds the projects that the input names or clearly means, by their
    `name` in "Workflow settings", and `[]` when it is not clear yet. The spec
    discussion settles it.
@@ -119,7 +129,8 @@ Then check the following:
 3. If the source file is inside the repository (for example, the developer dropped it
    into `reqs/`), ask whether to delete it on this branch now that its content is
    preserved in `## Original`. Leave files outside the repository alone.
-4. Commit and push, so that the draft is not lost:
+4. Commit, and push the branch (`git push -u origin <branch>`, when pushing is
+   allowed), so that the draft and its id are not lost:
 
    ```
    docs(reqs): add draft REQ-0012 gui button modification
@@ -154,6 +165,10 @@ may have an "Open questions" part in its spec:
   remove the "Open questions" part.
 - Leave earlier decisions in `## Notes` where they are. Do not turn them into entries.
 - A draft from before the workspace layout lacks `projects`: add it after `type:`.
+- A draft on a `req/REQ-<id>-<slug>` branch (from before ss-workflow 0.8.0): rename
+  the branch to `<type>/REQ-<id>-<slug>` (`git branch -m`; with a remote, push the
+  new name and delete the old one when pushing is allowed), and add
+  `project-branch:` after `branch:` in the file.
 
 ## Step 6: Discuss and write the spec
 
@@ -250,7 +265,8 @@ Go through these rounds with the developer:
      entry that already has an answer: a changed decision is a new entry.
    - Write the decisions into `## Spec`.
 
-   Commit and push after each round (`docs(reqs): update REQ-0012 <what changed>`).
+   Do not commit after each round. The file stays changed in the root checkout until
+   the developer pauses or approves (Step 7).
 3. Flag what the developer may not have considered: breaking changes, effects on other
    projects or samples, missing tests, and documentation that would need updating.
 4. If the request turns out to be too large for one branch, propose splitting it
@@ -264,64 +280,54 @@ each with the date.
 
 When `## Q&A` has no pending entry, "Architecture" is filled in, and `projects` names
 at least one project (or is `[]`, and "Scope" changes workspace files only), show the
-final spec and ask with AskUserQuestion. While
-entries are pending, list them, and leave out the "Approve" option.
+final spec and ask with AskUserQuestion. While entries are pending, list them, and
+offer only "Keep as draft" and "Discard". The developer can ask for more changes
+through "Other": then go back to Step 6.
 
 | Option | Action |
 |--------|--------|
-| Approve (Recommended) | Continue with Step 8. |
-| Keep as draft | Commit and push what is there. Switch the root checkout back to `develop`. The `req/` branch stays, and the developer continues later with `/ss-workflow:new-req REQ-0012`. Then go to Step 9. |
-| Keep discussing | Go back to Step 6. |
-| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and go to Step 9. Nothing reaches `develop`. |
+| Approve and start now (Recommended) | Step 8, then Step 9. |
+| Approve, start later | Step 8, then Step 10. |
+| Keep as draft | Commit the file (`docs(reqs): update draft REQ-0012`, with `Refs: REQ-0012`) and push. Switch the root checkout back to `develop` (`git submodule update`). The branch keeps the draft, and the developer continues later with `/ss-workflow:new-req REQ-0012`. Then go to Step 10. |
+| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and go to Step 10. Nothing reaches `develop`. |
 
-## Step 8: Merge into `develop`
+## Step 8: Approve
 
-1. On the `req/` branch: set `status: ready`. Commit and push:
+1. If `type` changed during the discussion, the branch name no longer matches. Rename
+   it: `git branch -m <type>/REQ-<id>-<slug>`; with a remote, push the new name and
+   delete the old one when pushing is allowed.
+2. Set `status: ready`. Commit and push:
 
    ```
-   docs(reqs): mark REQ-0012 ready
+   docs(reqs): approve REQ-0012
 
    <one or two sentences that summarize the goal>
 
    Refs: REQ-0012
    ```
 
-2. Read `merge-method` from "Workflow settings". If it is `remote` and
-   `remote-platform` is not `none`, open a merge request from the `req/` branch into
-   `develop` (title `docs(reqs): add REQ-0012 <title>`), give the developer the URL,
-   switch the root checkout back to `develop`, and go to Step 9. The request becomes
-   `ready` when the merge request is merged. A merge request needs the branch on the
-   remote: if the branch is not pushed, do not open one. Switch back to `develop`, say
-   which branch the developer has to push, and go to Step 9. Otherwise, continue.
-3. Merge locally:
+3. Switch the root checkout back to `develop`, then `git submodule update`. The
+   request stays on its branch: `develop` gets it with the merge.
 
-   ```bash
-   git checkout develop
-   git pull --ff-only                          # with a remote
-   git merge --no-ff req/REQ-<id>-<slug> -m "Merge req/REQ-<id>-<slug> into develop" -m "<request title>" -m "Refs: REQ-<id>"
-   git push                                    # when pushing is allowed
-   ```
+## Step 9: Start the implementation
 
-   If the push is rejected, run `git pull --no-rebase`, then push again. If the remote
-   refuses direct pushes to `develop`, undo the local merge
-   (`git reset --hard HEAD^` while `HEAD` is that merge commit, which only removes the
-   unpublished merge commit). Then open a merge request as in step 2. Without a remote
-   platform, stop instead: keep the `req/` branch, and tell the developer that it has
-   to be merged into `develop` on the remote.
-4. Delete the `req/` branch: `git branch -d`. Delete it on the remote too, if it is
-   there and pushing is allowed (`git push origin --delete`). If `develop` was not
-   pushed, the request is `ready` in this repository only: say so in the report.
+Invoke the `check-req` skill (`/ss-workflow:check-req REQ-0012`). It starts the
+request: it records the start on the request branch, creates the project branches
+and the worktrees, and implements the request there. Do not create branches or
+worktrees yourself here.
 
-## Step 9: Report
+If the skill cannot be invoked, tell the developer to run
+`/ss-workflow:check-req REQ-0012`, and go to Step 10.
+
+## Step 10: Report
 
 Tell the developer, in `discussion-language`:
 
 - The request id, title, type, projects, priority, and status
-- Where it is: on `develop` (`ready`), on its `req/` branch (draft), in an open merge
-  request, or discarded
+- Its branch, and whether the implementation started, waits as `ready`, is a draft,
+  or was discarded
 - The questions that are still pending in `## Q&A`, for a draft
-- What is not on the remote yet: the branches that were not pushed, and whether
-  `develop` still has to be pushed
+- What is not on the remote yet: the branches that were not pushed
 - That the root checkout is back on `develop`
-- The next step for a `ready` request: any session can run `/ss-workflow:check-req`
-  to claim it and implement it in a worktree
+- The next step: `/ss-workflow:check-req REQ-0012` starts a `ready` request, and
+  `/ss-workflow:new-req REQ-0012` continues a draft
