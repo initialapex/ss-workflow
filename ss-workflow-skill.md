@@ -14,8 +14,8 @@
 工作流不改變原本專案的檔案架構，而是在外面再包一層 (0.6.0 起，唯一支援的架構):
 
 - **Workspace repo** (e.g. `SSDisp-workspace`): 放 `reqs/`、`docs/`、agent 檔與 Workflow settings；需求討論、request 狀態、review 結果的 commit 都在這裡
-- **Source repo** (e.g. `SSDisp`): 原本的專案，以 git submodule 加入 workspace 的 `src/<專案名稱>`；檔案架構依它自己的 toolchain (Visual Studio / Keil / 自訂)，history 只有實作的 commit
-- 一個 workspace 可以有多個專案 (e.g. `src/SSLib`、`src/SSDisp`)，各自有版本號與 tag，沒有修改的專案不需要進版
+- **Source repo** (e.g. `SSDisp`): 原本的專案，以 git submodule 加入 workspace 的 `projects/<專案名稱>`；檔案架構依它自己的 toolchain (Visual Studio / Keil / 自訂)，history 只有實作的 commit
+- 一個 workspace 可以有多個專案 (e.g. `projects/SSLib`、`projects/SSDisp`)，各自有版本號與 tag，沒有修改的專案不需要進版
 
 ```
 SSDisp-workspace/
@@ -23,7 +23,7 @@ SSDisp-workspace/
 ├─ .claude/settings.json      (extraKnownMarketplaces, enabledPlugins)
 ├─ reqs/                      (需求檔，見 reqs 章節)
 ├─ docs/                      (overview.md 與各專案的 <專案名稱>/spec.md，見 docs 章節)
-└─ src/
+└─ projects/
     ├── CLAUDE.md / AGENTS.md (各專案的 Toolchain 與 Project rules)
     ├── SSLib/                (submodule → SSLib repo)
     └── SSDisp/               (submodule → SSDisp repo，內容依它自己的結構)
@@ -34,7 +34,7 @@ SSDisp-workspace/
 ```
 
 - 沒有 `tests/`、`samples/`、`external/`: test / sample 專案與第三方檔案都依各專案原本的結構放在 source repo 內
-- init 不寫入 source repo 任何檔案；各專案的規則記錄在 workspace 的 `src/AGENTS.md`，每個專案一個 `## Project: <name>` 章節 (Toolchain + Project rules，由 developer 維護)
+- init 不寫入 source repo 任何檔案；各專案的規則記錄在 workspace 的 `projects/AGENTS.md`，每個專案一個 `## Project: <name>` 章節 (Toolchain + Project rules，由 developer 維護)
 - source repo 原本就有的 `AGENTS.md` / `CLAUDE.md` / `.gitignore` 保持不動；`.gitignore` 缺少 build output 的項目時只回報，建議另開 request 在 source repo 修正 (否則 workspace 會看到 submodule 有 untracked 內容)
 
 ### 兩層的 branch
@@ -61,7 +61,7 @@ SSDisp-workspace/
 
 - workspace request branch 上記錄結果的 commit (交付 review、review 結果、close) 一併 stage 該 request 各專案的 gitlink；workspace 因此記錄「review 的是哪個 source commit」
 - workspace develop 的 gitlink 指向各 source repo 的 develop；master 的 gitlink 指向各 source repo 的 main (= 最新 release)
-- source repo 的 develop 被 workspace 以外的人更新 (別的團隊直接 commit) 時，gitlink 會落後: check-req 總覽與 merge 時以 `git -C src/<P> rev-list --count <gitlink>..<source develop-ref>` 偵測，提議一個 `chore(workspace): update <P> to <sha>` 的 commit，由 developer 決定
+- source repo 的 develop 被 workspace 以外的人更新 (別的團隊直接 commit) 時，gitlink 會落後: check-req 總覽與 merge 時以 `git -C projects/<P> rev-list --count <gitlink>..<source develop-ref>` 偵測，提議一個 `chore(workspace): update <P> to <sha>` 的 commit，由 developer 決定
 
 ### worktree 的結構
 
@@ -70,11 +70,11 @@ SSDisp-workspace/
 - workspace worktree: `.claude/worktrees/<branch>` (request 檔與 gitlink)
 - 每個 request 的專案: `git -C <root>/src/<P> worktree add --no-track -b <branch> <wt>/src/<P> <source develop-ref>`，commit 存在 root checkout 共用的 `.git/modules/src/<P>`，worktree 移除後仍在
 - request 以外的專案: `--detach` 在 gitlink 的 commit (build 可能參照相鄰的專案)；專案內的巢狀 submodule 用 `submodule update --init --recursive`
-- 移除: 先移除內層的各專案 worktree，`git -C <wt> restore src/<P>` 補回空資料夾 (否則 workspace 視為刪除了 gitlink)，最後移除 workspace worktree；不使用 `--force`
+- 移除: 先移除內層的各專案 worktree，`git -C <wt> restore projects/<P>` 補回空資料夾 (否則 workspace 視為刪除了 gitlink)，最後移除 workspace worktree；不使用 `--force`
 
 ### 乾淨的判定
 
-`git status --porcelain` (v1) 對 submodule 不論是新 commit、修改或 untracked 都只顯示 ` M src/<P>`；「乾淨」= workspace 的 `git status --porcelain` 為空，細節用 `git -C src/<P> status --porcelain` 判斷
+`git status --porcelain` (v1) 對 submodule 不論是新 commit、修改或 untracked 都只顯示 ` M projects/<P>`；「乾淨」= workspace 的 `git status --porcelain` 為空，細節用 `git -C projects/<P> status --porcelain` 判斷
 
 ## 專案形式
 
@@ -83,11 +83,11 @@ SSDisp-workspace/
 - 專案類型由 developer 在初始化時說明 (自由描述，e.g.「Visual Studio solution，old-style C# 專案，用 MSBuild 建置」、「Keil MDK-ARM」、「ESP-IDF」)；每個專案各自說明
 - 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在 workspace，plugin 不內建任何 toolchain 的範本或指令
   - root `AGENTS.md` 的 Workflow settings: workspace 層的設定，加上 `projects:` 清單，每個專案一筆:
-    - `name`、`path` (`src/<name>`)、`main-branch`、`develop-branch`、`project-type`、`project-kind`
+    - `name`、`path` (`projects/<name>`)、`main-branch`、`develop-branch`、`project-type`、`project-kind`
     - `project-file`、`version-source` (路徑以專案資料夾為基準，`version-source` 可為 `none`)
     - `setup-command`、`build-command`、`test-command`、`verify-command` (在專案資料夾內執行)
     - 選填的 `remote-platform`、`merge-method`、`push-policy`: 覆寫 workspace 的預設值 (e.g. source repo 在 GitHub 要求發 PR，workspace 只在本機)
-  - `src/AGENTS.md` 的 `## Project: <name>` 章節: 需要安裝的工具、不在 `PATH` 上的工具如何找到、已知限制、新檔案 / 專案如何加入 build、哪些是產生的檔案不可手改、build 輸出位置、命名慣例
+  - `projects/AGENTS.md` 的 `## Project: <name>` 章節: 需要安裝的工具、不在 `PATH` 上的工具如何找到、已知限制、新檔案 / 專案如何加入 build、哪些是產生的檔案不可手改、build 輸出位置、命名慣例
 - AI 依偵測到的內容與對該 toolchain 的了解提出建議值，由 developer 確認或修正；不確定時直接詢問，不猜指令
 - 指令可以留空 (e.g. 只能在 IDE 內 build 的專案): 該步驟會被略過並回報「未設定」，skill 不會自行編造指令
 - init 不建立專案檔、build 檔或版本檔，這些由 developer 或第一個 request 產生
@@ -159,13 +159,13 @@ ss-workflow/
 
 ### 加入專案
 
-- remote URL: `git submodule add <url> src/<name>`
+- remote URL: `git submodule add <url> projects/<name>`
 - local 路徑:
   - local repo 有 origin: 從 local clone (省時間)，`.gitmodules` 記錄 origin URL (隊友 clone 得到)；原本的 local working copy 不動
   - 沒有 origin: 先說明這個路徑無法分享，再記錄 local 路徑；git 預設拒絕 local 路徑的 submodule，需要 `-c protocol.file.allow=always`。submodule 的 origin 會是 developer 的 working copy (non-bare)，push 到它 checkout 中的 branch 會被拒絕，所以該專案的 `push-policy` 預設為 `never`；建議改用 bare repo 作為共用的 remote，之後以 `git submodule set-url` 更新
 - 新加入專案的 gitlink: workspace master 指向 source main，develop 指向 source develop
 - source repo 缺 develop (或 main 的名稱不同) 時詢問: 建立 develop / 指定既有的 branch 名稱
-- 每個專案各自走一次 toolchain 問答 (見下方)，結果寫入 `projects:` 與 `src/AGENTS.md` 的 `## Project: <name>`
+- 每個專案各自走一次 toolchain 問答 (見下方)，結果寫入 `projects:` 與 `projects/AGENTS.md` 的 `## Project: <name>`
 - 建立該專案的 `docs/<name>/spec.md` (workspace 已有該專案的 spec 時保留，不另外建立)，並在 `docs/overview.md` 的 Projects 加一行
 
 ### 初始化問答
@@ -182,7 +182,7 @@ ss-workflow/
 問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的欄位，init 不詢問，由 developer 需要時自行填入:
 
 - 各專案的 `verify-command`: `/ss-workflow:review` 在 build 與測試之後額外執行的驗證 script
-- `agent-files`: 內建清單以外、會影響 agent 行為的檔案路徑 (glob，逗號分隔，可指向 `src/<P>/...`)，e.g. 產品內附的 prompt 檔，見「如實回報與 agent 行為檔」
+- `agent-files`: 內建清單以外、會影響 agent 行為的檔案路徑 (glob，逗號分隔，可指向 `projects/<P>/...`)，e.g. 產品內附的 prompt 檔，見「如實回報與 agent 行為檔」
 - `legacy-project`: 由「轉換 0.5.0 以下的 repo」寫入的專案名稱，沒有 `projects` 欄位的舊 request 屬於它；不是轉換來的 workspace 留空
 
 ### 轉換 0.5.0 以下的 repo
@@ -321,7 +321,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 ## docs
 
 - `docs/overview.md`: workspace 整體 — 各專案的職責、彼此的相依與介面、跨專案的需求、共用詞彙
-- `docs/<name>/`: 單一專案的文件，規格在 `docs/<name>/spec.md`；資料夾名稱就是專案的 `name` (與 `src/<name>` 相同，不轉 kebab-case)
+- `docs/<name>/`: 單一專案的文件，規格在 `docs/<name>/spec.md`；資料夾名稱就是專案的 `name` (與 `projects/<name>` 相同，不轉 kebab-case)
   - 該專案的設計筆記、參考文件、知識庫也放在這個資料夾
   - 加入專案時建立 `spec.md`；沒有專案的 workspace 只有 overview
 - 跨專案或 workspace 整體的文件直接放在 `docs/`
@@ -370,7 +370,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 推薦順序 (依序比較): hotfix → 被其他候選依賴的 request → `priority` → 先完成 `in-progress` 再開始 `ready` → `in-progress` 中先處理 review 退回重做的、再來是 worktree 還在的 → 編號較小的
   - 以表格列出候選、排序理由與選擇後的動作，前三個以 AskUserQuestion 詢問 (推薦的放第一個)；選定即為同意，不再重複確認；worktree 有未 commit 變更的候選標示「可能有其他 session 在使用」
   - 開始: `git worktree add <path> <branch>` 用既有的 request branch 建立 worktree，做 start commit (見 reqs 章節) 並 push；再為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
-  - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `src/<P>`
+  - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `projects/<P>`
   - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意
   - `in-progress` 但沒有 worktree (被 review 退回，或 worktree 遺失): developer 同意後重建兩層的 worktree 繼續實作
   - 根目錄停在 `in-progress` / `ready` 的 request branch 上 (退回重做或開始被中斷後沒切回 develop，或手動 checkout): git 不允許為根目錄所在的 branch 建立 worktree (兩層都一樣)，所以先確認根目錄沒有未 commit 的變更，developer 同意後把根目錄切回 develop，再重建 worktree
@@ -382,7 +382,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 程式碼只 commit 在各專案的 branch；workspace branch 有 request 檔、gitlink，以及 workspace 檔案的 commit (docs 等，見「request 修改 workspace 檔案」)
   - 對外介面或行為改變時，在 workspace worktree 更新該專案的 `docs/<name>/` 與需要時的 overview，並列在 implementation summary 的 What changed
   - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯，在專案資料夾內)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
-  - 動手前先讀 `src/AGENTS.md` 中該專案的 `## Project: <P>` 章節，以及專案本身的 `AGENTS.md` / `CLAUDE.md` / README (若有)；新檔案要依 Project rules 加入 build
+  - 動手前先讀 `projects/AGENTS.md` 中該專案的 `## Project: <P>` 章節，以及專案本身的 `AGENTS.md` / `CLAUDE.md` / README (若有)；新檔案要依 Project rules 加入 build
   - 依 Spec 的 Architecture 實作，不自行更改架構；Spec 沒有 Architecture 時先提出並由 developer 確認；implementation summary 註明架構是否照 Spec
   - 規格不清楚或有誤時停下來問，不自行猜測；問題與回答寫入 `## Q&A` (階段 `implementation`)，規格異動要更新 `## Spec`；session 結束前還沒有答案時留 `A: (pending)`
   - workspace 的 commit 帶 `Refs: REQ-xxxx`；source repo 的 commit 只描述變更內容，不提 request、編號或 workspace，沒有 `Refs:`；每個 commit 都 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
@@ -431,7 +431,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 回報時分三類: 有跑且通過 / 有跑但失敗 / 沒跑或未設定；只要後兩類有任何一項，就不能總結為「通過」
   - Verify 失敗時區分小問題 (當場修)、大問題 (退回) 與環境問題 (如實回報)；無法判斷時詢問 developer
   - 未 commit 的變更 (developer 手動修改、build / 測試 / 程式產生的檔案): 通過的內容必須等於 commit 的內容
-    - 檢查時機 (workspace 的 `git status --porcelain` 與各專案的 `git -C src/<P> status --porcelain`，含 untracked 檔案): 接續 review 時、每次 Verify 前、code review 前、處理結果前
+    - 檢查時機 (workspace 的 `git status --porcelain` 與各專案的 `git -C projects/<P> status --porcelain`，含 untracked 檔案): 接續 review 時、每次 Verify 前、code review 前、處理結果前
     - 清單上每一項都要由 developer 決定，不留未決定的，也不 commit developer 沒看過的: 屬於 request (commit 成 `fix:` 等一般 commit，含新增的檔案，並在 `## Notes` 記「Changed by the developer」)、產生的或本機檔案 (加入該 repo 的 `.gitignore`，另一個 `chore:` commit；source repo 的 `.gitignore` 也算 request 的變更)、不要的 (developer 確認後捨棄)、先留著繼續試
     - 沒有「先留著」的項目時用 `git add -A`，否則依路徑 stage；記錄結果的 commit 只 stage request 檔與 gitlink
     - 先留著的期間: Verify 可以跑但不算數 (記錄註明含未 commit 的修改)、code review 不涵蓋、不能選「Review 通過」或「需要大改」
@@ -479,7 +479,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 
 - release (各專案自己的版本，見 `/ss-workflow:release`)
   - source repo: 從專案 develop 開 `release/v1.0.0-beta1`，完成後 merge 回專案 main 與 develop，在專案 main 的 merge commit 打 `v1.0.0-beta1`
-  - workspace: 沒有 release branch；develop 的 gitlink 更新為專案 develop (release 沒有自己的 commit 時不需要)，再把 workspace develop `--no-ff` merge 到 workspace master，在同一個 merge commit 把**每個**專案的 gitlink 設為各自專案 main 的最新 commit (`git update-index --cacheinfo 160000,<sha>,src/<P>`，這也解掉 gitlink 的衝突)，打 `<P>/v1.0.0-beta1`
+  - workspace: 沒有 release branch；develop 的 gitlink 更新為專案 develop (release 沒有自己的 commit 時不需要)，再把 workspace develop `--no-ff` merge 到 workspace master，在同一個 merge commit 把**每個**專案的 gitlink 設為各自專案 main 的最新 commit (`git update-index --cacheinfo 160000,<sha>,projects/<P>`，這也解掉 gitlink 的衝突)，打 `<P>/v1.0.0-beta1`
   - 不開 worktree
   - merge 前檢查: 專案的 version-source 的版本與 branch 相符、兩層的 tag 都尚未存在、build + test 通過
   - push 專案 main、workspace master 與 tag 等於對外釋出，不論 `push-policy` 為何，push 前都再確認一次，並用 `git push --atomic` 一次推送 (每個 repo 各一次)；`push-policy: never` 時不 push，只列出指令由 developer 執行

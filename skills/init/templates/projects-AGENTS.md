@@ -1,15 +1,17 @@
-# src/
+# projects/
 
 The projects of {{WORKSPACE_NAME}}. Each folder here is a git submodule: a project
-repository with its own layout, branches, and versions. Its entry in `projects`
+repository with its own layout, branches, and versions. A project can hold anything
+that is versioned: source code, firmware, documents, or analysis reports. Its entry in `projects`
 (root `AGENTS.md`) holds its settings, and its section below holds its rules.
 
-<!-- ss-workflow:managed id=src-rules -->
+<!-- ss-workflow:managed id=projects-rules -->
 ## Rules
 
 - Do not reorganize a project to fit the workflow. Each project keeps the layout of
   its toolchain, including where its tests, samples, and third-party files live.
-- Commit code only in the project repository, on the request branch. The workspace
+- Commit a project's files (code, documents, data) only in the project repository,
+  on its project branch. The workspace
   records the project commit as a gitlink (see "Workspace and projects" in the root
   `AGENTS.md`).
 - Paths in a project's settings (`project-file`, `version-source`) are relative to

@@ -29,7 +29,7 @@ implementation is not finished.
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
   projects", "Branching model", "Commit convention"), `reqs/AGENTS.md`, and
-  `src/AGENTS.md` first. They are the source of truth.
+  `projects/AGENTS.md` first. They are the source of truth.
 - Talk to the developer in `discussion-language`.
 - This skill runs in the root checkout of the workspace, not in a worktree. It
   switches the root checkout and its projects between the request branches, the

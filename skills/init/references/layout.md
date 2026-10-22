@@ -4,7 +4,7 @@ All templates are in the `templates/` folder of this skill. `SKILL.md` gives its
 path under "Ground rules".
 
 The workspace is the only layout that ss-workflow supports. It holds the files below.
-The projects are git submodules in `src/`, and init writes nothing into them.
+The projects are git submodules in `projects/`, and init writes nothing into them.
 
 ```
 workspace/
@@ -22,8 +22,8 @@ workspace/
 ├─ docs/
 │   ├── overview.md           ← docs-overview.md
 │   └── <name>/spec.md        ← project-spec.md          (one per project, written when the project is added)
-└─ src/
-    ├── AGENTS.md             ← src-AGENTS.md            ({{PROJECT_SECTIONS}}: src-AGENTS-project.md per project)
+└─ projects/
+    ├── AGENTS.md             ← projects-AGENTS.md            ({{PROJECT_SECTIONS}}: projects-AGENTS-project.md per project)
     ├── CLAUDE.md             ← CLAUDE.md
     └── <name>/               (submodule; the project's own layout, untouched)
 ```
@@ -56,7 +56,7 @@ own repository.
   - Use GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`) for
     side notes, and not for normal text.
 - `docs/overview.md` and every `docs/<name>/spec.md` use `{{DOCS_LANG}}`. The folder
-  name is the project's `name`, exactly as in `src/<name>`. A workspace without
+  name is the project's `name`, exactly as in `projects/<name>`. A workspace without
   projects has only the overview.
 - Other docs go into `docs/<name>/` when they are about one project, and directly
   into `docs/` when they are about the workspace as a whole.
@@ -71,7 +71,7 @@ own repository.
   not left blank. An empty key in a `projects` entry stays empty, without a trailing
 space (`build-command:`).
 - **Add project** mode appends: one entry to `projects` in root `AGENTS.md`, one
-  section to `src/AGENTS.md`, one row to the project table of each root README, and
+  section to `projects/AGENTS.md`, one row to the project table of each root README, and
   one line to "Projects" in `docs/overview.md`, and it creates `docs/<name>/spec.md`.
   These are outside the managed blocks, so show the change to the developer first.
 - Ownership:

@@ -27,7 +27,7 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
   projects", "Commit convention"), `reqs/AGENTS.md`, and the sections of the
-  request's projects in `src/AGENTS.md` first. They are the source of truth.
+  request's projects in `projects/AGENTS.md` first. They are the source of truth.
 - Code is committed in the projects, on their project branches, as commits written
   for the project's own history: no request id, no workspace name, and no `Refs:`
   footer that points to the workspace. The workspace request branch gets the request
@@ -269,7 +269,7 @@ of each:
 
 The first four commands come from the project's entry in `projects` ("Workflow
 settings" in the root `AGENTS.md`), and they depend on the project's toolchain. Read
-"Toolchain" in the project's section of `src/AGENTS.md` for how to find and run the
+"Toolchain" in the project's section of `projects/AGENTS.md` for how to find and run the
 tools. A command that is empty is skipped and recorded as "not configured". Do not
 invent a command for it. If neither a build command nor a test command is configured
 for any project of the request, say clearly that Verify checked nothing
@@ -351,7 +351,7 @@ or the Review, and it ticks no acceptance criteria.
    workflow the commits are normally pushed already.
 5. Invoke the `code-review` skill with that scope as its argument, with the project
    folder as the working directory, for example
-   `origin/develop...feat/gui-button` in `src/SSDisp`. Do not pass `--fix` or
+   `origin/develop...feat/gui-button` in `projects/SSDisp`. Do not pass `--fix` or
    `--comment`: fixes are made by the rules below. The code review may run in the
    background. Wait for its findings before you go on.
 6. If you cannot invoke it, do not read the diff yourself and call that a code review.

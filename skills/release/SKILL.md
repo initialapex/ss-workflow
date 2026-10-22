@@ -29,7 +29,7 @@ Supporting file:
 
 - Read the root `AGENTS.md` ("Workflow settings", "Workspace and projects",
   "Branching model", "Versioning", "Commit convention"), `reqs/AGENTS.md`, and the
-  project's section in `src/AGENTS.md` first. They are the source of truth.
+  project's section in `projects/AGENTS.md` first. They are the source of truth.
 - Talk to the developer in `discussion-language`.
 - A release has no worktree. Everything runs in the root checkout: the workspace stays
   on `develop`, and the project in it switches to the release branch. If this session

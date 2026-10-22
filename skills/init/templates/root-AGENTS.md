@@ -35,7 +35,7 @@ every entry has these keys:
 | Key | Meaning | When it is empty |
 |-----|---------|------------------|
 | `name` | The project name, used in branch and tag names (`<name>/v1.2.0`) | Required |
-| `path` | The submodule path, `src/<name>` | Required |
+| `path` | The submodule path, `projects/<name>` | Required |
 | `main-branch`, `develop-branch` | The project's long-lived branches | Required |
 | `project-type` | The project type and toolchain, in the developer's words | Required |
 | `project-kind` | `library` or `application` | Required |
@@ -50,7 +50,7 @@ every entry has these keys:
 The commands run in the project folder (`path`). `push-policy` (`auto`, `ask`, or
 `never`) is explained in "Remote and pushing". `agent-files` lists extra paths, as glob
 patterns separated by commas, whose files tell an agent how to behave, for example
-prompt files that a product ships (`src/<name>/...`). It adds to the built-in list in
+prompt files that a product ships (`projects/<name>/...`). It adds to the built-in list in
 "Working agreement", and it may stay empty. `legacy-project` names the project that
 this workspace was converted from (the single-repository layout of ss-workflow 0.5.0
 and older): a request file without `projects` belongs to it. It is empty in a
@@ -84,7 +84,7 @@ workspace that was not converted.
   if the worktree needs it, then its `build-command`. Do not run tests, scripts, or
   executables there. If a command is empty or cannot run in the worktree, note that in
   the request and leave it to Verify.
-- Follow the section `## Project: <name>` in `src/AGENTS.md` for each project that you
+- Follow the section `## Project: <name>` in `projects/AGENTS.md` for each project that you
   change, and the project's own `AGENTS.md`, `CLAUDE.md`, and README, if it has them.
   They hold what is specific to that project's toolchain.
 - Report results as they are. Every report to the developer and every result written
@@ -109,7 +109,7 @@ workspace that was not converted.
 | `reqs/` | Requests: one Markdown file per request; finished requests live in `reqs/done/` | `reqs/AGENTS.md` |
 | `docs/overview.md` | What the projects do together, how they depend on each other, shared terms | Write for humans in `docs-language` |
 | `docs/<name>/` | The spec of one project (`spec.md`), and its other developer docs and knowledge base | Write for humans in `docs-language` |
-| `src/<name>/` | One git submodule per entry in `projects`, in the project's own layout | `src/AGENTS.md` |
+| `projects/<name>/` | One git submodule per entry in `projects`, in the project's own layout | `projects/AGENTS.md` |
 
 <!-- ss-workflow:managed id=workspace -->
 ## Workspace and projects
@@ -142,7 +142,7 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
   branches, and Verify has no command to run for it: the developer checks all of it
   in the Review.
 - Init writes nothing into a project repository. The workflow's rules for a project
-  live in `src/AGENTS.md`. If the project's `.gitignore` misses build output, report
+  live in `projects/AGENTS.md`. If the project's `.gitignore` misses build output, report
   it and suggest a request; do not change it outside a request.
 - A request names the projects that it changes in `projects`. It has a branch in the
   workspace, named after the request (`feat/REQ-0012-gui-button`), and one project
@@ -334,7 +334,7 @@ project, the body is one line in English that describes the change, and there is
   `v1.0.0-alpha1`); in the workspace `<name>/v<version>` (`SSDisp/v1.2.0`).
 - The single version source of a project is its `version-source`. Do not set the
   version anywhere else. If the toolchain forces a second place to carry it, list that
-  place in the project's section of `src/AGENTS.md`, so that a release updates it too.
+  place in the project's section of `projects/AGENTS.md`, so that a release updates it too.
 - If `version-source` is `none`, the version only exists as the git tag.
 - Only `/ss-workflow:release` and hotfix branches change a version.
 - The workspace itself has no version.

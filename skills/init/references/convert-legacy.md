@@ -169,7 +169,7 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
      path and record the `origin` URL, as the table there says: the commits are then
      in the workspace's copy too, and reach the remote with the next push of the
      project.
-   - The project's section in `src/AGENTS.md` gets the old "Toolchain" and "Project
+   - The project's section in `projects/AGENTS.md` gets the old "Toolchain" and "Project
      rules" texts. The old "Project notes" go to "Project notes" of the new root
      `AGENTS.md`. Show both.
    - If the old repository has a spec, do not create `docs/<name>/spec.md` from the
@@ -181,7 +181,7 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
    of old and new paths in the body. Fix the links between the moved files, and the
    links to them in the README files.
 
-Already done when: the workspace folder is a git repository with `src/<name>` in
+Already done when: the workspace folder is a git repository with `projects/<name>` in
 `.gitmodules`.
 
 ## 6. Move the requests
@@ -238,7 +238,7 @@ Only after the developer has checked the workspace:
   show.
 - The old repository's root checkout is now a plain clone of the project. The
   developer works in the workspace from now on. Say that this clone can be deleted
-  or kept; the workspace has its own copy of the project in `src/<name>`.
+  or kept; the workspace has its own copy of the project in `projects/<name>`.
 
 ## 9. Report
 

@@ -1,6 +1,6 @@
 
   - name: {{ENTRY_NAME}}
-    path: src/{{ENTRY_NAME}}
+    path: projects/{{ENTRY_NAME}}
     main-branch: {{ENTRY_MAIN_BRANCH}}
     develop-branch: {{ENTRY_DEVELOP_BRANCH}}
     project-type: {{ENTRY_TYPE}}

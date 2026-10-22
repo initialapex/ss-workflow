@@ -116,11 +116,11 @@ project type, so read the current value first and keep its form.
   - Separate numeric defines or constants for major, minor, and patch: set each one.
   - A build number or a date that the build fills in by itself: leave it alone.
 - If a tool of the project's toolchain is the normal way to change the version, and
-  "Toolchain" in the project's section of `src/AGENTS.md` names it, use that tool.
+  "Toolchain" in the project's section of `projects/AGENTS.md` names it, use that tool.
 
 ### 2. Other places that carry the version
 
-"Toolchain" in the project's section of `src/AGENTS.md` may list other places that
+"Toolchain" in the project's section of `projects/AGENTS.md` may list other places that
 have to carry the version. Update each of them.
 
 Then search the whole project for the last version string, to find places that

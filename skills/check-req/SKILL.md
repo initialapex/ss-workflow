@@ -27,7 +27,7 @@ Supporting files:
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
   projects", "Branching model", "Commit convention"), `reqs/AGENTS.md`, and
-  `src/AGENTS.md` first. They are the source of truth. If they differ from this
+  `projects/AGENTS.md` first. They are the source of truth. If they differ from this
   skill, follow them.
 - Talk to the developer in `discussion-language`.
 - One invocation handles one request. Never implement two requests in one worktree.
