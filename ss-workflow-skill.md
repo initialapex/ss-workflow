@@ -366,7 +366,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
     - 各專案依同樣的規則決定自己的 `<develop-ref>` (以該專案的 `develop-branch` 為準)
   - 總覽包含: 各 request branch 上的 request (含 draft 與 `ready`)、0.8.0 以前的 `req/` branch 與 develop 上的 `ready` request、每個 request 的有效狀態 / 兩層的 branch / worktree，以及 gitlink 落後的專案
   - 若發現異常 (e.g. worktree 已建立但沒有 start commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再開始
-  - 若有多個 `ready` 的 request，依 `priority` 排序後讓 developer 選擇
+  - 不帶編號時，候選為 `ready` (開始) 與 `in-progress` (回到 worktree 接續，或重建 worktree 後接續) 的 request；在別台機器開始的 `in-progress` 只列在總覽，不列為候選
+  - 推薦順序 (依序比較): hotfix → 被其他候選依賴的 request → `priority` → 先完成 `in-progress` 再開始 `ready` → `in-progress` 中先處理 review 退回重做的、再來是 worktree 還在的 → 編號較小的
+  - 以表格列出候選、排序理由與選擇後的動作，前三個以 AskUserQuestion 詢問 (推薦的放第一個)；選定即為同意，不再重複確認；worktree 有未 commit 變更的候選標示「可能有其他 session 在使用」
   - 開始: `git worktree add <path> <branch>` 用既有的 request branch 建立 worktree，做 start commit (見 reqs 章節) 並 push；再為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `src/<P>`
   - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意

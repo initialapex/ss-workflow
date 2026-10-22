@@ -93,7 +93,7 @@
 |-------|----------|------------|--------|
 | `/ss-workflow:init` | 每個 workspace 一次、加入專案時，以及 plugin 更新後 | 根目錄 | 建立 workspace：git branch、`AGENTS.md` / `CLAUDE.md` 和 README，並以 URL 或 local 路徑把專案加入為 submodule。也能轉換 0.5.0 以下的 repo，或升級由舊版建立的 workspace。 |
 | `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，request branch | 建立 request branch 與 request 檔，決定它修改哪些專案，跟你討論規格。你確認後可以直接開始實作，或以 `ready` 狀態留待之後再做。 |
-| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，建立 worktree 與各專案的 branch 來開始一個 `ready` 的 request 並實作。完成後標為待 review 並刪除 worktree。 |
+| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
 | `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch；為 release 和 hotfix 建立 tag，並刪除 branch。 |
 | `/ss-workflow:release` | 要釋出某個專案的新版本 | 根目錄 | 推薦該專案的版本號、建立它的 release branch、檢查它未完成的工作、設定版本號，然後交給 release merge。 |

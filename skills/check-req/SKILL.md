@@ -1,6 +1,6 @@
 ---
 name: check-req
-description: Check the state of all requests in an ss-workflow workspace, repair inconsistent ones, start a ready request by creating its branches (in the workspace and in each project of the request) and worktrees, and implement it there. In a request worktree, resume the implementation. When the implementation is finished, it marks the request for review and removes the worktrees. Use when the developer asks what requests are pending, or wants to start or continue the implementation of a request.
+description: Check the state of all requests in an ss-workflow workspace, repair inconsistent ones, recommend which request to work on next, resume an in-progress request in its worktree, or start a ready request by creating its branches (in the workspace and in each project of the request) and worktrees, and implement it there. In a request worktree, resume the implementation. When the implementation is finished, it marks the request for review and removes the worktrees. Use when the developer asks what requests are pending, or wants to start or continue the implementation of a request.
 argument-hint: "[REQ-id]"
 ---
 
@@ -10,7 +10,7 @@ Where this skill runs decides what it does:
 
 | Where | What it does |
 |-------|--------------|
-| The root checkout of the workspace, on any branch | Overview of all requests → repair anomalies → start one `ready` request → implement it in new worktrees. With a request id (for example from `/ss-workflow:new-req` right after the approval), only that request is checked and started. |
+| The root checkout of the workspace, on any branch | Overview of all requests → repair anomalies → recommend which request to work on, then start a `ready` one or resume an `in-progress` one → implement it in its worktrees. With a request id (for example from `/ss-workflow:new-req` right after the approval), only that request is checked and started. |
 | A request worktree (the workspace worktree, or a project folder inside it) | Resume the implementation of that request |
 
 Input: `$ARGUMENTS` (optional `REQ-xxxx` to pick a specific request)
@@ -146,9 +146,6 @@ it: project branches start from the project's latest develop branch anyway.
 
 ## Step 4: Choose a request
 
-Candidates are the requests with the effective status `ready`, sorted by `priority`
-(`high` > `normal` > `low`), then by id.
-
 - `$ARGUMENTS` names a request:
   - `ready`: use it, without asking again: naming it is the choice.
   - `in-progress` with a worktree: ask whether to resume it there. If yes, continue
@@ -161,11 +158,48 @@ Candidates are the requests with the effective status `ready`, sorted by `priori
   - `review`: say that the implementation is finished, and point to
     `/ss-workflow:review`.
   - A draft: say that it needs approval through `/ss-workflow:new-req` first.
+- No `$ARGUMENTS`: the candidates are every request that can be worked on now:
+  - `ready`: start it (Step 5).
+  - `in-progress` with a worktree: resume it there (Step 6, with the worktree path).
+  - `in-progress` without a worktree: recreate the worktrees ("Recreate the
+    worktrees" below), then Step 6.
+
+  Leave out an `in-progress` request that was started on another machine (its branch
+  exists only on the remote, or the remote has start or implementation commits that
+  this repository lacks): show it in the overview only, because someone else may be
+  working on it.
+
+### Recommend one
+
+Sort the candidates by these rules, the first rule that tells two apart decides:
+
+1. `type: hotfix` first: it fixes a released version.
+2. A request that another candidate depends on comes before it. A dependency is
+   stated in the spec ("Architecture", "Scope", or `## Notes`), for example "SSDisp
+   needs the new API of REQ-0011".
+3. `priority`: `high` > `normal` > `low`.
+4. `in-progress` before `ready`: finish what was started before something new. Its
+   branches already exist and drift further from the develop branches every day.
+5. Among `in-progress`: one that a review sent back for rework (`## Notes` has a
+   `### Review` entry with findings) first, because the developer is waiting for it;
+   then one with a worktree, which resumes without any setup.
+6. The lower id: the older request.
+
+Show the candidates as a table in this order (id, title, type, priority, status,
+what choosing it does, and the reason for its place), and say in one sentence why the
+first one is recommended. Mark a candidate whose worktree has uncommitted changes as
+"may be in use by another session": choosing it anyway is the developer's decision.
+
 - No candidates: report this and mention the next useful action, such as drafts to
   finish, requests waiting for `/ss-workflow:review`, or `/ss-workflow:new-req`.
 - One candidate: confirm it with the developer.
-- Several candidates: ask with AskUserQuestion. Show the top three as options, with the
-  recommended one first. The developer can name any other request through "Other".
+- Several candidates: ask with AskUserQuestion. Show the top three as options, the
+  recommended one first with "(Recommended)" in its label. Each description says what
+  choosing it does (start, resume, or recreate the worktrees) and why it has its
+  place. The developer can name any other request through "Other".
+
+The choice is the developer's answer: do not ask again whether to resume or to start
+it. Continue with the action of the chosen candidate.
 
 A request whose `projects` names a project that is not in "Workflow settings" cannot
 be started: report it, and point to `/ss-workflow:new-req` to fix the request, or to
