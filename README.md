@@ -275,8 +275,11 @@ stay where their toolchain puts them.
 > Repositories set up by ss-workflow 0.5.0 or older kept the code and the requests in
 > one repository. Running `/ss-workflow:init` there converts it: the old repository
 > becomes the project repository, with its remote, history, and tags, and goes back to
-> the layout of its toolchain. A new workspace next to it takes the requests, the
-> drafts, and the docs. No request, release, or hotfix may be in progress.
+> the layout of its toolchain: for Visual Studio, the solution at the root and every
+> project folder next to it, with no `src/`, `tests/`, or `samples/` left. A new
+> workspace next to it takes the requests, the drafts, and the docs. No request,
+> release, or hotfix may be in progress. A workspace converted by 0.6.0 to 0.9.0 that
+> still has those folders inside its project is repaired by the upgrade to 0.9.1.
 
 ## Project types
 

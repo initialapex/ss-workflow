@@ -201,7 +201,7 @@ SSDisp-workspace/
 init 不會寫入專案的任何檔案。專案的測試、sample 與第三方檔案，都依它的 toolchain 放在原本的位置。
 
 > [!IMPORTANT]
-> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。
+> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構：Visual Studio 是 solution 在根目錄、各專案資料夾都在它旁邊，不再有 `src/`、`tests/`、`samples/`；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
 
 ## 專案形式
 

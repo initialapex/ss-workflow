@@ -30,7 +30,8 @@ workspace/
 
 There is no `tests/`, `samples/`, or `external/` folder in the workspace: each project
 keeps its tests, samples, and third-party files where its toolchain puts them, in its
-own repository.
+own repository. A third-party folder that several projects share, or that the developer
+moved out of a project during a conversion, is a project of its own in `projects/`.
 
 ## Rules
 

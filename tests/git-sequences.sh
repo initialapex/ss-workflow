@@ -16,6 +16,8 @@
 #   E                               a project whose remote refuses pushes to develop
 #   L                               a repository in the layout of ss-workflow <= 0.5.0,
 #                                   converted into a source repository + a workspace
+#   R                               a workspace converted with src/ left inside its
+#                                   project, repaired by the 0.9.1 migration
 #
 # It never touches this repository.
 #
@@ -686,11 +688,12 @@ BASE=$(git rev-parse develop)
 
 sec "convert: the source repository goes back to the toolchain's layout"
 git mv src/App.sln App.sln; git mv src/App App; git mv tests/App.Test App.Test
-sed -i 's#\.\.\\tests\\App\.Test\\#App.Test\\#' App.sln
+sed -i 's#\.\.\\tests\\App\.Test\\#App.Test\\#' App.sln; git add App.sln
 git rm -r -q samples
 git commit -q -m "refactor: move the projects back to the Visual Studio layout" -m "samples/App.Sample was deleted at the developer's choice."
 yes_ "history follows the moved file" sh -c "[ \$(git log --follow --oneline -- App/app.cs | wc -l) -ge 2 ]"
-yes_ "the solution's path to the test project is fixed" grep -q '"App.Test\\App.Test.csproj"' App.sln
+yes_ "the solution's path to the test project is fixed" sh -c "git show develop:App.sln | grep -q '\"App.Test\\\\App.Test.csproj\"'"
+eq_ "the solution sits at the root, next to the projects" "$(git ls-tree --name-only develop | grep -E '^App' | LC_ALL=C sort | tr '\n' ' ')" "App App.Test App.sln "
 git rm -r -q reqs AGENTS.md CLAUDE.md src tests docs/app-spec.md
 git commit -q -m "chore: remove the ss-workflow files" -m "They moved to the App-workspace repository."
 git push -q origin develop 2>/dev/null
@@ -726,6 +729,66 @@ ids=$( { git ls-tree -r --name-only develop reqs/; git branch -a --format='%(ref
 eq_ "the id scan of the workspace continues after the imported ids" "$ids" "REQ-0002"
 yes_ "the old draft branch can go once the copy is confirmed" sh -c "git -C '$L' push -q origin --delete req/REQ-0002-draft && git -C '$L' branch -q -D req/REQ-0002-draft"
 eq_ "the workspace root checkout is clean" "$(git status --porcelain | count)" "0"
+
+sec "convert: a third-party folder moves to a repository of its own"
+git init -q "$S/X"; cd "$S/X"; git checkout -q -b develop
+echo "app" > app.cs; git add app.cs; git commit -q -m "chore: initial commit"
+mkdir -p external; echo "lib v1" > external/lib.txt; git add external; git commit -q -m "chore: add the library"
+echo "lib v2" > external/lib.txt; git commit -q -am "chore: update the library"
+EXT_BASE=$(git rev-parse HEAD)
+git init -q --bare "$S/external.git"; git -C "$S/external.git" symbolic-ref HEAD refs/heads/master
+yes_ "git subtree split copies the folder's history" git subtree split -q --prefix=external -b split/external "$EXT_BASE"
+yes_ "and pushes it as the main and the develop branch of the new repository" \
+  git push -q "$S/external.git" split/external:refs/heads/master split/external:refs/heads/develop
+git branch -q -D split/external
+eq_ "the new repository holds the folder's files at its root" "$(git -C "$S/external.git" show develop:lib.txt)" "lib v2"
+eq_ "with the folder's commits only" "$(git -C "$S/external.git" rev-list --count develop)" "2"
+
+# ================================================================ repair of a converted project (0.9.1)
+R="$S/R"
+sec "repair: a converted project that kept src/ and tests/ inside its submodule"
+git init -q --bare "$S/Rp.git"; git -C "$S/Rp.git" symbolic-ref HEAD refs/heads/master
+git clone -q "$S/Rp.git" "$S/Rp" 2>/dev/null; cd "$S/Rp"; git checkout -q -b master
+mkdir -p src/Rp tests/Rp.Test
+printf 'Project("Rp") = "Rp", "Rp\\Rp.csproj"\nProject("Rp.Test") = "Rp.Test", "..\\tests\\Rp.Test\\Rp.Test.csproj"\n' > src/Rp.sln
+echo '<ProjectReference Include="..\..\src\Rp\Rp.csproj" />' > tests/Rp.Test/Rp.Test.csproj
+echo "rp" > src/Rp/Rp.csproj; echo "<Project />" > src/Directory.Build.props
+git add -A; git commit -q -m "chore: initial commit"; git branch develop
+git push -q -u origin master develop 2>/dev/null; cd "$S"
+git init -q --bare "$S/R.git"; git -C "$S/R.git" symbolic-ref HEAD refs/heads/master
+git clone -q "$S/R.git" "$R" 2>/dev/null; cd "$R"; git checkout -q -b master
+git submodule add -q "$S/Rp.git" projects/Rp; git commit -q -m "chore(workspace): add the Rp project"
+git branch develop; git checkout -q develop
+git -C projects/Rp checkout -q --detach origin/develop; git add projects/Rp
+git commit -q --allow-empty -m "chore(workspace): point the projects to develop"
+MAIN_BEFORE=$(git rev-parse master:projects/Rp)
+yes_ "detect: the solution is not at the root of the project" sh -c "git -C projects/Rp ls-tree -r --name-only origin/develop | grep -qx 'src/Rp.sln'"
+eq_ "detect: no solution at the root" "$(git -C projects/Rp ls-tree --name-only origin/develop | grep -ciE '\.slnx?$')" "0"
+eq_ "precondition: the gitlink of develop is the tip of the project's develop" "$(git rev-parse develop:projects/Rp)" "$(git -C projects/Rp rev-parse origin/develop)"
+
+sec "repair: move the projects to the root, on the project's develop branch"
+git -C projects/Rp checkout -q develop
+( cd projects/Rp
+  git mv src/Rp.sln Rp.sln; git mv src/Rp Rp; git mv src/Directory.Build.props Directory.Build.props; git mv tests/Rp.Test Rp.Test
+  sed -i 's#\.\.\\tests\\Rp\.Test\\#Rp.Test\\#' Rp.sln
+  sed -i 's#\.\.\\\.\.\\src\\Rp\\#..\\Rp\\#' Rp.Test/Rp.Test.csproj
+  git commit -q -a -m "refactor: move the projects to the root of the Visual Studio layout" )
+eq_ "the project has no src/ or tests/ left" "$(git -C projects/Rp ls-tree -d --name-only develop | grep -cE '^(src|tests|samples)$')" "0"
+eq_ "the solution, the projects, and the shared settings sit at the root" "$(git -C projects/Rp ls-tree --name-only develop | LC_ALL=C sort | tr '\n' ' ')" "Directory.Build.props Rp Rp.Test Rp.sln "
+yes_ "the solution's path to the test project is fixed" sh -c "git -C projects/Rp show develop:Rp.sln | grep -q '\"Rp.Test\\\\Rp.Test.csproj\"'"
+yes_ "the test project's reference to the source project is fixed" sh -c "git -C projects/Rp show develop:Rp.Test/Rp.Test.csproj | grep -q 'Include=\"..\\\\Rp\\\\Rp.csproj\"'"
+yes_ "history follows the moved file" sh -c "[ \$(git -C projects/Rp log --follow --oneline -- Rp/Rp.csproj | wc -l) -ge 2 ]"
+yes_ "the project's develop branch can be pushed first" git -C projects/Rp push -q origin develop
+
+sec "repair: the workspace records it on develop"
+git add projects/Rp; git commit -q -m "chore(workflow): upgrade ss-workflow to v0.9.1"
+eq_ "develop's gitlink records the repaired develop branch" "$(git rev-parse develop:projects/Rp)" "$(git -C projects/Rp rev-parse origin/develop)"
+eq_ "the main branch keeps the latest release" "$(git rev-parse master:projects/Rp)" "$MAIN_BEFORE"
+eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
+git push -q -u origin master develop 2>/dev/null
+B2="$S/R2"; git clone -q "$S/R.git" "$B2" 2>/dev/null; cd "$B2"; git checkout -q develop; git submodule update -q --init 2>/dev/null
+yes_ "another clone finds the solution at the root of the project" test -f projects/Rp/Rp.sln
+no_ "and no src/ inside the project" test -e projects/Rp/src
 
 echo
 echo "RESULT: $PASS passed, $FAIL failed"
