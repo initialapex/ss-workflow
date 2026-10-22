@@ -9,7 +9,7 @@ argument-hint: "[REQ-id]"
 Verify and review one request in the root checkout of the workspace, on its request
 branches: the workspace request branch, and the request's `project-branch` in each
 project of the request (for a hotfix, `hotfix/v<version>` in its project). A request
-claimed before ss-workflow 0.8.0 has no `project-branch`: its project branches have
+started before ss-workflow 0.8.0 has no `project-branch`: its project branches have
 the name of the workspace branch.
 
 - **Verify**: you run the build, the test projects, and the verification scripts.
@@ -141,8 +141,9 @@ While changes are kept uncommitted:
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them; for a project, its own status and branch tell what it is (a project on a `release/*` branch means that a release is open). Choose the request (below), then continue with Step 2. |
 | A request or `hotfix/*` branch whose request file says `review` | A review is open here. If `$ARGUMENTS` is empty or names this request, check for uncommitted changes (see "Uncommitted changes"), and continue the review at Step 3. Otherwise, say that the root checkout is busy with this review, and ask whether to pause it first. To pause: commit and push the notes and the gitlinks, check that there are no uncommitted changes, and run `git checkout develop` and `git submodule update`. |
+| A request branch whose request file says `draft`, or a `req/*` branch from before ss-workflow 0.8.0 | The root checkout is busy with a spec discussion. Say which one, and stop. |
 | A request or `hotfix/*` branch whose request file says anything else | The workflow does not define this state. Continue with "Undefined state" below. |
-| Any other branch | The root checkout is busy: a `req/*` branch means a spec discussion. Say which one, and stop. |
+| Any other branch | The root checkout is busy. Say with what, and stop. |
 
 Undefined state: the root checkout is on a request branch, and the request file there
 (in `reqs/` or `reqs/done/`) does not say `review`. A step that should have switched
@@ -154,7 +155,7 @@ hand.
    - the branch, the request, and the status in its file
    - the likely cause: `in-progress` means that a review sent the request back for
      rework; `done` means that a merge stopped after it closed the request, or that
-     the merge is pending on the remote; `ready` means that a claim was interrupted
+     the merge is pending on the remote; `ready` means that a start was interrupted, or that the root checkout was switched to the branch by hand
    - the commits that the branches have and their bases do not
      (`git log <base>..HEAD --oneline` in the workspace, and the same in each project
      on its project branch), and the output of `git status --porcelain` in the

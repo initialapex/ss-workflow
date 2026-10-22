@@ -18,7 +18,7 @@ recommendation.
 |-------|--------------|
 | The workspace on `develop`, root checkout, and the project at its gitlink | Start a release: Steps 1 to 4, then continue with Step 5 |
 | The workspace on `develop`, root checkout, and the project on a `release/*` branch | Continue that release from Step 5 |
-| Anywhere else | The root checkout is busy with something else (a `req/*` branch means a spec discussion, a request branch means a review), or this is a worktree. Say which, and stop. |
+| Anywhere else | The root checkout is busy with something else (a request branch whose file says `draft` means a spec discussion, another request branch means a review), or this is a worktree. Say which, and stop. |
 
 Supporting file:
 
@@ -144,10 +144,9 @@ Step 4, there is nothing to do here.
 
 Collect the following, for this project only:
 
-- The requests in `reqs/` (not `reqs/done/`) whose `projects` contains the project,
-  with their effective status. Read the status of a claimed request from its
-  workspace request branch, as `/ss-workflow:check-req` does in its overview.
-- The drafts: the `req/*` branches whose request names the project
+- The open requests whose `projects` contains the project, with their effective
+  status: those on request branches, and those in `reqs/` on `develop` from before
+  ss-workflow 0.8.0. Collect them as `/ss-workflow:check-req` does in its overview.
 - The worktrees of the project (`git -C <path> worktree list`), other than the root
   checkout's submodule
 - Open hotfixes of the project: `hotfix/*` branches in the project
@@ -157,7 +156,7 @@ Sort them into two groups:
 | Group | Requests |
 |-------|----------|
 | Unfinished | `in-progress` (being implemented in a worktree, or reopened), `review` (waiting for or under Verify and Review), and merge pending |
-| Not started | Drafts on `req/*` branches, and `ready` requests |
+| Not started | Drafts and `ready` requests |
 
 If the "Unfinished" group is empty and there is no open hotfix, continue with Step 7.
 Mention the "Not started" requests only as information: they do not block a release.

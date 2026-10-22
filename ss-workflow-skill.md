@@ -44,8 +44,7 @@ SSDisp-workspace/
 | 項目 | Workspace | Source repo |
 |------|-----------|-------------|
 | 長期 branch | `master` (= 各專案最新 release 的組合)、`develop` (gitlink 跟著各 source repo 的 develop) | `main-branch`、`develop-branch` |
-| 規格討論 | `req/REQ-0012-<slug>`，從 develop 開 | (無) |
-| request | `feat/REQ-0012-<slug>`，從 develop 開；**建立它就是認領** | `feat/<slug>` (以變更內容命名，不含 request 編號，記錄在 request 的 `project-branch`)，從 source 的 `<develop-ref>` (最新的 develop，不是 gitlink) 開 |
+| request | `feat/REQ-0012-<slug>`，從 develop 開；**建立 draft 時就建立，一路用到 merge** | `feat/<slug>` (以變更內容命名，不含 request 編號，記錄在 request 的 `project-branch`)，從 source 的 `<develop-ref>` (最新的 develop，不是 gitlink) 開 |
 | hotfix | `hotfix/<P>-v1.0.1`，從 workspace master 開 | `hotfix/v1.0.1`，從 source main 開 |
 | release | 沒有 branch；develop merge 到 master，打 `<P>/v1.2.0` tag | `release/v1.2.0`，merge 到 main 與 develop，打 `v1.2.0` tag |
 
@@ -55,8 +54,8 @@ SSDisp-workspace/
   - 關聯只由 workspace 單向記錄: request 檔的 `project-branch`，以及 workspace 的 gitlink
 - project branch 的名稱 `<type>/<slug>` 在 request 的每個專案 (local 與 remote) 都必須是新的；已被使用 (可能是別人從自己的 workspace 建立的) 時，提出另一個簡短、描述性的名稱 (e.g. `feat/gui-button-color`) 由 developer 確認
 - skill 只透過 request 的 `project-branch` 找 project branch，不以名稱規則比對；專案內其他 branch 可能是別人的工作，不回報、不修改、不刪除
-- 0.8.0 以前認領的 request 沒有 `project-branch`，其 project branch 與 workspace branch 同名
-- 認領順序: workspace branch 與認領 commit 被 remote 接受之後，才建立各專案的 branch；搶輸的機器不會在 source repo 留下任何 branch
+- 0.8.0 以前開始的 request 沒有 `project-branch`，其 project branch 與 workspace branch 同名
+- 開始實作時才建立各專案的 branch；draft 與 `ready` 的 request 在 source repo 沒有任何 branch
 
 ### gitlink
 
@@ -129,7 +128,7 @@ ss-workflow/
   - 檔案內容: 「What changes」(行為差異，改之前 / 改之後，升級時先講給 developer 聽)、「Steps」(改哪個檔、改什麼、維持舊行為的值、是否需要 developer 回答、如何判斷已經做過)、「Check」
   - 升級順序: 從 repo 記錄的版本到 plugin 版本，依版本由低到高逐一套用 migration → 重新 render managed 區段 → 寫入新的 `ss-workflow-version` → 給 developer 看 diff 後才 commit
   - 預設值一律選「維持舊版行為」的那個；行為要不要改由 developer 決定
-  - 不改寫 `## Original`，不改已回答的 `## Q&A`；已認領的 request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
+  - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
 
@@ -201,7 +200,7 @@ ss-workflow/
 - README 是產品文件，留在 source repo (只修正指向已移除檔案的連結)；workspace 由範本產生新的 README
 - 建立 workspace (預設 `../<Name>-workspace`，可帶 remote URL)，以舊 repo 的 URL 加入為專案
   - 匯入 request: `reqs/` 與 `reqs/done/` 的檔案原樣複製；`ready` 的 request 補上 `projects: [<name>]`，`reqs/done/` 的檔案不修改；Workflow settings 的 `legacy-project` 記錄該專案名稱，沒有 `projects` 欄位的 request 屬於它
-  - draft: 在 workspace 重建 `req/` branch；確認複製完成且 developer 同意後，才刪除舊 repo 的 `req/` branch
+  - draft: 在 workspace 重建為 `<type>/REQ-<id>-<slug>` branch；確認複製完成且 developer 同意後，才刪除舊 repo 的 `req/` branch
   - workspace master 的 gitlink 指向 source main，並在上面打 `<name>/v<最新版本>` tag，作為之後 release 比對的起點
 - source repo 的 main 在下一次 release 前仍保有舊的檔案，這是預期的
 
@@ -213,7 +212,7 @@ ss-workflow/
 
 | 階段 | 位置 | skill |
 |------|------|-------|
-| 規格討論 | 根目錄，`req/REQ-xxxx-<slug>` branch | `/ss-workflow:new-req` |
+| 規格討論 | 根目錄，workspace request branch | `/ss-workflow:new-req` |
 | 實作 | worktree (workspace + 各專案)，request branch | `/ss-workflow:check-req` |
 | Verify (跑 build / Test 專案 / script) 與 Review (人工驗證) | 根目錄，checkout 兩層的 request branch | `/ss-workflow:review` |
 | 結案 (merge) | 根目錄 | `/ss-workflow:merge` |
@@ -224,7 +223,7 @@ ss-workflow/
   - 根目錄一次只能做一件事 (規格討論 / review / merge / release)；skill 切換根目錄的 branch 前，先確認它在 develop 且沒有未 commit 的變更 (含各專案)，完成後切回 develop 並 `git submodule update`
 
 - 檔名: `REQ-<4 位流水號>-<yyyyMMdd>-<slug>.md`，e.g. `REQ-0012-20260907-gui-button.md`
-  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`req/REQ-0012-…`、`feat/REQ-0012-…`)
+  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`feat/REQ-0012-…`，以及 0.8.0 以前的 `req/REQ-0012-…`)
 - 未完成的 request 放在 `reqs/`；完成 (`done`) 後由 `/ss-workflow:merge` 以 `git mv` 移到 `reqs/done/`
 - YAML frontmatter 為狀態的唯一來源:
 
@@ -274,30 +273,29 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 未決的問題寫 `A: (pending)`，沒有 `Decision:`；有答案時補上
   - 只增不改: 已回答的紀錄不修改、不刪除；決定改變時新增一筆並註明取代哪一筆
   - AI 提出、developer 接受的預設值一樣記成一筆，另外在 `## Notes` 記為 Assumption，留待 Review 再確認
-  - 沒有 pending 的紀錄，request 才能變成 `ready` (取代 Spec 內的 Open questions)
+  - 沒有 pending 的紀錄，request 才能被核准 (取代 Spec 內的 Open questions)
 
 - 狀態流程:
 
 | status        | 意義                                         | 該狀態的檔案在哪個 branch            | 誰設定 |
 |---------------|----------------------------------------------|--------------------------------------|--------|
-| `draft`       | 規格討論中                                   | `req/REQ-…` branch (根目錄)          | `/ss-workflow:new-req` |
-| `ready`       | developer 確認規格，等待認領                 | develop (`req/` branch merge 之後)   | `/ss-workflow:new-req` |
-| `in-progress` | 已認領，在 worktree 實作中                   | workspace request branch             | `/ss-workflow:check-req` |
+| `draft`       | 規格討論中                                   | workspace request branch (根目錄)    | `/ss-workflow:new-req` |
+| `ready`       | developer 確認規格，選擇之後再做             | workspace request branch             | `/ss-workflow:new-req` |
+| `in-progress` | 已開始，在 worktree 實作中                   | workspace request branch             | `/ss-workflow:check-req` |
 | `review`      | 實作完成、worktree 已刪除、branch 保留；等待或正在 Verify 與 Review | workspace request branch | `/ss-workflow:check-req` 設定，`/ss-workflow:review` 處理 |
 | `done`        | 已關閉，檔案在 `reqs/done/`                  | workspace request branch 的最後一個 commit (merge 前) | `/ss-workflow:merge` |
 
-- draft 只存在 `req/` branch 上，develop 上只有 developer 確認過的 request
-- 有效狀態: develop 上的檔案在 merge 前一直顯示 `ready`；workspace request branch 上的檔案才是目前的狀態 (`in-progress` / `review` / `done`)
-- 認領 (lock):
-  - 「建立 workspace request branch」就是認領: 從 develop 建立 `<type>/REQ-<id>-<slug>`
-    - 同一個 repo 內，git 保證同名 branch 只能建立一次，兩個 local session 不會同時成功；這一層不需要 remote
-    - 跨機器時，單純 push branch 還分不出先後 (兩邊 push 的是同一個起始 commit，remote 都會接受)；由認領 commit 的 push 決定，remote 只接受第一個，另一邊放棄自己的 branch
-    - 沒有 push 時 (沒有 remote、`push-policy: never`、developer 拒絕)，認領只在這個 repo 內有效；之後 push 被拒絕表示別台機器已認領，不強推，由 developer 決定保留哪一邊
-  - 該編號的 branch 已存在 (local 或 remote) = 已被認領
-  - 認領前先確認 project branch 名稱在 request 的每個專案都還沒被使用
-  - branch 上的第一個 commit 將 status 改為 `in-progress` 並寫入 `branch` 與 `project-branch`
-  - 認領成功之後才在各專案建立 project branch 並 push；名稱在這之間被別人用掉時，改名並以 commit 更新 `project-branch`
-  - 認領不需要根目錄在 develop，所以根目錄正在討論規格或 review 時，其他 session 仍可認領
+- 一個 request 從 draft 到 merge 都在同一個 workspace branch `<type>/REQ-<id>-<slug>` 上 (從 develop 開)；develop 在 merge 時才拿到 request 檔 (已在 `reqs/done/`)；branch 上的檔案就是目前的狀態
+- 討論過程只在建立 draft (占住流水號)、暫停 (Keep as draft) 與核准時 commit，每一輪討論只改工作目錄的檔案
+- 核准時選擇「立即開始」(由 `/ss-workflow:check-req REQ-xxxx` 直接開始，不經過總覽與挑選) 或「之後再做」(`ready` 留在 branch 上)
+- 討論中 type 改變時，核准前把 branch 改名 (`git branch -m`，push 新名稱並刪除 remote 的舊名稱)
+- 開始實作 (不再需要搶 lock):
+  - 多人開發時每個人都有自己的 workspace，不需要跨機器搶認領；branch 從 draft 就存在，開始實作只是一個把 status 改為 `in-progress` 並寫入 `branch` 與 `project-branch` 的 commit (`chore(reqs): start REQ-0012`)
+  - 根目錄不能在該 branch 上 (git 不允許兩個 worktree 用同一個 branch)；new-req 交給 check-req 前會先把根目錄切回 develop
+  - 共用同一個 workspace remote 時，push 出去的 `in-progress` 讓其他機器知道已經開始；push 被拒絕時不強推，交給 developer 決定
+  - 開始前先確認 project branch 名稱在 request 的每個專案都還沒被使用
+  - 之後在各專案建立 project branch 並 push；名稱在這之間被別人用掉時，改名並以 commit 更新 `project-branch`
+- 0.8.0 以前的位置仍然支援: `req/REQ-…` branch 上的 draft (new-req 接續時改名為 `<type>/REQ-…`)，以及 develop 上 `reqs/` 內的 `ready` request (開始時從 develop 建立 branch)
 - 同步到 remote (依「Remote 與 push」，允許 push 時才做，各專案依自己的設定):
   - 建立 branch 後立即 `git push -u`，實作過程中每次 commit 都 push
   - 刪除 worktree 前確認兩層都沒有未 commit 的變更；允許 push 時另外確認沒有未 push 的 commit，不 push 時確認 commit 都在本機 branch 上，並在回報中列出尚未 push 的 commit
@@ -335,10 +333,10 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 
 建立新需求使用，使用者可利用此 skill + .md file 建立新需求，也可單獨輸入此 skill，skill 會引導建立 new request
 
-- 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在某個 `req/` branch 上 (接續該 draft)
-- 從 develop 開 `req/REQ-<id>-<slug>` branch 並立即 push (同時占住流水號)，在上面建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)
+- 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在某個 draft 的 request branch 上 (接續該 draft)
+- 從 develop 開 `<type>/REQ-<id>-<slug>` branch，在上面建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)，commit 後立即 push (同時占住流水號)
 - 讀程式碼前先 fetch 各專案，讀 source 的最新 develop (gitlink 可能落後)；docs 只讀 `docs/overview.md` 與相關專案的 `docs/<name>/`
-- 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論後 commit + push
+- 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論不 commit，只在暫停與核准時 commit
   - Spec 內含 Goal / Scope / Architecture / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查或 Review 人工檢查) / Out of scope
   - `projects` 在 Spec 討論時決定；修改多個專案時，Scope 與 Architecture 依專案分別寫，並寫明專案之間的相依 (e.g. SSDisp 需要 SSLib 的新 API)
   - workspace 檔案的修改 (含要跟著更新的 `docs/<name>/spec.md`) 在 Scope 的「Workspace」小節列出；只改 workspace 檔案時 `projects: []`，How to verify 全部標為 Review
@@ -349,30 +347,31 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - developer 答不出來時: AI 提出預設值與理由，developer 接受後寫入 Spec、補完該筆 `## Q&A`，並在 `## Notes` 記為 Assumption，留待 Review 再確認；不自行默默決定
   - 只有別人能回答、或 developer 想晚點再答的問題，以 `A: (pending)` 留在 `## Q&A`，request 維持 draft
   - 接續舊版的 draft 時: 補上 `## Q&A` 區段，把 Spec 內的 Open questions 逐項轉成 pending 的紀錄；`## Notes` 內既有的決策不回頭改寫成 Q&A；沒有 `projects` 時補上
-- developer 確認規格沒有問題後，將 status 改為 `ready`，把 `req/` branch `--no-ff` merge 回 develop 並刪除該 branch；之後由其他 session 認領
-  - `merge-method` 為 `remote` 或 develop 不允許直接 push 時，改發 merge-request；remote 沒有可發 merge-request 的平台時，保留 `req/` branch 並停止，告知 developer 需要在 remote 上 merge
-  - 保留 draft: commit + push 後根目錄切回 develop，`req/` branch 留著；之後用 `/ss-workflow:new-req REQ-xxxx` 接續
-  - 捨棄: 刪除 `req/` branch，develop 上不留任何痕跡
-- 一個 `req/` branch 只處理一個 request；輸入包含多個可獨立實作的需求時，提議拆開並依序處理；與既有 request 重複時先提醒
-- 此 skill 只寫 request，不實作；source repo 不會有任何 commit
-- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow:merge`，只能有一個專案)，規格討論一樣走 `req/` branch 並 merge 回 develop
+- 核准 (沒有 pending 的 Q&A 時才提供): 選項為「核准並立即開始」(推薦) / 「核准，之後再做」/ 「保留 draft」/ 「捨棄」；想繼續討論時以 Other 說明
+  - 核准: type 改變時先把 branch 改名，再把 status 改為 `ready`，commit `docs(reqs): approve REQ-0012` 並 push，根目錄切回 develop；不 merge 回 develop
+  - 立即開始: 呼叫 `/ss-workflow:check-req REQ-0012`，由它開始實作 (new-req 不自己建立 worktree)
+  - 保留 draft: commit + push 後根目錄切回 develop，branch 留著；之後用 `/ss-workflow:new-req REQ-xxxx` 接續
+  - 捨棄: 刪除 branch (local 與 remote)，develop 上不留任何痕跡
+- 一個 request branch 只處理一個 request；輸入包含多個可獨立實作的需求時，提議拆開並依序處理；與既有 request 重複時先提醒
+- 此 skill 只寫 request，不自己實作；source repo 不會有任何 commit
+- 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow:merge`，只能有一個專案)，draft 放在從 develop 開的 `hotfix/REQ-<id>-<slug>`，開始實作時改到從 workspace master 開的 `hotfix/<P>-v<version>`
 
 ## skill: `/ss-workflow:check-req`
 
-只負責總覽、認領與實作；Verify 與 Review 由 `/ss-workflow:review` 處理
+只負責總覽、開始與實作；Verify 與 Review 由 `/ss-workflow:review` 處理
 
-- 在根目錄執行 (根目錄在哪個 branch 都可以，不需要切到 develop): 總覽 + 認領
+- 在根目錄執行 (根目錄在哪個 branch 都可以，不需要切到 develop): 總覽 + 開始；帶 request 編號時 (例如由 new-req 交過來) 只檢查並開始該 request，不列總覽、不再確認
   - 不 checkout 任何東西，透過 `<develop-ref>` 與各 branch 讀取 request 檔
-    - `<develop-ref>`: 無 remote 時為 `develop`；有 remote 且本機 develop 沒有自己的 commit 時為 `origin/develop`；本機 develop 領先時為 `develop` (並提醒其他機器還看不到)；兩邊各有對方沒有的 commit 時以 `develop` 為主、另外讀 `origin/develop` 才有的 request，提醒 developer 先同步，且不認領只有一邊有的 request
+    - `<develop-ref>`: 無 remote 時為 `develop`；有 remote 且本機 develop 沒有自己的 commit 時為 `origin/develop`；本機 develop 領先時為 `develop` (並提醒其他機器還看不到)；兩邊各有對方沒有的 commit 時以 `develop` 為主、另外讀 `origin/develop` 才有的 request，提醒 developer 先同步，且不開始只有一邊有的 request
     - 各專案依同樣的規則決定自己的 `<develop-ref>` (以該專案的 `develop-branch` 為準)
-  - 總覽包含: `req/` branch 上的 draft、develop 上的 request、每個 request 的有效狀態 / 兩層的 branch / worktree，以及 gitlink 落後的專案
-  - 若發現異常 (e.g. branch 已建立但沒有認領 commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再認領
+  - 總覽包含: 各 request branch 上的 request (含 draft 與 `ready`)、0.8.0 以前的 `req/` branch 與 develop 上的 `ready` request、每個 request 的有效狀態 / 兩層的 branch / worktree，以及 gitlink 落後的專案
+  - 若發現異常 (e.g. worktree 已建立但沒有 start commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再開始
   - 若有多個 `ready` 的 request，依 `priority` 排序後讓 developer 選擇
-  - 認領: `git worktree add -b <branch> <path> <develop-ref>` 一次建立 workspace branch 與 worktree，push，再做認領 commit (見 reqs 章節)；認領被接受後，為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
+  - 開始: `git worktree add <path> <branch>` 用既有的 request branch 建立 worktree，做 start commit (見 reqs 章節) 並 push；再為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `src/<P>`
   - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意
   - `in-progress` 但沒有 worktree (被 review 退回，或 worktree 遺失): developer 同意後重建兩層的 worktree 繼續實作
-  - 根目錄停在 `in-progress` / `ready` 的 request branch 上 (退回重做或認領被中斷後沒切回 develop，或手動 checkout): git 不允許為根目錄所在的 branch 建立 worktree (兩層都一樣)，所以先確認根目錄沒有未 commit 的變更，developer 同意後把根目錄切回 develop，再重建 worktree
+  - 根目錄停在 `in-progress` / `ready` 的 request branch 上 (退回重做或開始被中斷後沒切回 develop，或手動 checkout): git 不允許為根目錄所在的 branch 建立 worktree (兩層都一樣)，所以先確認根目錄沒有未 commit 的變更，developer 同意後把根目錄切回 develop，再重建 worktree
 - 在 request worktree 上執行: 表示要再啟動實作
   - `in-progress`: 找出上次停在哪裡 (含 `## Notes` 內的 review feedback)，繼續實作
   - `review` / `done`: 實作已完成，這個 worktree 不該存在；確認沒有遺漏後刪除，並提示下一步
@@ -392,7 +391,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 交付: status 改為 `review`，連同各專案的 gitlink 一起 commit 並 push → 確認兩層沒有未 commit / 未 push 的內容 → 依「worktree 的結構」的順序刪除 worktree、保留 branch → 提示 `/ss-workflow:review REQ-xxxx`
 - hotfix request
   - workspace branch 為 `hotfix/<P>-v<version>`，從 workspace master 開；專案 branch 為 `hotfix/v<version>`，從 source main 開；其他專案 detached 在 workspace master 的 gitlink (= 已 release 的版本)，一樣在 worktree 實作
-  - workspace master 上沒有尚未 release 的 request 檔，所以認領 commit 會把 request 檔從 develop 複製到 hotfix branch，之後狀態都記在 hotfix branch 上
+  - workspace master 上沒有尚未 release 的 request 檔，所以 start commit 會把 request 檔從 draft branch (`hotfix/REQ-…`) 複製到 hotfix branch 並刪除 draft branch，之後狀態都記在 hotfix branch 上
 
 ## skill: `/ss-workflow:review`
 
@@ -453,15 +452,15 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 發 merge-request 需要 branch 已在 remote 上；不能 push 時做完 Prepare 就停止，告知 developer 要 push 哪個 branch
   - remote 拒絕 push 到受保護的 develop / master 時不繞過: 還原尚未發佈的 local merge commit，有平台改發 merge-request，沒有平台就停止並告知 developer 需要在 remote 上 merge 什麼 (request 為 merge pending)
   - 刪除 remote branch 只在允許 push 時進行，否則在回報中列出
-  - `req/` branch 不由此 skill 處理 (由 `/ss-workflow:new-req` 在規格確認時 merge)
+  - draft 與 `ready` 的 request 不由此 skill 處理 (規格討論或實作尚未完成)
   - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
   - 一律 `--no-ff`，不 squash、不 rebase 已 push 的 branch、不 force-push
   - merge commit message: `Merge <source> into <target>` (不套用 `<type>(<scope>)` 格式)，workspace 的 body 帶 request title 與 `Refs: REQ-xxxx`；source repo 的 body 為一行描述變更內容的英文，沒有 `Refs:`
   - source repo 的 merge request: 標題為 `<type>: <變更內容>`，內容不帶 request 編號、workspace 名稱或 workspace 檔案的連結
-  - 根目錄有未 commit 的變更 (含各專案)，或正忙著別的事 (在 `req/` branch 或其他 request branch 上) 時停止
+  - 根目錄有未 commit 的變更 (含各專案)，或正忙著別的事 (在 draft 的 request branch 或其他 request branch 上) 時停止
   - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
   - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow:merge` 收尾 (刪除 branch)
-  - 放棄 request: 透過一個短暫的 `req/REQ-<id>-drop` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
+  - 放棄 request: 透過一個短暫的 `drop/REQ-<id>` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
 
 - request
   - 所有 reqs 都在 develop 開分支出去，完成後 merge 回 develop (兩層都是)
@@ -487,10 +486,10 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - hotfix (各專案)
   - 專案: `hotfix/v1.0.1` 從專案 main 開，完成後 merge 回專案 main 與 develop，打 `v1.0.1`
   - workspace: `hotfix/<P>-v1.0.1` 從 workspace master 開，完成後 merge 回 workspace master (gitlink = 專案 main 的 hotfix merge commit，打 `<P>/v1.0.1`) 與 workspace develop (gitlink = 專案 develop)
-  - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 認領)，Verify / Review / merge 一樣在根目錄
+  - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 開始)，Verify / Review / merge 一樣在根目錄
   - merge 回專案 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
   - 若該專案有進行中的 release branch，詢問是否也 merge 進去
-  - request 檔在 workspace hotfix branch 上關閉 (認領時已從 develop 複製過來)；merge 回 workspace develop 時用 `--no-commit`，在同一個 merge commit 內刪除 develop 上仍為 `ready` 的舊副本，並把 gitlink 設為專案 develop
+  - request 檔在 workspace hotfix branch 上關閉 (開始時已從 draft branch 複製過來)；merge 回 workspace develop 時用 `--no-commit`，在同一個 merge commit 內 (0.8.0 以前開始的 hotfix 才有) 刪除 develop 上仍為 `ready` 的舊副本，並把 gitlink 設為專案 develop
 
 - master (兩層都持續存在)
   - 專案 main: 主要是在有新版要釋出時，才會有新的 commit
@@ -531,7 +530,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 可直接帶版本號 `/ss-workflow:release SSDisp 1.0.0-beta1` 跳過推薦
 - 未完成工作的判定 (只看該專案)
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及該專案未合併的 hotfix
-  - 尚未開始 (`req/` branch 上的 draft、`ready`): 只列出，不阻擋 release
+  - 尚未開始 (draft、`ready`): 只列出，不阻擋 release
   - developer 的選項: 不含這些直接 release / 先完成 (專案切回 develop 處理，完成後再下一次) / 取消 release (刪除專案的 release branch)
 - 版本號檢查範圍: 該專案的 version-source、`## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方、專案內 README / docs、既有的 `CHANGELOG.md` (沒有則不建立；條目以變更內容描述，不帶 request 編號)
   - workspace 以外的變更: request 不再以 `Refs:` 標示，改由已關閉 request 的 `Merged into develop` 紀錄找出它們的 merge commit；專案 develop 的 first-parent 歷史中其他的 commit 都來自 workspace 以外 (例如別人自己的 workspace)
@@ -545,25 +544,25 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 此章節的規範會寫入 workspace root `AGENTS.md` (「Remote and pushing」)，各 skill 的「push」都依此判斷；workspace 與每個專案各自判斷
 
 - 工作流不需要 remote。有沒有 remote 看該 repo 的 `git remote` 是否有 `origin`；`remote-platform` 只表示能不能發 merge-request (`github` / `gitlab`)，其他 remote 與沒有 remote 都是 `none`
-- 沒有 remote: 所有 fetch / pull / push 步驟略過；本機 `develop` 代表 `origin/develop`、建立本機 branch 就是認領、branch 一律 local merge
+- 沒有 remote: 所有 fetch / pull / push 步驟略過；本機 `develop` 代表 `origin/develop`、request 都在本機 branch 上、branch 一律 local merge
 - 以沒有 origin 的 local 路徑加入的專案: submodule 的 origin 是 developer 的 working copy，視為不 push (`push-policy: never`)，fetch 照做
 - 有 remote: 由 `push-policy` 決定 agent push 什麼 (專案沒有覆寫時用 workspace 的)
 
 | `push-policy` | agent 的行為 |
 |---------------|--------------|
-| `auto` (預設) | 每次 commit 後 push topic branch (`req/*`、request、`hotfix/*`、`release/*`)；developer 要求 merge 之後 push develop |
+| `auto` (預設) | 每次 commit 後 push topic branch (request、`hotfix/*`、`release/*`)；developer 要求 merge 之後 push develop |
 | `ask` | 只在本機 commit；每次執行 skill 第一次要 push 前詢問，同意後該次執行都適用，拒絕則該次視同 `never` |
 | `never` | 不 push、不刪除 remote branch；仍會 fetch 與 pull |
 
-- 沒有 push 時 skill 繼續進行，並在回報中列出尚未在 remote 上的 branch 與 tag (依 repo)；在 developer push 之前，其他機器看不到這些 request、認領與狀態變更
+- 沒有 push 時 skill 繼續進行，並在回報中列出尚未在 remote 上的 branch 與 tag (依 repo)；在 developer push 之前，其他機器看不到這些 request 與狀態變更
 - 不論 `push-policy` 為何都成立:
   - 不 force-push、不改寫已發佈的歷史
   - push master / main 或 tag 等於釋出，每次 push 前都要詢問 developer
   - 確認已 merge 之前不刪除 branch (local 與 remote)；有未合併 commit 的 branch 只有 developer 針對該 branch 明確同意才刪除
   - remote 拒絕 push 到受保護的 branch 時不繞過
 - 取捨 (自動 push 與 never push 的比較):
-  - 自動 push: 跨機器認領可靠、其他 session 即時看到狀態、每個 commit 都有備份、可直接發 merge-request；代價是誤 commit 的內容立刻外流且收不回、每次 push 都觸發 CI
-  - never push: agent 無法對外發佈任何東西；代價是認領只剩本機鎖、其他機器看到的狀態落後、merge-request 要先由人 push
+  - 自動 push: 其他 session 即時看到 request 與狀態、每個 commit 都有備份、可直接發 merge-request；代價是誤 commit 的內容立刻外流且收不回、每次 push 都觸發 CI
+  - never push: agent 無法對外發佈任何東西；代價是其他機器看到的狀態落後、merge-request 要先由人 push
   - 兩者沒有絕對的好壞，所以做成設定；預設 `auto` 是因為原本的設計就已經分層 (自動 push 的只有 topic branch，develop 在 developer 下指令後才 push，master 與 tag 一律再確認)
   - source repo 可能有 workspace 以外的人在用，所以可以針對專案設成 `ask` 或 `never`
 

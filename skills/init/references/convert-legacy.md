@@ -203,10 +203,12 @@ In the workspace, on `develop`:
    ```
 
 5. For each draft (`req/REQ-<id>-<slug>` in the old repository, local or remote):
-   - `git checkout -b req/REQ-<id>-<slug> develop` in the workspace.
+   - `git checkout -b <type>/REQ-<id>-<slug> develop` in the workspace, with the
+     `type` of its request file: drafts live on their request branch now.
    - Write its request file from the old branch
      (`git -C <old repo> show req/REQ-<id>-<slug>:reqs/<file>`), with
-     `projects: [<name>]` added after `type:`. Nothing else changes.
+     `projects: [<name>]` added after `type:`, and `project-branch:` after `branch:`.
+     Nothing else changes.
    - Commit `docs(reqs): move draft REQ-<id> from <name>` with `Refs: REQ-<id>`, push
      as allowed, and switch back to `develop`.
 6. The id scan of the workspace now sees every id of the old repository: the files,

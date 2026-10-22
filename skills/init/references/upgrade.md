@@ -121,8 +121,9 @@ Report and offer to fix:
   project's main branch.
 - Project worktrees (`git -C src/<name> worktree list`) whose workspace worktree is
   gone, or whose request is already in `review`.
-- The root checkout is not on `develop`. Say which activity holds it: a `req/*` branch
-  is a spec discussion, a request branch is a review, and a project on a `release/*`
+- The root checkout is not on `develop`. Say which activity holds it: a request branch
+  whose file says `draft` (or a `req/*` branch) is a spec discussion, another request
+  branch is a review, and a project on a `release/*`
   branch is a release.
 - Request files on `develop` with invalid frontmatter or an unknown `status`.
 - Request files on `develop` with `status: done` that are not in `reqs/done/`.

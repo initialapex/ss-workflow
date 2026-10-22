@@ -22,8 +22,8 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`, a workspace branch name, or
 | Release `release/v…` of one project | Into its `main-branch` and `develop-branch`, tagged `v<version>` | `develop` into the main branch, tagged `<name>/v<version>` | [references/release.md](references/release.md) |
 | Hotfix of one project | `hotfix/v…` into its `main-branch` and `develop-branch`, tagged `v<version>` | `hotfix/<name>-v…` into the main branch, tagged `<name>/v<version>`, and into `develop` | [references/hotfix.md](references/hotfix.md) |
 
-`req/*` branches are not merged here. `/ss-workflow:new-req` merges them when the
-developer approves the spec.
+A draft or a `ready` request is not merged here: its spec discussion or its
+implementation is not finished.
 
 ## Ground rules
 
@@ -63,7 +63,7 @@ developer approves the spec.
   show the command, and the developer runs it.
 - Branch names: `<branch>` is the workspace branch of the request, and `<project
   branch>` is the request's `project-branch` in each of its projects. When
-  `project-branch` is missing or empty (a request claimed before ss-workflow 0.8.0),
+  `project-branch` is missing or empty (a request started before ss-workflow 0.8.0),
   the project branch has the name of the workspace branch.
 - Merge commits use these messages, and are exempt from the `<type>(<scope>)` rule.
   In the workspace:
@@ -116,12 +116,12 @@ developer approves the spec.
 
 | Situation | Target |
 |-----------|--------|
-| `$ARGUMENTS` is a `REQ-xxxx` id | The request: its workspace branch (the branch whose name contains `REQ-<id>-` and does not start with `req/`, or the `hotfix/<name>-v*` branch that carries its file), and in each project of its `projects` the project branch that the request file on that workspace branch names |
+| `$ARGUMENTS` is a `REQ-xxxx` id | The request: its workspace branch (the branch whose name contains `REQ-<id>-`, or the `hotfix/<name>-v*` branch that carries its file), and in each project of its `projects` the project branch that the request file on that workspace branch names |
 | `$ARGUMENTS` is a workspace branch name | That branch |
 | `$ARGUMENTS` names a project's `release/v…` branch, or the root checkout's project is on one | That release |
 | The root checkout is on a request or `hotfix/*` branch | That branch |
 | The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 sync" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
-| The root checkout is on a `req/*` branch, or on the main branch | Explain what the root checkout is busy with, and stop. |
+| The root checkout is on a request branch whose file says `draft` (a spec discussion), on a `req/*` branch from before ss-workflow 0.8.0, or on the main branch | Explain what the root checkout is busy with, and stop. |
 
 6. If the root checkout is on another branch than the target and than `develop`, it is
    busy with something else. Say what, and stop.
@@ -230,23 +230,26 @@ Tell the developer, in `discussion-language`:
 
 ## Closing a dropped request
 
-When the developer wants to close a request without merging its code:
+When the developer wants to close an approved request without merging its code (a
+draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
 
 1. Confirm it. Name the branches and the number of commits that will be abandoned, in
    the workspace (`git log develop..<branch> --oneline`) and in each project
    (`git -C <path> log <project develop-ref>..<project branch> --oneline`).
-2. Close the request file on `develop` through a short-lived branch, so that `develop`
-   is only changed by a merge:
-   - `git checkout -b req/REQ-<id>-drop develop`
-   - Take the latest request file from the workspace request branch, if there is one
-     (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept.
+2. Record the closed request on `develop` through a short-lived branch, so that
+   `develop` is only changed by a merge, and the request's other changes (code, docs)
+   stay out:
+   - `git checkout -b drop/REQ-<id> develop`
+   - Take the latest request file from the workspace request branch
+     (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept. A
+     request from before ss-workflow 0.8.0 may have its file on `develop` already.
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.
    - Add the question and the developer's answer to `## Q&A` (stage `review`): that
      the request is dropped, and why.
    - `git mv reqs/<file> reqs/done/<file>`, then commit `chore(reqs): drop REQ-0012`.
      The gitlinks do not change: no project code reaches `develop`.
-   - Merge it into `develop` with `--no-ff`, push, and delete the `req/…-drop` branch.
+   - Merge it into `develop` with `--no-ff`, push, and delete the `drop/REQ-<id>` branch.
 3. Ask separately whether to delete the request branches, because their commits are
    not merged. Only after a clear yes, per branch: `git branch -D <branch>` (in a
    project: `git -C <path> branch -D <project branch>`), and delete the remote branch when

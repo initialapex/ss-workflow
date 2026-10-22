@@ -69,7 +69,7 @@ workspace that was not converted.
 
   | Work | Where | Skill |
   |------|-------|-------|
-  | Spec discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
+  | Spec discussion | Root checkout, on the workspace request branch | `/ss-workflow:new-req` |
   | Implementation | A worktree of the workspace, with a worktree of each project of the request inside it | `/ss-workflow:check-req` |
   | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch in the workspace and in each project | `/ss-workflow:review` |
   | Merge and release | Root checkout | `/ss-workflow:merge`, `/ss-workflow:release` |
@@ -148,7 +148,7 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
   workspace, named after the request (`feat/REQ-0012-gui-button`), and one project
   branch with the same name in each of those projects, named after the change only
   (`feat/gui-button`). The request file records it in `project-branch` when the
-  request is claimed. A request claimed before ss-workflow 0.8.0 has no
+  request is started. A request started before ss-workflow 0.8.0 has no
   `project-branch`: its project branch has the name of its workspace branch. See
   "Branching model".
 - Gitlinks (the commit of each project that the workspace records):
@@ -195,23 +195,22 @@ project has its own `main-branch` and `develop-branch`.
 
 | Branch | Workspace | Project | Name example | Worktree |
 |--------|-----------|---------|--------------|----------|
-| Spec discussion `req/*` | From and into `develop` | (none) | `req/REQ-0012-gui-button` | No |
-| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `<type>/REQ-<id>-<slug>`, from and into `develop` | `<type>/<slug>` (the request's `project-branch`), from and into `develop-branch` | `feat/REQ-0012-gui-button`, `feat/gui-button` | During implementation only, under `.claude/worktrees/` |
+| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `<type>/REQ-<id>-<slug>`, from and into `develop`, from the first draft on | `<type>/<slug>` (the request's `project-branch`), from and into `develop-branch` | `feat/REQ-0012-gui-button`, `feat/gui-button` | During implementation only, under `.claude/worktrees/` |
 | Release | No branch: `develop` is merged into `main-branch` and tagged `<name>/v<version>` | `release/v<version>`, from `develop-branch`, into `main-branch` and `develop-branch`, tagged `v<version>` | `release/v1.0.0-beta1` | No |
-| Hotfix | `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
+| Hotfix | The draft on `hotfix/REQ-<id>-<slug>` from `develop`; once started `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
 
-- A `req/*` branch only changes one request file. It is merged into `develop` when
-  the developer approves the spec.
+- The workspace request branch is created with the draft, and carries the request
+  through the spec discussion, the implementation, and the review. Nothing reaches
+  `develop` before the merge.
 - A project branch is named like any branch of that project: the type and the
   request's slug, `<type>/<slug>`, with no request id. The name must be new in each
   project of the request, locally and on its remote, because other developers create
   branches there from their own workspaces. If it is taken, the developer picks
   another short, descriptive kebab-case name (for example `feat/gui-button-color`).
   The request's `project-branch` records the name.
-- Creating the workspace request branch claims the request. The project branches are
-  created only after the claim commit is accepted, so a lost claim leaves nothing in
-  the projects. When the implementation is finished, the worktrees are removed and
-  the branches are kept for Verify and Review.
+- Starting a request creates its project branches. When the implementation is
+  finished, the worktrees are removed and the branches are kept for Verify and
+  Review.
 - A request is merged project by project, and the workspace last: each project branch
   into its `develop-branch`, then the close commit on the workspace branch with the
   gitlinks of those merge commits, then the workspace branch into `develop`. A run
@@ -251,21 +250,19 @@ them, and the workspace values otherwise.
 
 - **Without a remote**, every step that fetches, pulls, or pushes is skipped in that
   repository, and everything else works as described: the local `develop` stands for
-  `origin/develop`, creating the local branch is the claim, and branches are merged
-  locally.
+  `origin/develop`, and branches are merged locally.
 - **With a remote**, `push-policy` decides what the agent pushes:
 
   | `push-policy` | The agent |
   |---------------|-----------|
-  | `auto` | Pushes the topic branches (`req/*`, request, `hotfix/*`, `release/*`) after every commit, and `develop` after a merge that the developer asked for. |
+  | `auto` | Pushes the topic branches (request, `hotfix/*`, `release/*`) after every commit, and `develop` after a merge that the developer asked for. |
   | `ask` | Commits locally, and asks before the first push in a skill run. A yes covers the rest of that run. A no is treated like `never` for that run. |
   | `never` | Never pushes, and never deletes a remote branch. It still fetches and pulls. |
 
   A missing `push-policy` means `auto`.
 - When a push is skipped, the skill goes on, and its report lists, per repository, the
-  branches and tags that are not on the remote yet. Other machines see a request, a
-  claim, or a status change only after the developer pushes it. Until then, a claim
-  holds in this repository only.
+  branches and tags that are not on the remote yet. Other machines see a request or a
+  status change only after the developer pushes it.
 - A merge request needs its branch on the remote. If the branch is not pushed, the
   skill stops before it opens the merge request, and says which branch to push.
 - These rules hold for every value of `push-policy`:

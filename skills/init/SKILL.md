@@ -197,7 +197,7 @@ developer can run them, and do not handwrite the JSON.
 - A project whose `develop` branch was created by init needs it pushed too, as that
   project's `push-policy` allows. Ask first.
 - If the workspace has no remote, say that the workflow works completely without one:
-  a local branch is the claim, and branches are merged locally. A remote is only
+  requests live on local branches, and branches are merged locally. A remote is only
   needed to share the work between machines, and it can be added later. Teammates
   can only clone the workspace with its projects when every project has a URL that
   they can reach.

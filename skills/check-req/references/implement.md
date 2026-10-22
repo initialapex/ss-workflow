@@ -71,7 +71,7 @@ anything.
 - The request needs a project that is not in its `projects`: stop and ask. If the
   developer agrees, add it to `projects` (record it in `## Q&A`), check that the
   request's `project-branch` is free in that project as Step 5.1 of `SKILL.md` does,
-  and create its branch and worktree as Step 5.5 does, replacing the detached one.
+  and create its branch and worktree as Step 5.4 does, replacing the detached one.
 - If the request was reopened by a review, the feedback is in `## Notes`. Address every
   point of it.
 - Commit often, in the project where the change is. One commit holds one reason for
@@ -231,8 +231,8 @@ from the workspace main branch, and the project branch `hotfix/v<version>` from 
 project's main branch. The other projects are detached at the workspace main branch's
 gitlinks, which are their latest releases.
 
-- The claim commit copies the request file from `develop` onto the workspace hotfix
-  branch. After that, the file is handled like any other request file: its status and
+- The start commit copies the request file from its draft branch onto the workspace
+  hotfix branch, and the draft branch is deleted. After that, the file is handled like any other request file: its status and
   its notes are committed on the workspace hotfix branch.
 - Set the hotfix version in the project's `version-source` on the project hotfix
   branch as its own commit: `chore(release): bump version to <version>`. Skip this if

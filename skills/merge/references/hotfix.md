@@ -9,8 +9,9 @@ A hotfix belongs to one project, named in the request's `projects`.
 
 All of this runs in the root checkout. The hotfix worktrees were removed when the
 implementation was finished. The request file was copied onto the workspace hotfix
-branch by the claim commit, so that branch carries its own copy, and `develop` still
-holds the original copy with `status: ready`.
+branch by the start commit, so that branch carries its only copy. A hotfix started
+before ss-workflow 0.8.0 also left an old copy in `reqs/` on `develop`, with
+`status: ready`.
 
 The project goes first, the workspace last, as for a request.
 
@@ -134,15 +135,15 @@ and the project tag exists.
    The project's gitlink on the main branch is now the hotfix release; the other
    projects keep their releases. Check it: `git rev-parse <main branch>:<path>` equals
    `git -C <path> rev-parse v<version>^{commit}`.
-3. `develop`. Do not let git commit this merge by itself: the old copy of the request
-   file has to go, and the gitlink has to point to the project's develop branch, in the
-   same commit:
+3. `develop`. Do not let git commit this merge by itself: the gitlink has to point to
+   the project's develop branch, and an old copy of the request file (from before
+   0.8.0) has to go, in the same commit:
 
    ```bash
    git checkout develop
    git pull --ff-only                      # with a remote
    git merge --no-ff --no-commit hotfix/<name>-v<version>
-   git rm reqs/<file>                      # the old copy that still says "ready"
+   git rm reqs/<file>                      # only if develop has an old copy that says "ready"
    git update-index --cacheinfo 160000,<sha of the project's develop branch>,<path>
    git commit -m "Merge hotfix/<name>-v<version> into develop" -m "Hotfix <name> v<version>" -m "Refs: REQ-0012"
    git submodule update
