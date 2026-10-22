@@ -191,10 +191,13 @@ ss-workflow/
 
 - 舊 repo 變成 source repo: 保留 remote、全部歷史與既有的版本 tag，不改寫歷史
 - 前提 (不符合時停止並列出清單，請 developer 先完成或放棄): 沒有 `in-progress` / `review` / merge pending 的 request、沒有 `release/*` / `hotfix/*` branch、沒有 worktree；draft (`req/` branch) 與 `ready` 的 request 會帶到 workspace
-- source repo 回到 toolchain 原本的結構 (e.g. Visual Studio 的 `SSDisp.sln`、`SSDisp/`、`SSDisp.Test/`、`SSDisp.Sample/` 在同一層)
+- source repo 回到 toolchain 原本的結構，轉換後 `projects/<name>/` 底下就是 toolchain 預設的樣子，不再包一層 `src/`
+  - Visual Studio 的目標固定: `.sln` 在 repo 根目錄，每個專案資料夾 (source / test / sample) 都在它旁邊 (e.g. `SSDisp.sln`、`SSDisp/`、`SSDisp.Test/`、`SSDisp.Sample/` 在同一層)；`src/`、`tests/`、`samples/` 不再存在，`src/` 裡的 `Directory.Build.props` 等共用設定也搬到根目錄
+  - 其他 toolchain (Keil、CMake、自訂) 依各自的慣例；原本就符合時不搬
   - AI 依 toolchain 提出搬移表，developer 確認後以 `git mv` 搬移，修正專案檔 / solution 內的相對路徑並確認 build
-  - `tests/`、`samples/` 內的每個專案逐一詢問: 合併進 source (搬到 toolchain 的位置) 或刪除 (歷史中仍找得回)
-  - `external/` 預設原地保留 (build 會參照它)，搬移表中可以改
+  - `tests/`、`samples/` 內的每個專案逐一詢問: 預設保留 (搬到 toolchain 的位置)，或刪除 (歷史中仍找得回)
+  - 第三方資料夾 (`external/` 等) 逐一詢問: 留在 source repo (預設) / 搬到 workspace 的 `projects/` 成為獨立的專案 (以 `git subtree split` 保留歷史，建立新 repo 後加入為 submodule，路徑改為 `..\..\external\`) / 移除 / 其他
+  - 由 0.6.0 ~ 0.9.0 轉換、仍留有 `src/` 等外層資料夾的 workspace，升級到 0.9.1 時由 migration 修正: 檢查 `legacy-project`，developer 同意後在該專案的 develop 搬移，並更新 workspace `develop` 的 gitlink
 - 從 source repo 移除工作流的檔案 (`reqs/`、ss-workflow 產生的 `AGENTS.md` / `CLAUDE.md`、plugin 註冊的 `.claude/settings.json`、`.gitignore` 的 ss-workflow 區段)；developer 寫在這些檔案 managed 區段以外的內容搬到 workspace
 - 舊的 `docs/`: 逐一檔案詢問，預設搬到 workspace 的 `docs/<name>/` (舊的 `docs/<slug>-spec.md` 變成 `docs/<name>/spec.md`)；developer 可以指定哪些是產品文件 (e.g. 使用者手冊、API 文件)，留在 source repo
 - README 是產品文件，留在 source repo (只修正指向已移除檔案的連結)；workspace 由範本產生新的 README

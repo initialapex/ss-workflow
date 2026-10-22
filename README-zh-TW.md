@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-blue">
+  <img alt="Version 0.9.1" src="https://img.shields.io/badge/version-0.9.1-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.9.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.9.1，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -201,7 +201,7 @@ SSDisp-workspace/
 init 不會寫入專案的任何檔案。專案的測試、sample 與第三方檔案，都依它的 toolchain 放在原本的位置。
 
 > [!IMPORTANT]
-> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。
+> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構：Visual Studio 是 solution 在根目錄、各專案資料夾都在它旁邊，不再有 `src/`、`tests/`、`samples/`；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
 
 ## 專案形式
 

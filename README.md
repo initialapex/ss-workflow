@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-blue">
+  <img alt="Version 0.9.1" src="https://img.shields.io/badge/version-0.9.1-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -47,7 +47,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.9.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.9.1, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -275,8 +275,11 @@ stay where their toolchain puts them.
 > Repositories set up by ss-workflow 0.5.0 or older kept the code and the requests in
 > one repository. Running `/ss-workflow:init` there converts it: the old repository
 > becomes the project repository, with its remote, history, and tags, and goes back to
-> the layout of its toolchain. A new workspace next to it takes the requests, the
-> drafts, and the docs. No request, release, or hotfix may be in progress.
+> the layout of its toolchain: for Visual Studio, the solution at the root and every
+> project folder next to it, with no `src/`, `tests/`, or `samples/` left. A new
+> workspace next to it takes the requests, the drafts, and the docs. No request,
+> release, or hotfix may be in progress. A workspace converted by 0.6.0 to 0.9.0 that
+> still has those folders inside its project is repaired by the upgrade to 0.9.1.
 
 ## Project types
 
