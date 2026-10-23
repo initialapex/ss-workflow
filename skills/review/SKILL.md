@@ -7,8 +7,10 @@ argument-hint: "[REQ-id]"
 # review
 
 Verify and review one request in the root checkout of the workspace, on its request
-branches: the workspace request branch, and the branch of the same name in each
-project of the request (for a hotfix, `hotfix/v<version>` in its project).
+branches: the workspace request branch, and the request's `project-branch` in each
+project of the request (for a hotfix, `hotfix/v<version>` in its project). A request
+started before ss-workflow 0.8.0 has no `project-branch`: its project branches have
+the name of the workspace branch.
 
 - **Verify**: you run the build, the test projects, and the verification scripts.
 - **Code review** (optional): if the developer wants it, the `code-review` skill reads
@@ -25,10 +27,14 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
   projects", "Commit convention"), `reqs/AGENTS.md`, and the sections of the
-  request's projects in `src/AGENTS.md` first. They are the source of truth.
-- Code is committed in the projects, on their request branches, with
-  `Refs: <workspace-name>#REQ-xxxx`. The workspace request branch gets the request
-  file and the gitlinks, with `Refs: REQ-xxxx`.
+  request's projects in `projects/AGENTS.md` first. They are the source of truth.
+- Code is committed in the projects, on their project branches, as commits written
+  for the project's own history: no request id, no workspace name, and no `Refs:`
+  footer that points to the workspace. The workspace request branch gets the request
+  file and the gitlinks, and the request's changes to workspace files (docs, README
+  files, agent files outside their managed blocks), with `Refs: REQ-xxxx`.
+- Changes to workspace files are not built, tested, or code-reviewed. The developer
+  reads each of them in the Review (Step 6).
 - Talk to the developer in `discussion-language`.
 - This skill runs in the root checkout, not in a worktree. Tests, scripts, and
   executables run here, not in worktrees.
@@ -90,13 +96,15 @@ the list holds other changes only. If the output is then empty, go on. Otherwise
 | Decision | Action |
 |----------|--------|
 | It belongs to the request | Commit it (step 3). This includes new files: a source file that is not tracked breaks the build for everyone else. |
-| It is a generated or local file | Add a pattern for it to the `.gitignore` of the repository where it is (the project's own `.gitignore` for a file in a project), and commit that as `chore: ignore <what>`, with the `Refs:` footer of that repository. In a project of the request, this is a change of the request, on its project branch. |
+| It is a generated or local file | Add a pattern for it to the `.gitignore` of the repository where it is (the project's own `.gitignore` for a file in a project), and commit that as `chore: ignore <what>` (in the workspace with its `Refs:` footer, in a project without one). In a project of the request, this is a change of the request, on its project branch. |
 | It is not wanted | Discard it: `git restore <path>` for a tracked file, and delete an untracked one. Do this only after the developer confirms, because it cannot be undone. |
 | Keep it uncommitted for now | The developer is still trying something. This is allowed only while the review stays open (see below). |
 
 3. Commit what belongs to the request as a normal commit in the repository where it
-   is: `fix: …` or the type that fits, with `Refs: <workspace-name>#REQ-xxxx` in a
-   project. If the diff does not tell you what a change by the developer is for, ask.
+   is: `fix: …` or the type that fits, described in the project's terms and without
+   a `Refs:` footer in a project. A change to a workspace file is committed on the workspace request
+   branch, with `Refs: REQ-xxxx`, separately from the request file. If the diff does
+   not tell you what a change by the developer is for, ask.
    Stage with `git add -A` when no entry is kept uncommitted. Otherwise, stage the
    paths by name. Push. A change in a project that is not part of the request does
    not belong to it: ask whether to add the project to `projects` (record it in
@@ -133,8 +141,9 @@ While changes are kept uncommitted:
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them; for a project, its own status and branch tell what it is (a project on a `release/*` branch means that a release is open). Choose the request (below), then continue with Step 2. |
 | A request or `hotfix/*` branch whose request file says `review` | A review is open here. If `$ARGUMENTS` is empty or names this request, check for uncommitted changes (see "Uncommitted changes"), and continue the review at Step 3. Otherwise, say that the root checkout is busy with this review, and ask whether to pause it first. To pause: commit and push the notes and the gitlinks, check that there are no uncommitted changes, and run `git checkout develop` and `git submodule update`. |
+| A request branch whose request file says `draft`, or a `req/*` branch from before ss-workflow 0.8.0 | The root checkout is busy with a spec discussion. Say which one, and stop. |
 | A request or `hotfix/*` branch whose request file says anything else | The workflow does not define this state. Continue with "Undefined state" below. |
-| Any other branch | The root checkout is busy: a `req/*` branch means a spec discussion. Say which one, and stop. |
+| Any other branch | The root checkout is busy. Say with what, and stop. |
 
 Undefined state: the root checkout is on a request branch, and the request file there
 (in `reqs/` or `reqs/done/`) does not say `review`. A step that should have switched
@@ -146,7 +155,7 @@ hand.
    - the branch, the request, and the status in its file
    - the likely cause: `in-progress` means that a review sent the request back for
      rework; `done` means that a merge stopped after it closed the request, or that
-     the merge is pending on the remote; `ready` means that a claim was interrupted
+     the merge is pending on the remote; `ready` means that a start was interrupted, or that the root checkout was switched to the branch by hand
    - the commits that the branches have and their bases do not
      (`git log <base>..HEAD --oneline` in the workspace, and the same in each project
      on its project branch), and the output of `git status --porcelain` in the
@@ -234,9 +243,15 @@ Then check two things that the implementation owes:
 If a `## Q&A` entry is pending, ask the developer that question before the Review
 starts, and complete the entry.
 
+Then list the workspace files that the request changes: `git diff --name-only
+<base>...HEAD` in the workspace, without the request file and the gitlinks. A change
+to a managed block, to `ss-workflow-version`, to `.gitmodules`, or to a `projects`
+entry does not belong to a request: show it, and ask whether to undo it on this
+branch.
+
 Show the developer a short overview: the request, the change per project
-(`git -C <path> diff <base>...HEAD --stat`), the agent behavior files that it
-changes, and the plan for Verify and Review.
+(`git -C <path> diff <base>...HEAD --stat`), the workspace files that it changes, the
+agent behavior files that it changes, and the plan for Verify and Review.
 
 ## Step 4: Verify
 
@@ -254,11 +269,16 @@ of each:
 
 The first four commands come from the project's entry in `projects` ("Workflow
 settings" in the root `AGENTS.md`), and they depend on the project's toolchain. Read
-"Toolchain" in the project's section of `src/AGENTS.md` for how to find and run the
+"Toolchain" in the project's section of `projects/AGENTS.md` for how to find and run the
 tools. A command that is empty is skipped and recorded as "not configured". Do not
 invent a command for it. If neither a build command nor a test command is configured
 for any project of the request, say clearly that Verify checked nothing
 automatically, and that the Review has to cover everything.
+
+A request with `projects: []` has no project to verify. Record
+`- Workspace files only: nothing to run`, say that Verify checked nothing
+automatically, and continue with the Review. Skip the code review (Step 5) too, and
+record it as `- Not applicable (workspace files only)`.
 
 When a project of the request is used by another one (SSDisp builds against SSLib),
 run the dependent project's checks too: they show whether the projects fit together
@@ -271,7 +291,7 @@ If a check fails:
 
 | Kind of problem | Action |
 |-----------------|--------|
-| Small: a localized fix that changes neither the design nor the spec | Fix it here, on the project branch. Commit it in the project as a normal commit (`fix: …`, with `Refs: <workspace-name>#REQ-xxxx`) and push. Run the failed check again, and then all checks once more at the end. |
+| Small: a localized fix that changes neither the design nor the spec | Fix it here, on the project branch. Commit it in the project as a normal commit (`fix: …`, without a `Refs:` footer) and push. Run the failed check again, and then all checks once more at the end. |
 | Large: the approach is wrong, a part is missing, or the fix needs a spec decision | Do not fix it here. Show the developer what failed, and propose to send the request back (Step 7, "Rework needed"). |
 | Caused by the environment, not by the request (a missing tool, a flaky test that also fails on `develop`) | Report it as such, with what shows that the request is not the cause. Ask the developer how to treat it, and record the question and the answer in `## Q&A`. The check stays `failed` or `did not run` in the record, with the cause. It is never recorded as passed. |
 
@@ -320,9 +340,10 @@ or the Review, and it ticks no acceptance criteria.
 3. Check for uncommitted changes (see "Uncommitted changes"). The code review reads
    commits only, so a change that is not committed is not reviewed.
 4. The code review runs once per project of the request, in the project folder,
-   because the code is there. The workspace branch only holds the request file and
-   needs none. The scope is `<base>...<branch>`: three dots, so that only the changes
-   of this request are read, and not what the project's develop branch gained in the
+   because the code is there. The workspace branch needs none: its changes to
+   workspace files are read by the developer in the Review (Step 6). The scope is
+   `<base>...<project branch>`: three dots, so that only the changes of this request are
+   read, and not what the project's develop branch gained in the
    meantime. `<base>` is the ref that Step 2 merged from in that project:
    `origin/<develop-branch>` with a remote, the local branch without one, and the
    main branch in the same way for a hotfix. Do not run the code review without a
@@ -330,12 +351,12 @@ or the Review, and it ticks no acceptance criteria.
    workflow the commits are normally pushed already.
 5. Invoke the `code-review` skill with that scope as its argument, with the project
    folder as the working directory, for example
-   `origin/develop...feat/REQ-0012-gui-button` in `src/SSDisp`. Do not pass `--fix` or
+   `origin/develop...feat/gui-button` in `projects/SSDisp`. Do not pass `--fix` or
    `--comment`: fixes are made by the rules below. The code review may run in the
    background. Wait for its findings before you go on.
 6. If you cannot invoke it, do not read the diff yourself and call that a code review.
    Say that it is not available, show the command that the developer can type in the
-   project folder (`/code-review <base>...<branch>`), and record `- Not available` as
+   project folder (`/code-review <base>...<project branch>`), and record `- Not available` as
    in step 2.
 7. Never start the cloud review (`ultra`) yourself. If the developer wants it, show
    the command for them to type in the project folder: `/code-review ultra
@@ -346,7 +367,7 @@ or the Review, and it ticks no acceptance criteria.
 
 | Kind of finding | Action |
 |-----------------|--------|
-| A real problem with a small, localized fix | Fix it here, on the project branch. Commit it in the project as a normal commit (`fix: …`, with `Refs: <workspace-name>#REQ-xxxx`) and push. |
+| A real problem with a small, localized fix | Fix it here, on the project branch. Commit it in the project as a normal commit (`fix: …`, without a `Refs:` footer) and push. |
 | A real problem that needs a large change or a spec decision | Do not fix it here. Propose to send the request back (Step 7, "Rework needed"). |
 | A problem in code that this request did not change | Leave the code alone. Record it as a follow-up, and suggest `/ss-workflow:new-req` for it. |
 | Not a problem, or you are not sure | Say why, and let the developer decide. Do not drop a finding silently. |
@@ -355,7 +376,7 @@ or the Review, and it ticks no acceptance criteria.
 
    ```markdown
    ### Code review (yyyy-MM-dd)
-   - Scope: SSDisp origin/develop...feat/REQ-0012-gui-button
+   - Scope: SSDisp origin/develop...feat/gui-button
    - Findings: 3
    - Fixed: <commits, or "none">
    - Not fixed: <finding and reason, or "none">
@@ -377,6 +398,10 @@ Guide the developer through the manual check:
    - every item under `### Behavior changes`: show the developer the diff of the file
      and the "Before" and "After" text, and ask whether this is the behavior they
      want. If the text does not match the diff, correct the text first.
+   - every other workspace file that the request changes (Step 3), such as a spec in
+     `docs/<name>/`: show the diff, and ask whether it is right and whether it
+     matches what the code now does. Also say when the request changes the behavior
+     of a project, and its docs in `docs/<name>/` did not change.
    - every `Assumption` in `## Notes`: ask whether it still holds
    - every check that Verify recorded as `failed` or `did not run`: the developer has
      to know about it before they decide
@@ -393,7 +418,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the project branches, with normal commits in the projects, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review` with the gitlinks, and push. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`), so that the project branches are free for the worktrees. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far, with the gitlinks. Leave the root checkout and its projects on the request branches, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |

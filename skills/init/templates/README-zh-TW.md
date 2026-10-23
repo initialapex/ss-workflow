@@ -1,7 +1,7 @@
-<h1 align="center">{{PROJECT_NAME}}</h1>
+<h1 align="center">{{WORKSPACE_NAME}}</h1>
 
 <p align="center">
-  {{PROJECT_DESCRIPTION}}
+  {{WORKSPACE_DESCRIPTION}}
 </p>
 
 <!-- 徽章：workspace 本身沒有版本號，各專案的版本與徽章在各自的 repo。workspace 的徽章
@@ -30,10 +30,10 @@
 
 ## 專案
 
-每個專案都是 `src/` 底下的 git submodule，有自己的 repo、版本與 README。
+每個專案都是 `projects/` 底下的 git submodule，有自己的 repo、版本與 README。
 
-| 專案 | 路徑 | Repo | 說明 |
-|------|------|------|------|
+| 專案 | 路徑 | Repo | 規格 | 說明 |
+|------|------|------|------|------|
 {{PROJECT_ROWS}}
 
 ## 開始使用
@@ -49,7 +49,8 @@ git clone --recurse-submodules <workspace URL>
 
 ## 文件
 
-- 規格：[docs/{{PROJECT_SLUG}}-spec.md](docs/{{PROJECT_SLUG}}-spec.md)
+- Workspace 總覽：[docs/overview.md](docs/overview.md)
+- 各專案的規格：`docs/<專案>/spec.md`，連結在[專案](#專案)
 - Request：[reqs/](reqs/)
 
 ## 參與開發

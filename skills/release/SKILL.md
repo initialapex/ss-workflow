@@ -18,7 +18,7 @@ recommendation.
 |-------|--------------|
 | The workspace on `develop`, root checkout, and the project at its gitlink | Start a release: Steps 1 to 4, then continue with Step 5 |
 | The workspace on `develop`, root checkout, and the project on a `release/*` branch | Continue that release from Step 5 |
-| Anywhere else | The root checkout is busy with something else (a `req/*` branch means a spec discussion, a request branch means a review), or this is a worktree. Say which, and stop. |
+| Anywhere else | The root checkout is busy with something else (a request branch whose file says `draft` means a spec discussion, another request branch means a review), or this is a worktree. Say which, and stop. |
 
 Supporting file:
 
@@ -29,7 +29,7 @@ Supporting file:
 
 - Read the root `AGENTS.md` ("Workflow settings", "Workspace and projects",
   "Branching model", "Versioning", "Commit convention"), `reqs/AGENTS.md`, and the
-  project's section in `src/AGENTS.md` first. They are the source of truth.
+  project's section in `projects/AGENTS.md` first. They are the source of truth.
 - Talk to the developer in `discussion-language`.
 - A release has no worktree. Everything runs in the root checkout: the workspace stays
   on `develop`, and the project in it switches to the release branch. If this session
@@ -39,8 +39,8 @@ Supporting file:
   one after the other.
 - A release branch takes only release work: the version number, release notes, and
   fixes for problems that block the release. New features go through requests.
-- Release commits are made in the project, with no `Refs:` footer unless a fix belongs
-  to a request.
+- Release commits are made in the project. Like every project commit, they carry no
+  request id, no workspace name, and no `Refs:` footer that points to the workspace.
 - Never force-push. Never rebase a pushed branch.
 - **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`, for the project
   with its entry's `push-policy` (the workspace value when the entry leaves it empty).
@@ -87,12 +87,22 @@ Summarize the changes since the last tag:
   the files added to `reqs/done/` (`git diff --name-only --diff-filter=A
   <name>/v<last>..develop -- reqs/done/`, or since the start when there is no such
   tag), whose `projects` contains the project. A request without `projects` is from
-  before the workspace layout, and belongs to the one project that it had. Show each
-  with its id, title, and type.
+  before the workspace layout, and belongs to `legacy-project` in "Workflow
+  settings". A request with `projects: []` changed workspace files only, and belongs
+  to no release. Show each with its id, title, and type.
 - The project commits by type (`feat`, `fix`, …), and every commit that has
   `BREAKING CHANGE:` in its body or `!` after its type
-- Project commits without a `Refs:` footer: changes made outside the workspace. Show
-  them, because no request describes them.
+- Project changes made outside this workspace: by people who work on the project
+  without it, or from another developer's own workspace. Project commits carry no
+  request id, so find them through the requests: each closed request above names its
+  project merge commits in the `Merged into develop` line of its `## Notes`
+  (`<name> <short sha>`). On the first-parent line of the project's develop branch
+  since the last tag (`git -C <path> log --first-parent --oneline <last
+  tag>..<project develop-ref>`), every commit that is not one of those merge commits
+  came from outside this workspace. For a closed request without that line (closed
+  by hand), match the merge whose subject names its `project-branch`. Show these
+  changes, because no request of this workspace describes them. They count for the
+  version and the changelog like the requests.
 
 ## Step 3: Choose the version
 
@@ -134,10 +144,9 @@ Step 4, there is nothing to do here.
 
 Collect the following, for this project only:
 
-- The requests in `reqs/` (not `reqs/done/`) whose `projects` contains the project,
-  with their effective status. Read the status of a claimed request from its
-  workspace request branch, as `/ss-workflow:check-req` does in its overview.
-- The drafts: the `req/*` branches whose request names the project
+- The open requests whose `projects` contains the project, with their effective
+  status: those on request branches, and those in `reqs/` on `develop` from before
+  ss-workflow 0.8.0. Collect them as `/ss-workflow:check-req` does in its overview.
 - The worktrees of the project (`git -C <path> worktree list`), other than the root
   checkout's submodule
 - Open hotfixes of the project: `hotfix/*` branches in the project
@@ -147,7 +156,7 @@ Sort them into two groups:
 | Group | Requests |
 |-------|----------|
 | Unfinished | `in-progress` (being implemented in a worktree, or reopened), `review` (waiting for or under Verify and Review), and merge pending |
-| Not started | Drafts on `req/*` branches, and `ready` requests |
+| Not started | Drafts and `ready` requests |
 
 If the "Unfinished" group is empty and there is no open hotfix, continue with Step 7.
 Mention the "Not started" requests only as information: they do not block a release.

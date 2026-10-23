@@ -34,7 +34,8 @@ open-request check). This guide only merges it.
 6. Show the developer what will be released: the project and the version, the number
    of project commits (`git -C <path> log <main-branch>..HEAD --oneline`), and the
    requests of this project closed since the last workspace tag of the project (files
-   added to `reqs/done/` since `<name>/v*`, whose `projects` contains the project).
+   added to `reqs/done/` since `<name>/v*`, whose `projects` contains the project, or
+   that have no `projects` while the project is `legacy-project`).
    Ask for a go-ahead.
 
 ## Merge the project
@@ -98,8 +99,9 @@ By the project's merge method (Step 3 of the skill).
    may not push it, stop here, and say which branch the developer has to push.
 2. Create the merge request from `release/v<version>` into the project's main branch,
    in the project folder, with the title `Release v<version>` and a body that lists
-   the requests of this project closed since its last release, as
-   `<workspace-name>#REQ-xxxx` with their titles.
+   the changes of this version, grouped by type, one line each in English. Describe
+   each change in the project's terms, with no request id and no workspace name (see
+   "Workspace and projects" in the root `AGENTS.md`).
 3. Give the developer the URL. Tell them to use a merge commit, not a squash merge.
    Switch the project back to its gitlink (`git submodule update <path>`), and stop.
    The developer runs `/ss-workflow:merge <name> release/v<version>` again after it is
@@ -124,6 +126,14 @@ branch, and the project tag exists.
    <path>`. If the gitlink changed, commit `chore(release): update <name> to
    v<version>`. If the release had no commit of its own, the develop branch did not
    move, and nothing changes: no commit.
+
+   Then the workspace docs that state the project's current version: search
+   `docs/<name>/` and `docs/overview.md` for the previous version (from the last
+   `<name>/v*` tag), as "Documentation" in the release skill's
+   `references/version.md` describes. Show the hits, and change the ones that the
+   developer agrees to, on `develop` and before step 2, so that the workspace main
+   branch shows the released version too. Commit `docs(<name>): update the version
+   to v<version>`. No hit, or no agreement: no commit.
 2. Merge `develop` into the workspace main branch, with every project at its latest
    release:
 

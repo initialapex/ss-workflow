@@ -112,13 +112,18 @@ Report and offer to fix:
 - The entries of `projects` and the submodules of `.gitmodules` differ: a project
   without a submodule, a submodule without an entry, or a `path` that does not match.
 - A submodule that is not initialized (`git submodule status` starts with `-`).
+- A project without `docs/<name>/spec.md`, or a missing `docs/overview.md`: offer to
+  create it from its template.
+- Request files without `projects` while `legacy-project` is empty, or names a
+  project that is not in `projects`.
 - A gitlink of `develop` that is behind its project's develop branch (see "Workspace
   and projects" in root `AGENTS.md`), and a gitlink of the main branch that is not its
   project's main branch.
-- Project worktrees (`git -C src/<name> worktree list`) whose workspace worktree is
+- Project worktrees (`git -C projects/<name> worktree list`) whose workspace worktree is
   gone, or whose request is already in `review`.
-- The root checkout is not on `develop`. Say which activity holds it: a `req/*` branch
-  is a spec discussion, a request branch is a review, and a project on a `release/*`
+- The root checkout is not on `develop`. Say which activity holds it: a request branch
+  whose file says `draft` (or a `req/*` branch) is a spec discussion, another request
+  branch is a review, and a project on a `release/*`
   branch is a release.
 - Request files on `develop` with invalid frontmatter or an unknown `status`.
 - Request files on `develop` with `status: done` that are not in `reqs/done/`.

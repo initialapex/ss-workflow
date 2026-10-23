@@ -1,6 +1,6 @@
-# {{PROJECT_NAME}}
+# {{WORKSPACE_NAME}}
 
-{{PROJECT_DESCRIPTION}}
+{{WORKSPACE_DESCRIPTION}}
 
 ## Workflow settings
 
@@ -10,7 +10,7 @@ below; edit them here when they change.
 ```yaml
 ss-workflow-version: {{SS_WORKFLOW_VERSION}}
 initialized: {{INIT_DATE}}
-workspace-name: {{PROJECT_NAME}}
+workspace-name: {{WORKSPACE_NAME}}
 discussion-language: {{DISCUSSION_LANG}}
 readme-languages: {{README_LANGS}}
 agent-doc-language: {{AGENT_DOC_LANG}}
@@ -22,6 +22,7 @@ remote-cli: {{REMOTE_CLI}}
 merge-method: {{MERGE_METHOD}}
 push-policy: {{PUSH_POLICY}}
 agent-files:
+legacy-project: {{LEGACY_PROJECT}}
 projects:{{PROJECTS}}
 ```
 
@@ -34,7 +35,7 @@ every entry has these keys:
 | Key | Meaning | When it is empty |
 |-----|---------|------------------|
 | `name` | The project name, used in branch and tag names (`<name>/v1.2.0`) | Required |
-| `path` | The submodule path, `src/<name>` | Required |
+| `path` | The submodule path, `projects/<name>` | Required |
 | `main-branch`, `develop-branch` | The project's long-lived branches | Required |
 | `project-type` | The project type and toolchain, in the developer's words | Required |
 | `project-kind` | `library` or `application` | Required |
@@ -49,8 +50,11 @@ every entry has these keys:
 The commands run in the project folder (`path`). `push-policy` (`auto`, `ask`, or
 `never`) is explained in "Remote and pushing". `agent-files` lists extra paths, as glob
 patterns separated by commas, whose files tell an agent how to behave, for example
-prompt files that a product ships (`src/<name>/...`). It adds to the built-in list in
-"Working agreement", and it may stay empty.
+prompt files that a product ships (`projects/<name>/...`). It adds to the built-in list in
+"Working agreement", and it may stay empty. `legacy-project` names the project that
+this workspace was converted from (the single-repository layout of ss-workflow 0.5.0
+and older): a request file without `projects` belongs to it. It is empty in a
+workspace that was not converted.
 
 <!-- ss-workflow:managed id=working-agreement -->
 ## Working agreement
@@ -65,7 +69,7 @@ prompt files that a product ships (`src/<name>/...`). It adds to the built-in li
 
   | Work | Where | Skill |
   |------|-------|-------|
-  | Spec discussion | Root checkout, on a `req/REQ-…` branch | `/ss-workflow:new-req` |
+  | Spec discussion | Root checkout, on the workspace request branch | `/ss-workflow:new-req` |
   | Implementation | A worktree of the workspace, with a worktree of each project of the request inside it | `/ss-workflow:check-req` |
   | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch in the workspace and in each project | `/ss-workflow:review` |
   | Merge and release | Root checkout | `/ss-workflow:merge`, `/ss-workflow:release` |
@@ -80,7 +84,7 @@ prompt files that a product ships (`src/<name>/...`). It adds to the built-in li
   if the worktree needs it, then its `build-command`. Do not run tests, scripts, or
   executables there. If a command is empty or cannot run in the worktree, note that in
   the request and leave it to Verify.
-- Follow the section `## Project: <name>` in `src/AGENTS.md` for each project that you
+- Follow the section `## Project: <name>` in `projects/AGENTS.md` for each project that you
   change, and the project's own `AGENTS.md`, `CLAUDE.md`, and README, if it has them.
   They hold what is specific to that project's toolchain.
 - Report results as they are. Every report to the developer and every result written
@@ -103,8 +107,9 @@ prompt files that a product ships (`src/<name>/...`). It adds to the built-in li
 | Path | Purpose | Rules |
 |------|---------|-------|
 | `reqs/` | Requests: one Markdown file per request; finished requests live in `reqs/done/` | `reqs/AGENTS.md` |
-| `docs/` | Project specs, developer-readable docs, knowledge base | Write for humans in `docs-language` |
-| `src/<name>/` | One git submodule per entry in `projects`, in the project's own layout | `src/AGENTS.md` |
+| `docs/overview.md` | What the projects do together, how they depend on each other, shared terms | Write for humans in `docs-language` |
+| `docs/<name>/` | The spec of one project (`spec.md`), and its other developer docs and knowledge base | Write for humans in `docs-language` |
+| `projects/<name>/` | One git submodule per entry in `projects`, in the project's own layout | `projects/AGENTS.md` |
 
 <!-- ss-workflow:managed id=workspace -->
 ## Workspace and projects
@@ -115,12 +120,37 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
 - A project repository only receives implementation commits: code, tests, and
   version numbers. Request files, spec discussions, and review results are committed
   in the workspace only.
+- The project's history carries nothing of the workspace. Its branch names, commit
+  messages, merge commits, tags, merge requests, and files (a changelog, for example)
+  never contain a request id, the workspace name, a `Refs:` footer that points to the
+  workspace, or a path of a workspace file. They describe the change in the project's
+  own terms, as any contributor of that project would. Each developer may keep a
+  workspace of their own for the same projects, so a request id means something in
+  one workspace only. The link goes the other way: the request file records its
+  project branch, and the workspace's gitlinks record the project commits.
+- Docs: `docs/overview.md` describes the workspace as a whole, and `docs/<name>/`
+  holds the docs of one project, with its spec in `docs/<name>/spec.md`. The folder
+  name is the project's `name`.
+- A request may also change workspace files: the docs, the README files,
+  `.gitignore`, and the text of the agent files outside their
+  `ss-workflow:managed` blocks (for example "Project notes", a `## Project: <name>`
+  section, or a value in "Workflow settings"). These changes are commits on the
+  workspace request branch. Managed blocks and `ss-workflow-version` are changed only
+  by an ss-workflow upgrade, and `.gitmodules` and the `projects` entries only by
+  `/ss-workflow:init --add`.
+- A request whose `projects` is `[]` changes workspace files only. It has no project
+  branches, and Verify has no command to run for it: the developer checks all of it
+  in the Review.
 - Init writes nothing into a project repository. The workflow's rules for a project
-  live in `src/AGENTS.md`. If the project's `.gitignore` misses build output, report
+  live in `projects/AGENTS.md`. If the project's `.gitignore` misses build output, report
   it and suggest a request; do not change it outside a request.
-- A request names its projects in `projects`. Its branch has the same name in the
-  workspace and in each of those projects (a hotfix is the exception, see "Branching
-  model").
+- A request names the projects that it changes in `projects`. It has a branch in the
+  workspace, named after the request (`feat/REQ-0012-gui-button`), and one project
+  branch with the same name in each of those projects, named after the change only
+  (`feat/gui-button`). The request file records it in `project-branch` when the
+  request is started. A request started before ss-workflow 0.8.0 has no
+  `project-branch`: its project branch has the name of its workspace branch. See
+  "Branching model".
 - Gitlinks (the commit of each project that the workspace records):
   - `develop` records each project's `develop-branch`; `main-branch` records each
     project's `main-branch`, that is, its latest release.
@@ -136,9 +166,9 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
   - The workspace worktree: `git worktree add --no-track -b <branch>
     .claude/worktrees/<branch with "/" replaced by "-"> <develop-ref>`.
   - Each project of the request, inside it:
-    `git -C <root>/<path> worktree add --no-track -b <branch> <worktree>/<path>
-    <project develop-ref>`. Its commits are stored in the root checkout's
-    `.git/modules/<path>`, so they survive the removal of the worktree.
+    `git -C <root>/<path> worktree add --no-track -b <project branch>
+    <worktree>/<path> <project develop-ref>`. Its commits are stored in the root
+    checkout's `.git/modules/<path>`, so they survive the removal of the worktree.
   - Every other project: `git -C <root>/<path> worktree add --detach
     <worktree>/<path> <gitlink>`, because a build may refer to a neighboring project.
     Nested submodules of a project: `git -C <worktree>/<path> submodule update --init
@@ -165,17 +195,22 @@ project has its own `main-branch` and `develop-branch`.
 
 | Branch | Workspace | Project | Name example | Worktree |
 |--------|-----------|---------|--------------|----------|
-| Spec discussion `req/*` | From and into `develop` | (none) | `req/REQ-0012-gui-button` | No |
-| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | From and into `develop` | Same name, from and into `develop-branch` | `feat/REQ-0012-gui-button` | During implementation only, under `.claude/worktrees/` |
+| Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `<type>/REQ-<id>-<slug>`, from and into `develop`, from the first draft on | `<type>/<slug>` (the request's `project-branch`), from and into `develop-branch` | `feat/REQ-0012-gui-button`, `feat/gui-button` | During implementation only, under `.claude/worktrees/` |
 | Release | No branch: `develop` is merged into `main-branch` and tagged `<name>/v<version>` | `release/v<version>`, from `develop-branch`, into `main-branch` and `develop-branch`, tagged `v<version>` | `release/v1.0.0-beta1` | No |
-| Hotfix | `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
+| Hotfix | The draft on `hotfix/REQ-<id>-<slug>` from `develop`; once started `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
 
-- A `req/*` branch only changes one request file. It is merged into `develop` when
-  the developer approves the spec.
-- Creating the workspace request branch claims the request. The project branches are
-  created only after the claim commit is accepted, so a lost claim leaves nothing in
-  the projects. When the implementation is finished, the worktrees are removed and
-  the branches are kept for Verify and Review.
+- The workspace request branch is created with the draft, and carries the request
+  through the spec discussion, the implementation, and the review. Nothing reaches
+  `develop` before the merge.
+- A project branch is named like any branch of that project: the type and the
+  request's slug, `<type>/<slug>`, with no request id. The name must be new in each
+  project of the request, locally and on its remote, because other developers create
+  branches there from their own workspaces. If it is taken, the developer picks
+  another short, descriptive kebab-case name (for example `feat/gui-button-color`).
+  The request's `project-branch` records the name.
+- Starting a request creates its project branches. When the implementation is
+  finished, the worktrees are removed and the branches are kept for Verify and
+  Review.
 - A request is merged project by project, and the workspace last: each project branch
   into its `develop-branch`, then the close commit on the workspace branch with the
   gitlinks of those merge commits, then the workspace branch into `develop`. A run
@@ -215,21 +250,19 @@ them, and the workspace values otherwise.
 
 - **Without a remote**, every step that fetches, pulls, or pushes is skipped in that
   repository, and everything else works as described: the local `develop` stands for
-  `origin/develop`, creating the local branch is the claim, and branches are merged
-  locally.
+  `origin/develop`, and branches are merged locally.
 - **With a remote**, `push-policy` decides what the agent pushes:
 
   | `push-policy` | The agent |
   |---------------|-----------|
-  | `auto` | Pushes the topic branches (`req/*`, request, `hotfix/*`, `release/*`) after every commit, and `develop` after a merge that the developer asked for. |
+  | `auto` | Pushes the topic branches (request, `hotfix/*`, `release/*`) after every commit, and `develop` after a merge that the developer asked for. |
   | `ask` | Commits locally, and asks before the first push in a skill run. A yes covers the rest of that run. A no is treated like `never` for that run. |
   | `never` | Never pushes, and never deletes a remote branch. It still fetches and pulls. |
 
   A missing `push-policy` means `auto`.
 - When a push is skipped, the skill goes on, and its report lists, per repository, the
-  branches and tags that are not on the remote yet. Other machines see a request, a
-  claim, or a status change only after the developer pushes it. Until then, a claim
-  holds in this repository only.
+  branches and tags that are not on the remote yet. Other machines see a request or a
+  status change only after the developer pushes it.
 - A merge request needs its branch on the remote. If the branch is not pushed, the
   skill stops before it opens the merge request, and says which branch to push.
 - These rules hold for every value of `push-policy`:
@@ -267,16 +300,24 @@ Commit messages are always in English, in the workspace and in every project.
   differs from before
 - **footer**:
   - In the workspace: `Refs: REQ-0012` when the commit belongs to a request
-  - In a project: `Refs: <workspace-name>#REQ-0012`, because people outside this
-    workspace may read the project's history
+  - In a project: no reference to the workspace (see "Workspace and projects"). A
+    footer the project uses itself, such as a reference to its own issue tracker,
+    follows the project's rules.
   - `BREAKING CHANGE: <what changed, why, and how to migrate>` for incompatible changes
+- In a project, the subject and the body describe the change itself: what the code
+  does now and why. Do not mention the request, its id, the workspace, or its files.
+  Follow the project's own commit rules where it has them (in its `AGENTS.md`,
+  `CLAUDE.md`, `CONTRIBUTING*`, or its history), as long as they keep the workspace
+  out.
 
 Commit often while you implement. Each commit is one reason for change, not a
 bundle of unrelated files. On request branches, push after every commit when
 "Remote and pushing" allows it.
 
 Merge commits are the exception to the header format. They are always created with
-`--no-ff` and use the subject `Merge <source branch> into <target branch>`.
+`--no-ff` and use the subject `Merge <source branch> into <target branch>`. In a
+project, the body is one line in English that describes the change, and there is no
+`Refs:` line.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=versioning -->
@@ -293,7 +334,7 @@ Merge commits are the exception to the header format. They are always created wi
   `v1.0.0-alpha1`); in the workspace `<name>/v<version>` (`SSDisp/v1.2.0`).
 - The single version source of a project is its `version-source`. Do not set the
   version anywhere else. If the toolchain forces a second place to carry it, list that
-  place in the project's section of `src/AGENTS.md`, so that a release updates it too.
+  place in the project's section of `projects/AGENTS.md`, so that a release updates it too.
 - If `version-source` is `none`, the version only exists as the git tag.
 - Only `/ss-workflow:release` and hotfix branches change a version.
 - The workspace itself has no version.

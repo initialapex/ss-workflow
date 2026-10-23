@@ -26,8 +26,10 @@ stopped halfway can be continued.
 Show "What changes" of `migrations/0.6.0.md`, then this plan, in `discussion-language`:
 
 1. Check that no work is in progress.
-2. Restore the layout of the toolchain in the old repository, and remove the workflow
-   files from it (commits on its `develop`).
+2. Restore the layout of the toolchain in the old repository (for Visual Studio: the
+   solution at the root, every project folder next to it, and no `src/`, `tests/`,
+   or `samples/` left), and remove the workflow files from it (commits on its
+   `develop`).
 3. Create the workspace, add the old repository as its project, and move the requests,
    the drafts, and the docs there.
 
@@ -67,34 +69,102 @@ it later.
 Read the project as section 1 of [add-project.md](add-project.md) says, and the
 "Repository layout", "Toolchain", and "Project rules" sections of the old agent files.
 
-Propose a move table, from what the toolchain expects. For example, a Visual Studio
-solution:
+The goal: after the conversion, the project repository, and so `projects/<name>` in
+the workspace, looks the way its toolchain creates a new project. The folders `src/`,
+`tests/`, and `samples/` were the layout of the old workflow, not of the toolchain, so
+they do not stay as wrappers around the projects.
+
+Propose a move table.
+
+**A Visual Studio solution** (a `.sln` or `.slnx` file) has a fixed target, the layout
+that Visual Studio creates:
+
+- The solution file sits at the root of the project repository.
+- Every project of the solution (the folder of each `.csproj`, `.vcxproj`, `.vbproj`,
+  `.fsproj`, or other project file) sits directly at the root, next to the solution:
+  the source projects from `src/`, the test projects from `tests/`, and the sample
+  projects from `samples/`.
+- `src/`, `tests/`, and `samples/` are gone afterwards. The layout already fits only
+  when the solution is at the root and no project folder is inside one of them.
+- Files in `src/` that are neither the solution nor a project folder, such as
+  `Directory.Build.props`, `Directory.Packages.props`, `NuGet.config`, `global.json`,
+  or `.editorconfig`, move to the root as well: the tools find them by walking up
+  from the project folders, so they stay above every project.
+- If a moved folder has the name of a file or folder that already exists at the root
+  (for example `docs`), ask for another name.
 
 | Current path | New path | Reason |
 |--------------|----------|--------|
 | `src/SSDisp.sln` | `SSDisp.sln` | The solution sits at the root of its repository |
 | `src/SSDisp/` | `SSDisp/` | Source project, next to the solution |
-| `tests/SSDisp.Test/` | `SSDisp.Test/` | Test project, merged into the source |
-| `samples/SSDisp.Sample/` | (deleted) | The developer's choice |
-| `external/` | `external/` | Kept in place: the build refers to it |
+| `tests/SSDisp.Test/` | `SSDisp.Test/` | Test project, next to the solution |
+| `samples/SSDisp.Sample/` | `SSDisp.Sample/` | Sample project, next to the solution |
+| `external/` | `external/` | Third-party files: the developer's choice, see below |
 
-- The target follows the toolchain, not a fixed rule: a Keil or a custom layout keeps
-  its own conventions. If the old layout already fits the toolchain, nothing moves.
-- Ask about each project in `tests/` and `samples/` separately: merge it into the
-  source (at the place that the table shows), or delete it. A deleted project stays
-  in the history.
-- `external/` stays where it is by default, because the build refers to it. The
-  developer can change that in the table.
-- Ask with AskUserQuestion. If the developer changes the table, show it again.
+The result in the workspace:
+
+```text
+projects/SSDisp/
+├─ SSDisp.sln
+├─ SSDisp/
+├─ SSDisp.Test/
+├─ SSDisp.Sample/
+└─ external/
+```
+
+**Other toolchains** (Keil, CMake, a custom layout) follow their own conventions:
+propose the table from them, and ask when you cannot tell what the toolchain expects.
+If the old layout already fits the toolchain, nothing moves.
+
+**Test and sample projects** are kept by default, at the place that the toolchain
+gives them (for Visual Studio, next to the solution). Ask about each project in
+`tests/` and `samples/` separately: keep it, or delete it. A deleted project stays in
+the history, and its entry is removed from the solution or the build files.
+
+**Third-party folders** (`external/`, `lib/`, `vendor/`, or any folder of files that
+the repository commits and that is not a project of the build) are the developer's
+choice. Ask about each one with AskUserQuestion:
+
+| Choice | What happens |
+|--------|--------------|
+| Keep it in the project repository (default) | It stays in the project repository, at the root (`external/`). If it was inside `src/`, `tests/`, or `samples/`, it moves to the root with the projects. |
+| Move it to the workspace's `projects/` | It becomes a project of its own: a new repository that keeps the folder's history, added to the workspace as the submodule `projects/<folder>` next to this project (section 5). It is removed from this project, and the paths to it leave the project repository: from `SSDisp/SSDisp.csproj`, `..\external\x.dll` becomes `..\..\external\x.dll`. This project then builds only next to it, in the workspace or in a checkout with the same neighbor. Say so. |
+| Remove it | `git rm -r`. It stays in the history. The references to it are removed too; if the build still needs its files (from a package manager, for example), say how the build gets them. |
+| Other | The developer says where it goes. Propose the rows of the table and the path fixes for it. |
+
+For a folder that moves to the workspace's `projects/`, ask for the new repository's
+URL: the developer creates an empty repository on the remote platform, or names a
+local path for a bare repository (`git init --bare <path>`; see the URL table of
+[add-project.md](add-project.md), section 2). Then, before the moves, copy its
+history from `<base>`, with the main and the develop branch names of this project:
+
+```bash
+git subtree split --prefix=<folder path at base> -b split/<folder> <base>
+git push <new repository URL> split/<folder>:refs/heads/<main-branch> split/<folder>:refs/heads/<develop-branch>
+git branch -D split/<folder>
+```
+
+Pushing to the new repository asks first, as every push does with `ask`.
+
+Ask with AskUserQuestion. If the developer changes the table, show it again.
 
 Apply it on `develop`:
 
 - Use `git mv` for every move, so git records each one as a rename, and `git rm -r`
-  for every deletion.
+  for every deletion and for each folder that moved to the workspace's `projects/`.
+  `git mv` does not create a missing target folder: create it first.
 - Fix every path that the moves break: the references inside project, solution,
   workspace, and build files, the paths between projects, and the paths in CI files
   and scripts. Paths inside a project file are usually relative to that file, so
-  moving the file changes all of them.
+  moving the file changes all of them. For Visual Studio:
+  - In the solution, project paths are relative to the solution:
+    `..\tests\SSDisp.Test\SSDisp.Test.csproj` becomes
+    `SSDisp.Test\SSDisp.Test.csproj`, and `SSDisp\SSDisp.csproj` stays.
+  - In a project file, a `ProjectReference` from `tests/SSDisp.Test/` to
+    `..\..\src\SSDisp\SSDisp.csproj` becomes `..\SSDisp\SSDisp.csproj`, and a path
+    from `src/SSDisp/` to `..\..\external\` becomes `..\external\`.
+  - Check `$(SolutionDir)` and `$(MSBuildThisFileDirectory)` paths, and the
+    `Directory.Build.props` that every project imports.
 - Files that a tool finds by walking up from the project folder (shared build
   settings, package configuration, editor configuration) have to stay where every
   project still finds them, normally the repository root.
@@ -104,9 +174,11 @@ Apply it on `develop`:
   exist, verify that the test command passes too. If the build fails for reasons
   unrelated to the moves (it also failed before them), report it, and ask how to
   continue. If there is no build command, ask the developer to build in their IDE
-  before you commit.
+  before you commit. If a folder moved to the workspace's `projects/`, the build needs
+  that neighbor: verify it in the workspace after section 5, and say so.
 - Commit: `refactor: move the projects back to the <toolchain> layout`. Put the path
-  table in the commit body, including the deletions.
+  table in the commit body, including the deletions and the folders that moved to
+  their own repository.
 
 Already done when: `develop` has a commit with that subject after `<base>`, or nothing
 had to move.
@@ -131,7 +203,7 @@ Then, on `develop`, remove:
 | `src/AGENTS.md`, `src/CLAUDE.md`, `tests/AGENTS.md`, `tests/CLAUDE.md`, `samples/AGENTS.md`, `samples/CLAUDE.md` | Where they still exist after section 3 |
 | `.claude/settings.json` | Only the plugin registration (`extraKnownMarketplaces`, `enabledPlugins` for ss-workflow). Keep other settings. |
 | The ss-workflow block of `.gitignore` | Keep the toolchain patterns |
-| `docs/` | Ask file by file. The spec (`docs/<slug>-spec.md`) moves to the workspace. Every other file moves to the workspace by default; the developer can name files that are product documentation (a user manual, API docs), which stay. |
+| `docs/` | Ask file by file. The spec (`docs/<slug>-spec.md`, where `<slug>` is the kebab-case of the old project name) moves to the workspace as `docs/<name>/spec.md`. Every other file moves to the workspace too by default, into `docs/<name>/` with the same relative path, because it is about this project; the developer can name files that are product documentation (a user manual, API docs), which stay. Show the table of old and new paths. |
 
 - `README.md` and `README-zh-TW.md` are product documentation: they stay. Fix links
   to removed files (`reqs/`, `AGENTS.md`, `samples/`), and the build commands, if
@@ -160,7 +232,8 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
    settings" as the defaults: languages, main branch, remote platform, merge method,
    push policy, marketplace source. Its Round 3 for the project is mostly answered
    by the old settings: the project type and kind, and the commands, project file, and
-   version source rewritten for the new paths in section 3.
+   version source rewritten for the new paths in section 3. `{{LEGACY_PROJECT}}` is
+   the project's name: the requests without `projects` in `reqs/done/` belong to it.
 3. Create the workspace in that folder as **New** mode of `SKILL.md` does (Steps 5 to
    8), with the old repository as its project:
    - URL: the old repository's `origin` URL, as [add-project.md](add-project.md)
@@ -168,13 +241,27 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
      path and record the `origin` URL, as the table there says: the commits are then
      in the workspace's copy too, and reach the remote with the next push of the
      project.
-   - The project's section in `src/AGENTS.md` gets the old "Toolchain" and "Project
+   - The project's section in `projects/AGENTS.md` gets the old "Toolchain" and "Project
      rules" texts. The old "Project notes" go to "Project notes" of the new root
      `AGENTS.md`. Show both.
-4. Copy the docs that move: `git -C <old repo> archive <base> <paths> | tar -x` in the
-   workspace, then commit `docs: move the docs from <name>`.
+   - If the old repository has a spec, do not create `docs/<name>/spec.md` from the
+     template: the old spec takes its place in step 4. `docs/overview.md` is created
+     from the template.
+   - Each third-party folder that moved to the workspace's `projects/` in section 3 is
+     a project too, added after this one as [add-project.md](add-project.md) says,
+     from its new repository, with the folder's name as its `name`. Propose
+     `project-kind: library`, a `project-type` that says what it holds (for example
+     "third-party binaries"), and empty commands. The section of `<name>` in
+     `projects/AGENTS.md` says that it refers to `projects/<folder>` as its neighbor.
+     Then build `<name>` in the workspace with its `build-command`, which section 3
+     left to this point.
+4. Copy the docs that move, each to its new path from the table of section 4:
+   `git -C <old repo> show <base>:<old path> > <new path>` in the workspace (create
+   the folder first). Then commit `docs: move the docs from <name>`, with the table
+   of old and new paths in the body. Fix the links between the moved files, and the
+   links to them in the README files.
 
-Already done when: the workspace folder is a git repository with `src/<name>` in
+Already done when: the workspace folder is a git repository with `projects/<name>` in
 `.gitmodules`.
 
 ## 6. Move the requests
@@ -196,10 +283,12 @@ In the workspace, on `develop`:
    ```
 
 5. For each draft (`req/REQ-<id>-<slug>` in the old repository, local or remote):
-   - `git checkout -b req/REQ-<id>-<slug> develop` in the workspace.
+   - `git checkout -b <type>/REQ-<id>-<slug> develop` in the workspace, with the
+     `type` of its request file: drafts live on their request branch now.
    - Write its request file from the old branch
      (`git -C <old repo> show req/REQ-<id>-<slug>:reqs/<file>`), with
-     `projects: [<name>]` added after `type:`. Nothing else changes.
+     `projects: [<name>]` added after `type:`, and `project-branch:` after `branch:`.
+     Nothing else changes.
    - Commit `docs(reqs): move draft REQ-<id> from <name>` with `Refs: REQ-<id>`, push
      as allowed, and switch back to `develop`.
 6. The id scan of the workspace now sees every id of the old repository: the files,
@@ -229,12 +318,14 @@ Only after the developer has checked the workspace:
   show.
 - The old repository's root checkout is now a plain clone of the project. The
   developer works in the workspace from now on. Say that this clone can be deleted
-  or kept; the workspace has its own copy of the project in `src/<name>`.
+  or kept; the workspace has its own copy of the project in `projects/<name>`.
 
 ## 9. Report
 
 - The old repository: the move table, the removed files, the commits, and what was
   pushed
+- Third-party folders: which stayed in the project, which became a project of their
+  own in `projects/` (with the new repository's URL), and which were removed
 - The workspace: its path, its remote, its commits, and what was pushed
 - The requests that moved: ready, done, and drafts, with their ids
 - Docs that stayed in the project repository

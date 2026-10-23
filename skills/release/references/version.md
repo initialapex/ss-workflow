@@ -95,8 +95,9 @@ A version is valid when all of these hold:
 
 The goal: after this step, every place that states the project's version says the
 release version. All of it happens in the project, on its release branch; paths are
-relative to the project folder. The workspace changes nothing here, apart from docs
-in its `docs/` that state the project's current version.
+relative to the project folder. The workspace changes nothing here: the places in
+its docs that state the project's current version are listed now and changed by the
+release merge (section 3).
 
 ### 1. The version source
 
@@ -115,11 +116,11 @@ project type, so read the current value first and keep its form.
   - Separate numeric defines or constants for major, minor, and patch: set each one.
   - A build number or a date that the build fills in by itself: leave it alone.
 - If a tool of the project's toolchain is the normal way to change the version, and
-  "Toolchain" in the project's section of `src/AGENTS.md` names it, use that tool.
+  "Toolchain" in the project's section of `projects/AGENTS.md` names it, use that tool.
 
 ### 2. Other places that carry the version
 
-"Toolchain" in the project's section of `src/AGENTS.md` may list other places that
+"Toolchain" in the project's section of `projects/AGENTS.md` may list other places that
 have to carry the version. Update each of them.
 
 Then search the whole project for the last version string, to find places that
@@ -146,16 +147,22 @@ places that state the current version, such as install commands, badges, and
 examples that mention an old version on purpose. If a hit is unclear, show it and
 ask.
 
-The workspace's `docs/` may state the project's current version too. Such a change is
-made in the workspace on `develop` after the merge, as its own commit
-`docs: update <name> version to <version>`: list the hits for it, and ask.
+The workspace's docs may state the project's current version too, mostly in
+`docs/<name>/` and `docs/overview.md`. Search them for the last version string, list
+the hits, and ask. The workspace has no release branch, so these changes are not made
+here: the release merge makes them on the workspace `develop`, before it merges
+`develop` into the workspace main branch (step 1 of "Merge the workspace" in the
+merge skill's `references/release.md`).
 
 ### 4. Changelog
 
 If the project has a `CHANGELOG.md`, add a section for this version at the top, with
-the date and the closed requests of this project grouped by type
-(`<workspace-name>#REQ-xxxx` and the title). Follow the format of the existing
-entries. Do not create a changelog if there is none.
+the date and the changes of this version grouped by type: the closed requests of this
+project and the changes made outside this workspace (Step 2 of the skill), one line
+each. Describe each change in the project's terms, in the language of the existing
+entries. The changelog is a file of the project, so it names no request id and no
+workspace (see "Workspace and projects" in the root `AGENTS.md`). Follow the format
+of the existing entries. Do not create a changelog if there is none.
 
 ### 5. Check
 

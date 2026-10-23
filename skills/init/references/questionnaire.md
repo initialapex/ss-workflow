@@ -31,14 +31,14 @@ Commit messages are always English. Do not ask about them.
 
 | Question | Default | Placeholder |
 |----------|---------|-------------|
-| Workspace name | The directory name, for example `SSDisp-workspace`. It is also the prefix of the `Refs:` footer in project commits (`Refs: SSDisp-workspace#REQ-0012`). | `{{PROJECT_NAME}}`; `{{PROJECT_SLUG}}` = kebab-case of the name |
-| One-sentence description | (free text) | `{{PROJECT_DESCRIPTION}}` |
+| Workspace name | The directory name, for example `SSDisp-workspace`. It names the workspace in its own files only: the history of a project never mentions it. | `{{WORKSPACE_NAME}}` |
+| One-sentence description | (free text) | `{{WORKSPACE_DESCRIPTION}}` |
 | The projects to add | The URLs and paths in `$ARGUMENTS`; may be none | One entry each, see Round 3 |
 
 ## Round 3: Each project
 
 Ask this round once per project. The answers fill the placeholders of
-`templates/projects-entry.yaml` and `templates/src-AGENTS-project.md`. For each one,
+`templates/projects-entry.yaml` and `templates/projects-AGENTS-project.md`. For each one,
 propose a value from what you found in the project and from what you know about that
 toolchain, say that it is a proposal, and let the developer confirm or correct it. If
 you are not sure that a value is right for this toolchain, say so and ask. Do not
@@ -54,7 +54,7 @@ and reported as "not configured". The developer can fill it in later in root
 
 | Question | Placeholder | Notes |
 |----------|-------------|-------|
-| Project name | `{{ENTRY_NAME}}` | The repository name by default, for example `SSDisp`. It becomes the folder `src/<name>`, the tag prefix `<name>/v1.2.0`, and the hotfix branch `hotfix/<name>-v1.0.1`. No spaces and no `/`. |
+| Project name | `{{ENTRY_NAME}}` | The repository name by default, for example `SSDisp`. It becomes the folder `projects/<name>`, its docs folder `docs/<name>/`, the tag prefix `<name>/v1.2.0`, and the hotfix branch `hotfix/<name>-v1.0.1`. No spaces and no `/`. |
 | One-sentence description | `{{ENTRY_DESCRIPTION}}` | From its README if it has one |
 | Project type and toolchain | `{{ENTRY_TYPE}}` | Free text in the developer's own words, specific enough to tell the toolchain, for example "Visual Studio solution, old-style C# projects built with MSBuild", "Keil MDK-ARM, STM32F4", or "ESP32 firmware with ESP-IDF v5". Do not offer a fixed list, and do not assume a type for an empty repository. |
 | Library or application? | `{{ENTRY_KIND}}` | `library` / `application` |
@@ -63,7 +63,7 @@ and reported as "not configured". The developer can fill it in later in root
 | Build command | `{{ENTRY_BUILD_COMMAND}}` | Runs in the project folder. Empty if the project can only be built inside an IDE. |
 | Test command | `{{ENTRY_TEST_COMMAND}}` | Runs in the project folder. Empty if there are no automated tests. |
 | Version source: the file and the field that hold the project's version | `{{ENTRY_VERSION_SOURCE}}` | Relative to the project folder, for example ``SSDisp/Properties/AssemblyInfo.cs (AssemblyVersion, AssemblyFileVersion)`` or ``main/version.h (#define FW_VERSION)``. `none` if the version only exists as a git tag. |
-| Tool notes: tools that must be installed, how to find tools that are not on `PATH`, other places that must carry the version, and known limits | `{{ENTRY_TOOLCHAIN_NOTES}}` | Free text for "Toolchain" in the project's section of `src/AGENTS.md`. Do not put a machine-specific absolute path into a command; describe how to locate the tool instead. |
+| Tool notes: tools that must be installed, how to find tools that are not on `PATH`, other places that must carry the version, and known limits | `{{ENTRY_TOOLCHAIN_NOTES}}` | Free text for "Toolchain" in the project's section of `projects/AGENTS.md`. Do not put a machine-specific absolute path into a command; describe how to locate the tool instead. |
 | Project rules: what an agent must know to change this project correctly | `{{ENTRY_PROJECT_RULES}}` | Free text for "Project rules" in the project's section. For example: whether new source files must be added to a project file by hand, which files are generated and must not be edited, where build output goes, and naming conventions. |
 | Remote settings of this project, if they differ from the workspace's | `{{ENTRY_REMOTE_PLATFORM}}`, `{{ENTRY_MERGE_METHOD}}`, `{{ENTRY_PUSH_POLICY}}` | Empty means the workspace value. Detect the platform from the project's URL. Propose `push-policy: never` for a project from a local path without a remote (see [add-project.md](add-project.md)). Explain that other people may use the project's repository, so `ask` can fit there even when the workspace uses `auto`. |
 
@@ -99,9 +99,9 @@ Explain the three answers to the push question when you ask it:
 
 | Answer | What it means | Fits |
 |--------|---------------|------|
-| `auto` (Recommended) | The agent pushes its topic branches after every commit, and `develop` after a merge that the developer asked for. Other sessions and machines see claims and status changes at once. | Several machines or sessions that share a remote |
+| `auto` (Recommended) | The agent pushes its topic branches after every commit, and `develop` after a merge that the developer asked for. Other sessions and machines see new requests and status changes at once. | Several machines or sessions that share a remote |
 | `ask` | The agent commits locally, and asks before the first push of a skill run. | The developer wants to see what leaves the machine |
-| `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. Claims hold on this machine only until then. | Strict rules about who publishes, or a remote that agents must not write to |
+| `never` | The agent never pushes and never deletes a remote branch. It lists what the developer has to push. | Strict rules about who publishes, or a remote that agents must not write to |
 
 For every answer, the agent asks before it pushes a main branch or a tag, and it
 never force-pushes. The workflow also works without any remote: the questions of this
@@ -121,5 +121,6 @@ submodules before this confirmation.
 | `{{INIT_DATE}}` | Today's date, `yyyy-MM-dd` |
 | `{{ENTRY_URL}}` | The URL recorded in `.gitmodules` for the project |
 | `{{PROJECTS}}` | `templates/projects-entry.yaml` rendered once per project, in the order the projects were added. ` []` when there is none. |
-| `{{PROJECT_SECTIONS}}` | `templates/src-AGENTS-project.md` rendered once per project. Empty when there is none. |
-| `{{PROJECT_ROWS}}` | One table row per project for the root READMEs: `` \| <name> \| [`src/<name>`](src/<name>) \| <URL> \| <description> \| ``. When there is none, one row that says that no project is added yet, and how to add one. |
+| `{{PROJECT_SECTIONS}}` | `templates/projects-AGENTS-project.md` rendered once per project. Empty when there is none. |
+| `{{PROJECT_ROWS}}` | One table row per project for the root READMEs: `` \| <name> \| [`projects/<name>`](projects/<name>) \| <URL> \| [`docs/<name>/spec.md`](docs/<name>/spec.md) \| <description> \| ``. When there is none, one row that says that no project is added yet, and how to add one. |
+| `{{LEGACY_PROJECT}}` | The project's `name` when the workspace is created by the conversion in [convert-legacy.md](convert-legacy.md); empty otherwise, without a trailing space (`legacy-project:`) |
