@@ -81,7 +81,7 @@ SSDisp-workspace/
 工作流本身不相依任何一種專案形式，Visual Studio / Keil / ESP32 或其他類型都適用。
 
 - 專案類型由 developer 在初始化時說明 (自由描述，e.g.「Visual Studio solution，old-style C# 專案，用 MSBuild 建置」、「Keil MDK-ARM」、「ESP-IDF」)；每個專案各自說明
-- 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在 workspace，plugin 不內建任何 toolchain 的範本或指令
+- 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在 workspace，plugin 不內建任何 toolchain 的範本或指令；唯一例外是選用的版號產生器 (見「版號來自 git tag」)
   - root `AGENTS.md` 的 Workflow settings: workspace 層的設定，加上 `projects:` 清單，每個專案一筆:
     - `name`、`path` (`projects/<name>`)、`main-branch`、`develop-branch`、`project-type`、`project-kind`
     - `project-file`、`version-source` (路徑以專案資料夾為基準；`version-source` 可為檔案與欄位、`git-tag` (build 時從 git tag 產生版號檔，檔案被 git 忽略) 或 `none`)
@@ -92,6 +92,23 @@ SSDisp-workspace/
 - AI 依偵測到的內容與對該 toolchain 的了解提出建議值，由 developer 確認或修正；不確定時直接詢問，不猜指令
 - 指令可以留空 (e.g. 只能在 IDE 內 build 的專案): 該步驟會被略過並回報「未設定」，skill 不會自行編造指令
 - init 不建立專案檔、build 檔或版本檔，這些由 developer 或第一個 request 產生
+
+### 版號來自 git tag
+
+- `version-source: git-tag`: 專案檔案裡沒有版號，build 時由 tag 決定版號並產生版號檔 (加入 gitignore，build 完才不會 dirty)；release 流程變成「打 tag → build → package」
+- plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 5.1) 與 `GitVersion.targets` (MSBuild，由專案的 `Directory.Build.targets` import)
+- 版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`，產生的內容不帶 `v`
+  - 剛好在 tag 上: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
+  - 不在 tag 上: `1.2.3-4-g123dcda`；最長: `1.2.3-beta4-5-g321aceb-dirty`
+  - 沒有 tag、shallow clone 沒有 tag、沒有 git: `0.1.0-unknown`
+  - 只接受 `vX.Y.Z` / `vX.Y.Z-<stage>R` 格式的 tag (annotated 或 lightweight 都可以)；取 HEAD 所包含的 tag 中**版號最高**的 (不是 `git describe` 的最近 tag，否則 hotfix merge 回 develop 後會蓋過 alpha)
+- 產生的檔案 (依副檔名):
+  - `.cs`: `AssemblyVersion` / `AssemblyFileVersion` = `X.Y.Z.0` (第 4 段固定 0)，`AssemblyInformationalVersion` = 完整版號；寫在 `obj/` 裡，並關掉 SDK 自己產生的版本 attribute
+  - `.h`: `<PREFIX>VERSION_MAJOR/MINOR/PATCH/BUILD`、`_STRING`、`_NUMERIC_STRING`，`.rc` 也可以 include
+  - 內容沒變就不寫檔，避免每次 build 都重新編譯
+- 支援: MSBuild 的 C# (SDK-style 與 old-style) 與 C++；CMake 待辦；其他 toolchain 不支援 (專案自己有產生方式時仍可設 `git-tag`)
+- 專案要能脫離 workspace 獨立 build，所以產生器要 commit 在專案 repo (`tools/`)；init 不寫專案 repo，改由 init / 加入專案 / 升級之後開一個 `chore` request (轉換 request) 來複製檔案、移除舊的版號設定、把 `version-source` 改成 `git-tag`
+- 產生器檔案內有 `ss-workflow-script: <name> <version>` 標記；升級的健康檢查與每次 release 都會比對專案內的版本，比 plugin 舊時建議開 request 更新
 
 ## 發佈方式 (Claude Code plugin)
 
@@ -132,6 +149,7 @@ ss-workflow/
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
+  - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 C# 專案
 
 ## skill: `/ss-workflow:init`
 

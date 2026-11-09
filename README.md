@@ -301,7 +301,8 @@ stay where their toolchain puts them.
 
 ## Project types
 
-The plugin ships no templates or commands for any toolchain. During init you describe
+The plugin ships no templates or commands for any toolchain, apart from one optional
+version generator (below). During init you describe
 the type of each project in your own words, and the agent proposes the values below
 for you to confirm. They are stored in the workspace, and every skill reads them from
 there.
@@ -318,6 +319,16 @@ there.
 > A command may stay empty, for example when a project can only be built inside an
 > IDE. The skills then skip that step and report it as "not configured". They do not
 > invent a command.
+
+**The version from git tags.** With `version-source: git-tag`, a project has no
+version number in its files: the build reads it from the git tags (`1.2.3` on the tag,
+`1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted changes,
+`0.1.0-unknown` without a tag) and writes it into generated files that git ignores.
+For C# and C++ projects built with MSBuild on Windows, the plugin ships a generator
+(`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`). Init and
+the upgrade never copy it into a project themselves: they start a request that does,
+so the project builds the same without the workspace. The upgrade reports when a
+project's copy is older than the plugin's. CMake is not supported yet.
 
 A project does not have to be code. For a repository of documents or analysis
 reports, leave the build and test commands empty, or set `verify-command` to a
@@ -354,7 +365,7 @@ changes outside the managed blocks, and changes nothing there without your answe
 ├─ plugin.json               plugin manifest; "version" is the single version source
 └─ marketplace.json          makes this repository its own marketplace
 skills/
-├─ init/                     SKILL.md, references/, templates/, migrations/
+├─ init/                     SKILL.md, references/, templates/, migrations/, scripts/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md, references/
 ├─ review/                   SKILL.md
@@ -362,6 +373,8 @@ skills/
 └─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
 tests/migrations.sh          checks that a template change ships a migration file
+tests/git-version.sh         checks the version generator, with a real C# build when
+                             the .NET SDK is installed
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -397,6 +410,15 @@ changed since the last release tag and no migration file for a newer version exi
 
 ```bash
 bash tests/migrations.sh
+```
+
+The version generator in `skills/init/scripts/` is tested with Windows PowerShell on
+throwaway repositories: the version on a tag, after it, dirty, the tag formats that
+count, and the generated `.cs` and `.h` files. With the .NET SDK, it also builds a C#
+project that imports `GitVersion.targets` and reads the version of the assembly:
+
+```bash
+bash tests/git-version.sh
 ```
 
 > [!IMPORTANT]

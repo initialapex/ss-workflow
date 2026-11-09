@@ -216,7 +216,7 @@ init 不會寫入專案的任何檔案。專案的測試、sample 與第三方�
 
 ## 專案形式
 
-Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
+Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用的版號產生器（見下方）。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
 
 | 內容 | 存放位置 |
 |------|----------|
@@ -228,6 +228,8 @@ Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話
 
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
+
+**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取（在 tag 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`），寫進被 git 忽略的產生檔。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`）。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
 
 專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
@@ -251,7 +253,7 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ├─ plugin.json               plugin manifest；"version" 是唯一的版本來源
 └─ marketplace.json          讓這個 repo 同時是自己的 marketplace
 skills/
-├─ init/                     SKILL.md、references/、templates/、migrations/
+├─ init/                     SKILL.md、references/、templates/、migrations/、scripts/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md、references/
 ├─ review/                   SKILL.md
@@ -259,6 +261,7 @@ skills/
 └─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
+tests/git-version.sh         檢查版號產生器；有 .NET SDK 時實際 build 一個 C# 專案
 ss-workflow-skill.md         設計規格
 ```
 
@@ -282,6 +285,12 @@ bash tests/git-sequences.sh
 
 ```bash
 bash tests/migrations.sh
+```
+
+`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repo 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 C# 專案並讀取 assembly 的版本：
+
+```bash
+bash tests/git-version.sh
 ```
 
 > [!IMPORTANT]
