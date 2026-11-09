@@ -95,8 +95,8 @@
 | `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，request branch | 建立 request branch 與 request 檔，決定它修改哪些專案，跟你討論規格。你確認後可以直接開始實作，或以 `ready` 狀態留待之後再做。 |
 | `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
-| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch；為 release 和 hotfix 建立 tag，並刪除 branch。 |
-| `/ss-workflow:release` | 要釋出某個專案的新版本 | 根目錄 | 推薦該專案的版本號、建立它的 release branch、檢查它未完成的工作、設定版本號，然後交給 release merge。 |
+| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch。Release / hotfix 時：在專案 `master` 打 tag、從 tag build 並打包、把 `master` merge 回 `develop`，最後才一起發佈。刪除 branch。 |
+| `/ss-workflow:release` | 要釋出某個專案的新版本、prerelease 或 release candidate | 根目錄 | 推薦該專案的版本號。在專案 `develop` 打 alpha / beta，或開 release branch 並在上面打 release candidate。檢查它未完成的工作、在有檔案帶版號時設定版本號、每個打 tag 的版本都 build 並打包，正式版交給 release merge。 |
 
 > [!NOTE]
 > 根目錄指的是 workspace 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
@@ -151,10 +151,21 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 | Branch | Workspace | 專案 | 範例 |
 |--------|-----------|------|------|
 | Request | 從 `develop` 開、merge 回 `develop`，從 draft 開始就存在 | 以變更內容命名，從它的 `develop` 開、merge 回去 | `feat/REQ-0012-gui-button`、`feat/gui-button` |
-| Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.0.0-beta1` | 從 `develop` 開，merge 到 `master` 與 `develop`，tag 為 `v1.0.0-beta1` | `release/v1.0.0-beta1` |
-| Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `v1.0.1` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
+| Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.2.0` | 從 `develop` 開，release candidate 打在上面（`v1.2.0-rc1`），merge 到 `master`，tag 為 `v1.2.0`；再把 `master` merge 回 `develop` | `release/v1.2.0` |
+| Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master`，tag 為 `v1.0.1`；再把 `master` merge 回 `develop` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
+
+專案各種版本 tag 的位置：
+
+| 版本 | 專案 tag | Workspace tag |
+|------|----------|---------------|
+| 正式版 `v1.2.0` | 打在 `master` 上 release 或 hotfix 的 merge commit | 打在 workspace 的 `master` |
+| Alpha / Beta `v1.3.0-beta2` | 打在專案 `develop` 的最新 commit，不開 release branch | 打在記錄它的 workspace `develop` commit |
+| Release candidate `v1.2.0-rc1` | 打在 `release/v1.2.0` | 不打 |
 
 - 專案的 `master` 只接收它自己的 release 和 hotfix。它的 v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
+- 正式版打完 tag 後，`master` 會 merge 回 `develop`，讓 `develop` 上從最近的 tag 讀版號的 build 也找得到它。
+- Alpha / Beta 版需要版號來自 tag（`version-source: git-tag` 或 `none`）：`develop` 上的 tag 前面不能有改版號的 commit。Release branch 在各個 release candidate 期間都保持開啟：小修正直接改在上面，較大的修改走 request 進 `develop`，再把 `develop` merge 進 release branch。正式版不一定要先出 release candidate。
+- 每個版本都先在本地打 tag，從 tag build 並打包（`package-command`，再把 `package-files` 壓成 `<name>-v<version>.zip`）。全部成功之後才一起 push，並建立附上 package 的平台 release。
 - workspace 的 `master` 是各專案最新 release 的組合：每次 release 都把 `develop` merge 進來，並把每個專案指向它自己的 `master`。
 - Request 先逐一 merge 各專案，最後才是 workspace。
 - Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，裡面有各專案的 worktree，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
@@ -209,7 +220,7 @@ Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話
 
 | 內容 | 存放位置 |
 |------|----------|
-| 每個專案的 branch、主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
+| 每個專案的 branch、主要專案檔、版本號來源（檔案與欄位、`git-tag` 或 `none`）、setup、build、test、verify、package 指令，以及 package 檔案 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
 | 其他會影響 agent 行為的檔案，例如產品內附的 prompt 檔（`agent-files`） | root `AGENTS.md` 的「Workflow settings」 |
 | 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | `projects/AGENTS.md` 該專案章節的「Toolchain」 |
 | 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | `projects/AGENTS.md` 該專案章節的「Project rules」 |

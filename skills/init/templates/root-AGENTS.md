@@ -40,11 +40,13 @@ every entry has these keys:
 | `project-type` | The project type and toolchain, in the developer's words | Required |
 | `project-kind` | `library` or `application` | Required |
 | `project-file` | The main solution, workspace, or top-level build file, relative to `path` | The project has none |
-| `version-source` | The file and the field that hold the project's version, relative to `path` | `none`: the version only exists as a git tag |
+| `version-source` | Where the project's version comes from: the file and the field that hold it, relative to `path`; `git-tag` when the build reads it from the git tag and writes it into generated files that git ignores; `none` when no file carries it (see "Versioning") | `none` |
 | `setup-command` | What a fresh checkout or worktree needs before it can build | Nothing is needed |
 | `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
 | `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
 | `verify-command` | An extra verification script that `/ss-workflow:review` runs after the build and the tests | No extra script |
+| `package-command` | Prepares the release package after the build of a tagged version, for example an installer or a publish step | The build output is the package |
+| `package-files` | The files of the release package, as glob patterns relative to `path`, separated by commas, for example `bin/Release/*.exe, bin/Release/*.dll`. A release zips them into `<name>-v<version>.zip`. | No package is made or uploaded |
 | `remote-platform`, `merge-method`, `push-policy` | Overrides for this project's repository | The workspace value |
 
 The commands run in the project folder (`path`). `push-policy` (`auto`, `ask`, or
@@ -196,8 +198,30 @@ project has its own `main-branch` and `develop-branch`.
 | Branch | Workspace | Project | Name example | Worktree |
 |--------|-----------|---------|--------------|----------|
 | Request (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`) | `<type>/REQ-<id>-<slug>`, from and into `develop`, from the first draft on | `<type>/<slug>` (the request's `project-branch`), from and into `develop-branch` | `feat/REQ-0012-gui-button`, `feat/gui-button` | During implementation only, under `.claude/worktrees/` |
-| Release | No branch: `develop` is merged into `main-branch` and tagged `<name>/v<version>` | `release/v<version>`, from `develop-branch`, into `main-branch` and `develop-branch`, tagged `v<version>` | `release/v1.0.0-beta1` | No |
-| Hotfix | The draft on `hotfix/REQ-<id>-<slug>` from `develop`; once started `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch` and `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
+| Release | No branch: `develop` is merged into `main-branch` and tagged `<name>/v<version>` | `release/vX.Y.Z` (a final version only), from `develop-branch`, into `main-branch`; then `main-branch` back into `develop-branch` | `release/v1.2.0` | No |
+| Hotfix | The draft on `hotfix/REQ-<id>-<slug>` from `develop`; once started `hotfix/<name>-v<version>`, from `main-branch`, into `main-branch` and `develop` | `hotfix/v<version>`, from `main-branch`, into `main-branch`; then `main-branch` back into `develop-branch` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` | During implementation only, under `.claude/worktrees/` |
+
+Where each kind of project tag goes (see "Versioning" for the format):
+
+| Version | Project tag on | Workspace tag on |
+|---------|----------------|------------------|
+| Final `vX.Y.Z` | The merge commit on the project's `main-branch` (release, hotfix, or pre-1.0 sync) | The merge commit on the workspace `main-branch` |
+| Alpha `vX.Y.Z-alphaR`, beta `vX.Y.Z-betaR` | The tip of the project's `develop-branch` | The commit on `develop` that records that tip as the gitlink |
+| Release candidate `vX.Y.Z-rcR` | The tip of `release/vX.Y.Z` | None |
+
+- A project tag goes nowhere else. Alpha and beta versions need a `version-source`
+  of `git-tag` or `none`, because a tag on `develop-branch` cannot carry a version
+  commit; a project whose version is in a file gets its prereleases as release
+  candidates.
+- A release branch is named after the final version that it prepares, and stays open
+  through its release candidates. It takes small fixes directly. A larger change goes
+  through a request into `develop-branch`, and `develop-branch` is then merged into
+  the release branch for the next release candidate. While a release branch is open,
+  `develop-branch` gets no alpha or beta tag.
+- After a final version is tagged on a project's `main-branch`, `main-branch` is
+  merged back into `develop-branch` (and into an open release branch after a hotfix),
+  so that the final tag is reachable from there: a version that a build reads from
+  the nearest tags would otherwise miss it.
 
 - The workspace request branch is created with the draft, and carries the request
   through the spec discussion, the implementation, and the review. Nothing reaches
@@ -223,8 +247,9 @@ project has its own `main-branch` and `develop-branch`.
   resolves gitlink conflicts. So the workspace `main-branch` is the set of the latest
   released projects, with the request records of that time.
 - Before a project's v1.0.0 is released, its `develop-branch` may be merged straight
-  into its `main-branch` and tagged `v0.x.y`, which allows fast iteration. The
-  workspace `main-branch` follows as for a release.
+  into its `main-branch` and tagged `v0.x.y`, which allows fast iteration. Then
+  `main-branch` is merged back into `develop-branch`, and the workspace `main-branch`
+  follows as for a release.
 - `develop` is the integration branch; most changes land here through request branches.
 - Never force-push a long-lived branch. Never rewrite published history.
 - Before any merge, run `git fetch` in that repository if it has a remote, and check
@@ -268,7 +293,11 @@ them, and the workspace values otherwise.
 - These rules hold for every value of `push-policy`:
   - Never force-push. Never rewrite published history.
   - Pushing a `main-branch` or a tag publishes a version. Ask the developer right
-    before that push, every time.
+    before that push, every time. A release or a hotfix pushes its tags, its
+    `main-branch` merges, and its package only after every local step succeeded in
+    every repository: the merges, the tags, the build of the tagged version, and the
+    package. A merge request is the exception: its merge is public on the remote
+    first, and the tag and the package follow it.
   - Never delete a branch, local or remote, before its merge is confirmed
     (`git merge-base --is-ancestor`, or a merge request in the state "merged"). A
     branch with unmerged commits is deleted only after the developer says so for that
@@ -331,11 +360,23 @@ project, the body is one line in English that describes the change, and there is
 - For the same `X.Y.Z`, the order is `alpha` < `beta` < `rc` < final, and within one
   stage by `<R>` as a number.
 - Tags: in the project repository the version with a leading `v` (`v1.2.0`,
-  `v1.0.0-alpha1`); in the workspace `<name>/v<version>` (`SSDisp/v1.2.0`).
-- The single version source of a project is its `version-source`. Do not set the
-  version anywhere else. If the toolchain forces a second place to carry it, list that
-  place in the project's section of `projects/AGENTS.md`, so that a release updates it too.
-- If `version-source` is `none`, the version only exists as the git tag.
+  `v1.0.0-alpha1`); in the workspace `<name>/v<version>` (`SSDisp/v1.2.0`). Where
+  each kind of tag goes is in "Branching model". A project accepts no other tag
+  format for its versions.
+- `version-source` says where the version lives:
+  - A file and a field: the single place that holds the version. Do not set the
+    version anywhere else. If the toolchain forces a second place to carry it, list
+    that place in the project's section of `projects/AGENTS.md`, so that a release
+    updates it too. A release candidate, a final version, and a hotfix set it with a
+    commit `chore(release): bump version to <version>` on their release or hotfix
+    branch, before the tag.
+  - `git-tag`: the tag is the version. The build reads it from the nearest tags
+    (`1.2.0` on the tag `v1.2.0`, `1.2.0-4-g1a2b3c4` four commits after it, `-dirty`
+    with uncommitted changes) and writes it into generated files that git ignores. A
+    release never commits a version number: it tags, and then builds.
+  - `none`: no file carries the version; it only exists as the git tag.
+- A version is built and packaged from its tag: the release creates the tag, builds
+  the tagged commit, and runs `package-command`, before anything is pushed.
 - Only `/ss-workflow:release` and hotfix branches change a version.
 - The workspace itself has no version.
 <!-- /ss-workflow:managed -->

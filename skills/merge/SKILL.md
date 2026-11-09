@@ -19,8 +19,13 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`, a workspace branch name, or
 | Kind | Projects | Workspace | Guide |
 |------|----------|-----------|-------|
 | Request (`feat/…`, `fix/…`, `docs/…`, …) | Each project branch into its `develop-branch` | The request branch into `develop` | [references/request.md](references/request.md) |
-| Release `release/v…` of one project | Into its `main-branch` and `develop-branch`, tagged `v<version>` | `develop` into the main branch, tagged `<name>/v<version>` | [references/release.md](references/release.md) |
-| Hotfix of one project | `hotfix/v…` into its `main-branch` and `develop-branch`, tagged `v<version>` | `hotfix/<name>-v…` into the main branch, tagged `<name>/v<version>`, and into `develop` | [references/hotfix.md](references/hotfix.md) |
+| Release `release/vX.Y.Z` of one project (its final version) | Into its `main-branch`, tagged `v<version>`, built and packaged; then `main-branch` back into `develop-branch` | `develop` into the main branch, tagged `<name>/v<version>` | [references/release.md](references/release.md) |
+| Hotfix of one project | `hotfix/v…` into its `main-branch`, tagged `v<version>`, built and packaged; then `main-branch` back into `develop-branch` | `hotfix/<name>-v…` into the main branch, tagged `<name>/v<version>`, and into `develop` | [references/hotfix.md](references/hotfix.md) |
+
+A release or a hotfix publishes nothing until every local step succeeded: the merges
+and tags in both repositories, the build of the tagged version, and the package. Then
+it pushes, and creates the platform release with the package
+(`${CLAUDE_PLUGIN_ROOT}/skills/release/references/package.md`).
 
 A draft or a `ready` request is not merged here: its spec discussion or its
 implementation is not finished.
@@ -83,6 +88,10 @@ implementation is not finished.
 
   <one line in English that describes the change, or "Release vX.Y.Z" / "Hotfix vX.Y.Z">
   ```
+
+  The merge of a project's main branch back into its develop branch has the subject
+  `Merge <main-branch> into <develop-branch>` and the body `Release vX.Y.Z` or
+  `Hotfix vX.Y.Z`.
 
   A project merge commit has no `Refs:` line and never names the request or the
   workspace (see "Workspace and projects" in the root `AGENTS.md`). Write the

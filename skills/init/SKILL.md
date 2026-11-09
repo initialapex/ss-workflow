@@ -216,6 +216,8 @@ Summarize in the discussion language:
 - Project repositories whose `.gitignore` misses build output: suggest a request
 - The optional `verify-command` of each project, for a verification script that
   `/ss-workflow:review` runs after the build and the tests
+- The optional `package-command` and `package-files` of each project, for the release
+  package that a release builds from the tag and uploads with the platform release
 - The optional `agent-files` setting, for files outside the built-in list that tell an
   agent how to behave, such as prompt files that a product ships
 - What was pushed, and what the developer still has to push, per repository

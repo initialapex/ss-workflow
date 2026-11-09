@@ -14,10 +14,11 @@ that is versioned: source code, firmware, documents, or analysis reports. Its en
   on its project branch. The workspace
   records the project commit as a gitlink (see "Workspace and projects" in the root
   `AGENTS.md`).
-- Paths in a project's settings (`project-file`, `version-source`) are relative to
-  the project folder, and its commands run in that folder.
+- Paths in a project's settings (`project-file`, `version-source`, `package-files`)
+  are relative to the project folder, and its commands run in that folder.
 - A project's version is set only in its `version-source`. Do not set it anywhere
-  else.
+  else. With `git-tag`, the version comes from the git tag: never commit the
+  generated files that carry it.
 - Never commit build output. If a project's `.gitignore` misses it, say so; fixing it
   is a change to that project and needs a request.
 - If a project has its own `AGENTS.md`, `CLAUDE.md`, or README, read and follow them

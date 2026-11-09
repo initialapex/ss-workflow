@@ -117,8 +117,8 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
 | `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
-| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. Creates the tags for releases and hotfixes, and deletes the branches. |
-| `/ss-workflow:release` | You want to release a new version of a project | Root checkout | Recommends the project's version, creates its release branch, checks for its unfinished work, sets the version number, and hands over to the release merge. |
+| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
+| `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, builds and packages each tagged version, and hands the final version over to the release merge. |
 
 > [!NOTE]
 > The root checkout is the workspace's primary working tree. Tests, scripts, and
@@ -205,11 +205,29 @@ Both the workspace and every project follow gitflow, each with its own `master` 
 | Branch | Workspace | Project | Example |
 |--------|-----------|---------|---------|
 | Request | From and into `develop`, from the first draft on | Named after the change, from and into its `develop` | `feat/REQ-0012-gui-button`, `feat/gui-button` |
-| Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.0.0-beta1` | From `develop`, into `master` and `develop`, tagged `v1.0.0-beta1` | `release/v1.0.0-beta1` |
-| Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, and into `develop`, tagged `v1.0.1` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
+| Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.2.0` | From `develop`, release candidates tagged on it (`v1.2.0-rc1`), into `master`, tagged `v1.2.0`; then `master` back into `develop` | `release/v1.2.0` |
+| Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, tagged `v1.0.1`; then `master` back into `develop` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
+
+Where a project's version tags go:
+
+| Version | Project tag | Workspace tag |
+|---------|-------------|---------------|
+| Final, `v1.2.0` | On `master`, the merge of the release or hotfix | On the workspace `master` |
+| Alpha or beta, `v1.3.0-beta2` | On the tip of the project's `develop`, without a release branch | On the workspace `develop` commit that records it |
+| Release candidate, `v1.2.0-rc1` | On `release/v1.2.0` | None |
 
 - A project's `master` only receives its releases and hotfixes. Before its v1.0.0,
   its `develop` may also be merged into it directly.
+- After a final tag, `master` is merged back into `develop`, so that a build on
+  `develop` that reads its version from the nearest tags finds it.
+- Alpha and beta versions need a version that comes from the tag
+  (`version-source: git-tag` or `none`): a tag on `develop` cannot follow a version
+  commit. A release branch stays open through its release candidates: small fixes go
+  onto it, larger changes go through a request into `develop`, which is then merged
+  into the release branch. A final version does not need a release candidate.
+- Every version is tagged locally, built from its tag, and packaged
+  (`package-command`, `package-files` zipped into `<name>-v<version>.zip`). Only then
+  is everything pushed, and the platform release created with the package.
 - The workspace `master` is the set of the latest released projects: each release
   merges `develop` into it and points every project to its own `master`.
 - A request is merged project by project, and the workspace last.
@@ -290,7 +308,7 @@ there.
 
 | What | Where it is stored |
 |------|--------------------|
-| Branches, main project file, version source, and the setup, build, test, and verify commands of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
+| Branches, main project file, version source (a file and its field, `git-tag`, or `none`), the setup, build, test, verify, and package commands, and the package files of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
 | Extra files that tell an agent how to behave, such as prompt files that the product ships (`agent-files`) | "Workflow settings" in the root `AGENTS.md` |
 | Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the project's section of `projects/AGENTS.md` |
 | How new files and projects are registered with the build, generated files, naming | "Project rules" in the project's section of `projects/AGENTS.md` |

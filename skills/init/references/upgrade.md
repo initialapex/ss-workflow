@@ -134,6 +134,15 @@ Report and offer to fix:
   or `merge-method: remote` while `remote-platform` is `none`, for the workspace or a
   project.
 - A project from a local path without a remote whose `push-policy` is not `never`.
+- A `version-source` that is neither a path with a field, nor `git-tag`, nor `none`.
+- A project version tag that is not in its place (see "Branching model" in root
+  `AGENTS.md`): an alpha or beta tag that the project's develop branch does not
+  contain, or a final tag that its main branch does not contain. Tags from before
+  ss-workflow 0.10.0 may have prereleases on the main branch: report them as
+  information only.
+- A final tag of a project that its develop branch does not contain: the main branch
+  was not merged back after that release. Offer the merge of the main branch into the
+  develop branch, as the release guide of `/ss-workflow:merge` does it.
 - Worktrees from `git worktree list` whose branch has already been merged into
   `develop`, or whose request is already in `review`.
 - `req/*` branches whose request is already on `develop`.
