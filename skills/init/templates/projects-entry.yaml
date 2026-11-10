@@ -11,6 +11,8 @@
     build-command: {{ENTRY_BUILD_COMMAND}}
     test-command: {{ENTRY_TEST_COMMAND}}
     verify-command:
+    package-command: {{ENTRY_PACKAGE_COMMAND}}
+    package-files: {{ENTRY_PACKAGE_FILES}}
     remote-platform: {{ENTRY_REMOTE_PLATFORM}}
     merge-method: {{ENTRY_MERGE_METHOD}}
     push-policy: {{ENTRY_PUSH_POLICY}}

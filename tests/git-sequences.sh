@@ -129,6 +129,15 @@ no_ws_info() { # project-folder -> true when no branch, tag, or commit message o
 pbranch_of() { # ref:path-of-request-file -> its project-branch
   git show "$1" 2>/dev/null | sed -n 's/^project-branch: *//p' | head -1
 }
+highest_tag() { # repo rev [final] -> the highest version tag that rev contains, compared as versions (final > rc > beta > alpha)
+  git -C "$1" tag -l 'v*' --merged "$2" | tr -d '\r' \
+    | grep -E '^v[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}(-(alpha|beta|rc)[1-9][0-9]*)?$' \
+    | { if [ "$3" = final ]; then grep -v -- '-'; else cat; fi; } \
+    | awk '{ n = split(substr($0, 2), a, "-"); split(a[1], v, "."); st = 4; r = 0
+             if (n > 1) { if (a[2] ~ /^alpha/) { st = 1; r = substr(a[2], 6) } else if (a[2] ~ /^beta/) { st = 2; r = substr(a[2], 5) } else { st = 3; r = substr(a[2], 3) } }
+             printf "%03d%03d%03d%d%05d %s\n", v[1], v[2], v[3], st, r, $0 }' \
+    | sort | tail -1 | cut -d' ' -f2
+}
 ws_master_merge() { # tag message -> merge develop into the workspace master, gitlinks = each project's master
   local p
   git checkout -q master; git pull -q --ff-only 2>/dev/null
@@ -398,15 +407,16 @@ no_ "no tag yet: describe fails (the skill must expect this)" git -C projects/SS
   && git checkout -q master && git pull -q --ff-only 2>/dev/null \
   && git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into master" -m "Release v0.1.0" \
   && git tag -a v0.1.0 -m "Release v0.1.0" && git checkout -q develop \
-  && git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into develop" -m "Release v0.1.0" >/dev/null 2>&1; \
+  && git merge -q --no-ff master -m "Merge master into develop" -m "Release v0.1.0" >/dev/null 2>&1; \
   git push -q --atomic origin master develop v0.1.0 2>/dev/null && git branch -q -d release/v0.1.0 )
 yes_ "the project tag is on the project's remote" git -C projects/SSDisp ls-remote --exit-code --tags origin v0.1.0
+yes_ "master merged back: the final tag is reachable from the project's develop" git -C projects/SSDisp merge-base --is-ancestor v0.1.0 origin/develop
 eq_ "SSLib got no tag: it was not released" "$(git -C projects/SSLib tag -l | count)" "0"
 
 sec "release: the workspace records SSDisp v0.1.0"
 git -C projects/SSDisp checkout -q --detach origin/develop; git add projects/SSDisp
-eq_ "a release without commits of its own leaves the project's develop, so develop's gitlink, unchanged" "$(git diff --cached --name-only | count)" "0"
-git diff --cached --quiet || git commit -q -m "chore(release): update SSDisp to v0.1.0"
+eq_ "the merge of master back into develop moves develop's gitlink, also without release commits" "$(git diff --cached --name-only | count)" "1"
+git commit -q -m "chore(release): update SSDisp to v0.1.0"
 yes_ "develop is merged into the workspace master with every gitlink at its project's master" ws_master_merge SSDisp/v0.1.0 "Release SSDisp v0.1.0"
 eq_ "master's SSDisp is the released commit" "$(git rev-parse master:projects/SSDisp)" "$(git -C projects/SSDisp rev-parse 'v0.1.0^{commit}')"
 eq_ "master's SSLib is SSLib's master (unreleased)" "$(git rev-parse master:projects/SSLib)" "$(git -C projects/SSLib rev-parse origin/master)"
@@ -430,8 +440,9 @@ sec "release: SSLib v0.1.0 later; the master merge resolves the gitlinks"
   && git checkout -q master && git pull -q --ff-only 2>/dev/null \
   && git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into master" -m "Release v0.1.0" \
   && git tag -a v0.1.0 -m "Release v0.1.0" && git checkout -q develop \
-  && git merge -q --no-ff release/v0.1.0 -m "Merge release/v0.1.0 into develop" -m "Release v0.1.0" \
+  && git merge -q --no-ff master -m "Merge master into develop" -m "Release v0.1.0" \
   && git push -q --atomic origin master develop v0.1.0 2>/dev/null && git branch -q -d release/v0.1.0 )
+eq_ "the back-merge brings the release's version commit to develop" "$(git -C projects/SSLib show origin/develop:version.txt)" "0.1.0-lib"
 git -C projects/SSLib checkout -q --detach origin/develop; git add projects/SSLib
 git commit -q -m "chore(release): update SSLib to v0.1.0"
 git checkout -q master; git pull -q --ff-only 2>/dev/null
@@ -477,9 +488,10 @@ sec "hotfix: merge the project, then the workspace into master and develop"
 ( cd projects/SSDisp && git checkout -q master && git pull -q --ff-only 2>/dev/null \
   && git merge -q --no-ff hotfix/v0.1.1 -m "Merge hotfix/v0.1.1 into master" -m "Hotfix v0.1.1" \
   && git tag -a v0.1.1 -m "Hotfix v0.1.1" && git checkout -q develop && git pull -q --ff-only 2>/dev/null )
-git -C projects/SSDisp merge -q --no-ff --no-commit hotfix/v0.1.1 >/dev/null 2>&1
-eq_ "the project's develop takes the hotfix version (no conflict)" "$(git -C projects/SSDisp diff --name-only --diff-filter=U | count)" "0"
-git -C projects/SSDisp commit -q -m "Merge hotfix/v0.1.1 into develop" -m "Hotfix v0.1.1"
+git -C projects/SSDisp merge -q --no-ff --no-commit master >/dev/null 2>&1
+eq_ "the project's develop takes the hotfix version from master (no conflict)" "$(git -C projects/SSDisp diff --name-only --diff-filter=U | count)" "0"
+git -C projects/SSDisp commit -q -m "Merge master into develop" -m "Hotfix v0.1.1"
+yes_ "the hotfix tag is reachable from the project's develop" git -C projects/SSDisp merge-base --is-ancestor v0.1.1 develop
 yes_ "push --atomic of the project's master, develop and tag" git -C projects/SSDisp push -q --atomic origin master develop v0.1.1
 git checkout -q hotfix/SSDisp-v0.1.1
 setstatus "reqs/$f4" done; git mv "reqs/$f4" "reqs/done/$f4"
@@ -503,6 +515,83 @@ eq_ "develop has the request only in reqs/done" "$(status_of develop:reqs/done/$
 no_ "no stale copy in reqs/ on develop" git cat-file -e "develop:reqs/$f4"
 yes_ "push --atomic of the workspace master, develop and the tag" git push -q --atomic origin master develop SSDisp/v0.1.1
 yes_ "the hotfix left no workspace information in SSDisp" no_ws_info projects/SSDisp
+eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
+
+# ================================================================ prerelease
+sec "prerelease: SSDisp v0.2.0-alpha1 on the tip of the project's develop"
+( cd projects/SSDisp && git checkout -q develop && git pull -q --ff-only 2>/dev/null \
+  && echo "new screen" >> app.txt && git commit -q -am "feat: add a new screen" && git push -q origin develop 2>/dev/null )
+git -C projects/SSDisp checkout -q --detach origin/develop
+git -C projects/SSDisp tag -a v0.2.0-alpha1 -m "Release v0.2.0-alpha1"
+eq_ "the build sees the tag on the checked-out commit" "$(git -C projects/SSDisp describe --tags --exact-match HEAD)" "v0.2.0-alpha1"
+git add projects/SSDisp; git commit -q -m "chore(release): update SSDisp to v0.2.0-alpha1"
+git tag -a SSDisp/v0.2.0-alpha1 -m "Release SSDisp v0.2.0-alpha1"
+eq_ "the workspace tag is on the develop commit that records the tagged commit" "$(git rev-parse SSDisp/v0.2.0-alpha1:projects/SSDisp)" "$(git -C projects/SSDisp rev-parse 'v0.2.0-alpha1^{commit}')"
+yes_ "publish: the project pushes only its tag" git -C projects/SSDisp push -q origin v0.2.0-alpha1
+yes_ "publish: the workspace pushes develop and its tag together" git push -q --atomic origin develop SSDisp/v0.2.0-alpha1
+yes_ "the alpha tag is on the project's develop" git -C projects/SSDisp merge-base --is-ancestor v0.2.0-alpha1 origin/develop
+no_ "and not on its master" git -C projects/SSDisp merge-base --is-ancestor v0.2.0-alpha1 origin/master
+git submodule update -q
+eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
+
+sec "prerelease: the nearest tag is not always the highest version"
+( cd projects/SSDisp && git checkout -q -b hotfix/v0.1.2 origin/master && echo "fix" > fix2.txt && git add fix2.txt \
+  && git commit -q -m "fix: a second crash" && git checkout -q master \
+  && git merge -q --no-ff hotfix/v0.1.2 -m "Merge hotfix/v0.1.2 into master" -m "Hotfix v0.1.2" \
+  && git tag -a v0.1.2 -m "Hotfix v0.1.2" && git checkout -q develop && git pull -q --ff-only 2>/dev/null \
+  && git merge -q --no-ff master -m "Merge master into develop" -m "Hotfix v0.1.2" \
+  && git push -q --atomic origin master develop v0.1.2 2>/dev/null && git branch -q -d hotfix/v0.1.2 )
+yes_ "the hotfix tag is reachable from develop after the back-merge" git -C projects/SSDisp merge-base --is-ancestor v0.1.2 develop
+echo "  NOTE  git describe on develop after the hotfix: $(git -C projects/SSDisp describe --tags develop)"
+eq_ "the highest version tag that develop contains is still the alpha" "$(highest_tag projects/SSDisp develop)" "v0.2.0-alpha1"
+eq_ "the highest final tag on master (the hotfix base)" "$(highest_tag projects/SSDisp master final)" "v0.1.2"
+git submodule update -q
+
+sec "prerelease: release/v0.2.0 with release candidates; the root checkout is free in between"
+( cd projects/SSDisp && git checkout -q -b release/v0.2.0 develop && git push -q -u origin release/v0.2.0 2>/dev/null \
+  && git tag -a v0.2.0-rc1 -m "Release v0.2.0-rc1" && git push -q --atomic origin release/v0.2.0 v0.2.0-rc1 2>/dev/null )
+eq_ "one release branch is open, named after the final version" "$(git -C projects/SSDisp branch -a --list '*release/*' | tr -d ' *' | sed 's#remotes/origin/##' | sort -u | tr '\n' ' ')" "release/v0.2.0 "
+git submodule update -q
+eq_ "after rc1 the project is back at its gitlink: the root checkout is clean" "$(git status --porcelain | count)" "0"
+( cd projects/SSDisp && git checkout -q release/v0.2.0 && echo "typo fixed" > notes.txt && git add notes.txt \
+  && git commit -q -m "fix: a typo on the new screen" )
+( cd projects/SSDisp && git checkout -q develop && echo "bigger" > big.txt && git add big.txt \
+  && git commit -q -m "feat: a larger change through a request" && git push -q origin develop 2>/dev/null \
+  && git checkout -q release/v0.2.0 && git merge -q --no-ff develop -m "Merge develop into release/v0.2.0" )
+yes_ "develop is merged into the release branch for the next release candidate" git -C projects/SSDisp merge-base --is-ancestor develop release/v0.2.0
+git -C projects/SSDisp tag -a v0.2.0-rc2 -m "Release v0.2.0-rc2"
+yes_ "rc2 is published with the release branch" git -C projects/SSDisp push -q --atomic origin release/v0.2.0 v0.2.0-rc2
+no_ "a release candidate after commits of the release branch is not on the project's develop" git -C projects/SSDisp merge-base --is-ancestor v0.2.0-rc2 develop
+git -C projects/SSDisp merge-base --is-ancestor v0.2.0-rc1 develop \
+  && echo "  NOTE  rc1 was tagged before the release branch had a commit of its own, so develop contains it too"
+eq_ "the highest tag on the release branch is rc2" "$(highest_tag projects/SSDisp release/v0.2.0)" "v0.2.0-rc2"
+git submodule update -q
+
+sec "prerelease: the final v0.2.0 on master, then master back into develop"
+( cd projects/SSDisp && git checkout -q master && git pull -q --ff-only 2>/dev/null \
+  && git merge -q --no-ff release/v0.2.0 -m "Merge release/v0.2.0 into master" -m "Release v0.2.0" )
+eq_ "master equals the release branch" "$(git -C projects/SSDisp diff master release/v0.2.0 --stat | count)" "0"
+git -C projects/SSDisp tag -a v0.2.0 -m "Release v0.2.0"
+eq_ "the build on the tag sees exactly the final version" "$(git -C projects/SSDisp describe --tags --exact-match master)" "v0.2.0"
+no_ "before the back-merge, develop does not contain the final tag" git -C projects/SSDisp merge-base --is-ancestor v0.2.0 develop
+echo "  NOTE  git describe on develop before the back-merge: $(git -C projects/SSDisp describe --tags develop)"
+git -C projects/SSDisp checkout -q develop
+git -C projects/SSDisp merge -q --no-ff master -m "Merge master into develop" -m "Release v0.2.0"
+yes_ "after it, develop contains the final tag" git -C projects/SSDisp merge-base --is-ancestor v0.2.0 develop
+eq_ "and it is the highest version tag that develop contains" "$(highest_tag projects/SSDisp develop)" "v0.2.0"
+eq_ "a hotfix now starts from v0.2.0, the highest final tag on master" "$(highest_tag projects/SSDisp master final)" "v0.2.0"
+yes_ "master contains the alpha tag through develop, so describe is not the released version in general" git -C projects/SSDisp merge-base --is-ancestor v0.2.0-alpha1 master
+yes_ "publish: the project's master, develop and tag in one push" git -C projects/SSDisp push -q --atomic origin master develop v0.2.0
+yes_ "the release branch is merged; delete it" sh -c "git -C projects/SSDisp merge-base --is-ancestor release/v0.2.0 master && git -C projects/SSDisp branch -q -d release/v0.2.0 && git -C projects/SSDisp push -q origin --delete release/v0.2.0"
+eq_ "the release candidate tags stay" "$(git -C projects/SSDisp ls-remote --tags origin 'v0.2.0-rc*' | grep -vc '\^{}')" "2"
+git -C projects/SSDisp checkout -q --detach develop; git add projects/SSDisp
+git commit -q -m "chore(release): update SSDisp to v0.2.0"
+yes_ "develop is merged into the workspace master with every gitlink at its project's master" ws_master_merge SSDisp/v0.2.0 "Release SSDisp v0.2.0"
+eq_ "master's SSDisp is the released commit" "$(git rev-parse master:projects/SSDisp)" "$(git -C projects/SSDisp rev-parse 'v0.2.0^{commit}')"
+yes_ "the workspace master contains the alpha workspace tag too, so the skills do not use describe there" git merge-base --is-ancestor SSDisp/v0.2.0-alpha1 master
+git checkout -q develop; git submodule update -q
+yes_ "publish: the workspace master, develop and the tag in one push" git push -q --atomic origin master develop SSDisp/v0.2.0
+yes_ "the release left no workspace information in SSDisp" no_ws_info projects/SSDisp
 eq_ "the root checkout is clean" "$(git status --porcelain | count)" "0"
 
 # ================================================================ no remote at all

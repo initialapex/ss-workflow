@@ -98,6 +98,12 @@ Existing request files are changed only when a migration file says so, and then 
 `## Original` section is kept byte for byte, and no answered `## Q&A` entry is
 changed.
 
+After the commit and the push, start the requests that a migration step asked for,
+such as the conversion requests for `version-source: git-tag`
+([git-version.md](git-version.md)) and the package script requests
+([release-package.md](release-package.md)), one after another, with the root checkout on
+`develop`.
+
 If the upgrade stops halfway (the developer declines a step, or a check fails), do
 not set the new version. Report which migrations were applied and which were not, and
 leave the changes uncommitted for the developer to look at.
@@ -134,6 +140,19 @@ Report and offer to fix:
   or `merge-method: remote` while `remote-platform` is `none`, for the workspace or a
   project.
 - A project from a local path without a remote whose `push-policy` is not `never`.
+- A `version-source` that is neither a path with a field, nor `git-tag`, nor `none`.
+- A project version tag that is not in its place (see "Branching model" in root
+  `AGENTS.md`): an alpha or beta tag that the project's develop branch does not
+  contain, or a final tag that its main branch does not contain. Tags from before
+  ss-workflow 0.10.0 may have prereleases on the main branch: report them as
+  information only.
+- For a project with `version-source: git-tag`, or a `package-command` that runs
+  `New-ReleasePackage.ps1`: the plugin's scripts in it, as "Keeping the plugin's
+  scripts up to date" in [git-version.md](git-version.md) says. Offer the update
+  request when one is older than the plugin's.
+- A final tag of a project that its develop branch does not contain: the main branch
+  was not merged back after that release. Offer the merge of the main branch into the
+  develop branch, as the release guide of `/ss-workflow:merge` does it.
 - Worktrees from `git worktree list` whose branch has already been merged into
   `develop`, or whose request is already in `review`.
 - `req/*` branches whose request is already on `develop`.

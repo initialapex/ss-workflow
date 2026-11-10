@@ -211,9 +211,11 @@ verify" names the Review for every criterion. Managed blocks, `ss-workflow-versi
 
 For `type: hotfix`, `projects` names exactly one project. Also state the affected
 released version of that project and the hotfix version: the next patch version
-after the latest tag on the project's main branch (`git -C projects/<name> describe --tags
---abbrev=0 origin/<main-branch>`), in the form that "Versioning" in the root
-`AGENTS.md` describes.
+after the highest final version tag that the project's main branch contains (`git -C
+projects/<name> tag -l "v*" --merged origin/<main-branch>`, without prerelease tags,
+compared as versions), in the form that "Versioning" in the root `AGENTS.md`
+describes. The main branch can contain alpha and beta tags through the develop
+branch, so the nearest tag (`git describe`) is not always the released version.
 
 ### How to start
 
