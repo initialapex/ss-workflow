@@ -123,8 +123,8 @@ The root checkout must be on `develop` and clean.
    project.
 3. Push as the workspace's `push-policy` allows. Pushing the main branch asks first,
    as always.
-4. If the developer chose `git-tag` for the project, start its conversion request
-   (Step 9b of `SKILL.md`).
+4. If the developer chose `git-tag` or the package script for the project, start
+   its requests (Step 9b of `SKILL.md`).
 
 ## 6. Existing tasks and issues
 

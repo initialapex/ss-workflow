@@ -51,7 +51,7 @@ candidate.
    requests of this project closed since the last final release of the project (files
    added to `reqs/done/` since `<name>/v<last final>`, whose `projects` contains the project, or
    that have no `projects` while the project is `legacy-project`), and the package
-   that will be made (`package-files`). Ask for a go-ahead.
+   that will be made (`package-command` or `package-files`). Ask for a go-ahead.
 
 ## Merge the project
 

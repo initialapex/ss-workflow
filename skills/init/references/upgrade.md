@@ -100,7 +100,8 @@ changed.
 
 After the commit and the push, start the requests that a migration step asked for,
 such as the conversion requests for `version-source: git-tag`
-([git-version.md](git-version.md)), one after another, with the root checkout on
+([git-version.md](git-version.md)) and the package script requests
+([release-package.md](release-package.md)), one after another, with the root checkout on
 `develop`.
 
 If the upgrade stops halfway (the developer declines a step, or a check fails), do
@@ -145,9 +146,10 @@ Report and offer to fix:
   contain, or a final tag that its main branch does not contain. Tags from before
   ss-workflow 0.10.0 may have prereleases on the main branch: report them as
   information only.
-- For a project with `version-source: git-tag`: its version generator, as "Keeping
-  the generator up to date" in [git-version.md](git-version.md) says. Offer the
-  update request when it is older than the plugin's.
+- For a project with `version-source: git-tag`, or a `package-command` that runs
+  `New-ReleasePackage.ps1`: the plugin's scripts in it, as "Keeping the plugin's
+  scripts up to date" in [git-version.md](git-version.md) says. Offer the update
+  request when one is older than the plugin's.
 - A final tag of a project that its develop branch does not contain: the main branch
   was not merged back after that release. Offer the merge of the main branch into the
   develop branch, as the release guide of `/ss-workflow:merge` does it.

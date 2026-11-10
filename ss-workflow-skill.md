@@ -86,7 +86,7 @@ SSDisp-workspace/
     - `name`、`path` (`projects/<name>`)、`main-branch`、`develop-branch`、`project-type`、`project-kind`
     - `project-file`、`version-source` (路徑以專案資料夾為基準；`version-source` 可為檔案與欄位、`git-tag` (build 時從 git tag 產生版號檔，檔案被 git 忽略) 或 `none`)
     - `setup-command`、`build-command`、`test-command`、`verify-command`、`package-command` (在專案資料夾內執行)
-    - `package-files`: release package 的檔案 (glob，逗號分隔，以專案資料夾為基準)，release 時壓成 `<P>-v<version>.zip`
+    - `package-files`: release package 的檔案 (glob，逗號分隔，以專案資料夾為基準)，release 時由 agent 壓成 `<P>-v<version>.zip`；用打包 script 的專案留空 (見「Release 打包 script」)
     - 選填的 `remote-platform`、`merge-method`、`push-policy`: 覆寫 workspace 的預設值 (e.g. source repo 在 GitHub 要求發 PR，workspace 只在本機)
   - `projects/AGENTS.md` 的 `## Project: <name>` 章節: 需要安裝的工具、不在 `PATH` 上的工具如何找到、已知限制、新檔案 / 專案如何加入 build、哪些是產生的檔案不可手改、build 輸出位置、命名慣例
 - AI 依偵測到的內容與對該 toolchain 的了解提出建議值，由 developer 確認或修正；不確定時直接詢問，不猜指令
@@ -111,6 +111,20 @@ SSDisp-workspace/
 - 支援: MSBuild 的 C# (SDK-style 與 old-style) 與 C++；CMake 待辦；其他 toolchain 不支援 (專案自己有產生方式時仍可設 `git-tag`)
 - 專案要能脫離 workspace 獨立 build，所以產生器要 commit 在專案 repo (`tools/`)；init 不寫專案 repo，改由 init / 加入專案 / 升級之後開一個 `chore` request (轉換 request) 來複製檔案、移除舊的版號設定、把 `version-source` 改成 `git-tag`
 - 產生器檔案內有 `ss-workflow-script: <name> <version>` 標記；升級的健康檢查與每次 release 都會比對專案內的版本，比 plugin 舊時建議開 request 更新
+
+### Release 打包 script
+
+- 目的: 打包由 script 決定，不由 agent 決定；同樣的輸入一定得到同樣的 zip，developer、CI、沒有 workspace 時都能執行
+- plugin 附 `skills/init/scripts/New-ReleasePackage.ps1` (Windows PowerShell 3.0 以上、.NET Framework 4.5 以上)；和 `git-tag` 無關，`version-source` 是檔案的專案也能用
+- 由 request 複製到專案 `tools/` (不修改)，檔案清單放在專案自己的 `tools/package.psd1` (屬於專案，更新 script 時不覆寫)；專案 `.gitignore` 加 `dist/`
+- `package.psd1`: `Name`、`Platforms` (選填)、`Files` (`From` 以 repo 根目錄為基準、可用萬用字元，資料夾連子資料夾一起；`To` 是 zip 內的資料夾；`{Platform}` 代表各平台)；只打包 Release 的輸出
+- 平台**明確列出**，不從 `.sln` 自動推算 (`.sln` 常有不出貨的 `Any CPU`、`Mixed Platforms`)；製作 request 會讀 `.sln` 的 `Release|<platform>` 提出建議值讓 developer 確認。沒有或只有一個平台: `<Name>-v<version>.zip`；多個平台: 每個平台一包 `<Name>-v<version>-<platform>.zip`
+- 版號: `-Version` → HEAD 上版號最高的 tag (去掉 `v`) → 旁邊有 `Update-GitVersion.ps1` 時用它的版號 (tag 之後是 `1.2.3-4-g<sha>`)；都沒有就失敗
+- 拒絕: 有未 commit 的變更 (不含 untracked，含 submodule)、沒有版號、某個 `From` 找不到檔案 (該平台沒 build)、未知的 placeholder、zip 裡兩個不同檔案同名；任何一包失敗就一包都不寫
+- 用 .NET `ZipArchive` 寫 zip (路徑用 `/`，不用 `Compress-Archive`)；預設輸出到 repo 的 `dist/`；每包印出 `Package: <完整路徑>`
+- release 的介面: `package-command` 執行 script，`package-files` 留空；`package-command` 印出 `Package:` 行時，那些檔案就是 package，release 檢查檔名含 `-v<version>` 後全部上傳到 platform release；沒有 `Package:` 行時才由 agent 依 `package-files` 打包 (沒有用 script 的專案)
+- init (問答 Round 3)、加入專案、升級 (migration 0.10.0) 都會詢問是否製作；和 `git-tag` 轉換是分開的 request
+- script 內有 `ss-workflow-script: New-ReleasePackage <version>` 標記，與產生器一樣在升級健康檢查和 release 時比對版本
 
 ## 發佈方式 (Claude Code plugin)
 
@@ -152,6 +166,7 @@ ss-workflow/
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
   - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 SDK-style C# 專案，有 .NET Framework 的 MSBuild 4 時再 build 一個舊式 C# 專案 (VS2012 的 build 方式)
+  - `tests/release-package.sh`: 以 Windows PowerShell 與假的 build 輸出測試打包 script
 
 ## skill: `/ss-workflow:init`
 
@@ -514,7 +529,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - workspace: 沒有 release branch；develop 的 gitlink 更新為專案 develop (含 main merge 回來的 commit)，再把 workspace develop `--no-ff` merge 到 workspace master，在同一個 merge commit 把**每個**專案的 gitlink 設為各自專案 main 的最新 commit (`git update-index --cacheinfo 160000,<sha>,projects/<P>`，這也解掉 gitlink 的衝突)，打 `<P>/v1.2.3`
   - 不開 worktree
   - merge 前檢查: version-source 為檔案時版本與 branch 相符、兩層的 tag 都尚未存在、build + test 通過
-  - 流程: 本地打 tag → 從 tag build (`build-command`) → `package-command` → 把 `package-files` 壓成 `.claude/packages/<P>-v<version>.zip` (workspace 忽略此資料夾) → 所有 repo 的本地步驟都成功後才發佈
+  - 流程: 本地打 tag → 從 tag build (`build-command`) → `package-command` (打包 script 時由它產生每個平台的 zip) → 沒有打包 script 時把 `package-files` 壓成 `.claude/packages/<P>-v<version>.zip` (workspace 忽略此資料夾) → 所有 repo 的本地步驟都成功後才發佈
   - 發佈: push 專案 main / develop / tag、workspace master / develop / tag 等於對外釋出，不論 `push-policy` 為何，push 前都再確認一次，並用 `git push --atomic` 一次推送 (先專案、後 workspace)；`push-policy: never` 時不 push，只列出指令由 developer 執行；接著在專案的平台建立 release (`gh release create` / `glab release create`)，附上 zip，alpha / beta / rc 標為 prerelease
   - 在第一個 tag 或 merge commit 之前記下各 branch 的 commit，任何本地步驟失敗時可以完整復原 (刪掉本次的 tag、把未 push 的 branch reset 回去)
   - merge-method 為 remote 時例外: merge 先在 remote 公開，tag 與 package 在 merge 之後

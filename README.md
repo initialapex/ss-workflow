@@ -225,9 +225,10 @@ Where a project's version tags go:
   commit. A release branch stays open through its release candidates: small fixes go
   onto it, larger changes go through a request into `develop`, which is then merged
   into the release branch. A final version does not need a release candidate.
-- Every version is tagged locally, built from its tag, and packaged
-  (`package-command`, `package-files` zipped into `<name>-v<version>.zip`). Only then
-  is everything pushed, and the platform release created with the package.
+- Every version is tagged locally, built from its tag, and packaged: by the
+  project's package script (`package-command`, one zip per platform), or by zipping
+  `package-files` into `<name>-v<version>.zip`. Only then is everything pushed, and
+  the platform release created with the packages.
 - The workspace `master` is the set of the latest released projects: each release
   merges `develop` into it and points every project to its own `master`.
 - A request is merged project by project, and the workspace last.
@@ -333,6 +334,15 @@ the upgrade never copy it into a project themselves: they start a request that d
 so the project builds the same without the workspace. The upgrade reports when a
 project's copy is older than the plugin's. CMake is not supported yet.
 
+**The release package script.** The plugin also ships `New-ReleasePackage.ps1`
+(Windows PowerShell 3.0 or later). A request copies it into the project's `tools/`
+with `tools/package.psd1`, which lists the files of the release build and the
+platforms that ship; `package-command` runs it. It zips the release build into
+`dist/<name>-v<version>.zip`, or one `<name>-v<version>-<platform>.zip` per listed
+platform, refuses uncommitted changes, and runs the same without the workspace. Init,
+adding a project, and the upgrade ask whether to make it, separately from the
+conversion to `git-tag`.
+
 A project does not have to be code. For a repository of documents or analysis
 reports, leave the build and test commands empty, or set `verify-command` to a
 script that checks the reports (links, data, formatting). The Review is where you
@@ -378,6 +388,7 @@ tests/git-sequences.sh       checks the git steps that the skills prescribe
 tests/migrations.sh          checks that a template change ships a migration file
 tests/git-version.sh         checks the version generator, with real SDK-style and
                              old-style (MSBuild 4) C# builds
+tests/release-package.sh     checks the release package script
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -424,6 +435,13 @@ old-style project, as Visual Studio 2012 builds it:
 
 ```bash
 bash tests/git-version.sh
+```
+
+The release package script is tested the same way, with fake build output: the
+version, the files and folders in the zip, the platforms, and what it refuses:
+
+```bash
+bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

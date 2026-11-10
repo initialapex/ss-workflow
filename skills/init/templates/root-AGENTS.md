@@ -45,8 +45,8 @@ every entry has these keys:
 | `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
 | `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
 | `verify-command` | An extra verification script that `/ss-workflow:review` runs after the build and the tests | No extra script |
-| `package-command` | Prepares the release package after the build of a tagged version, for example an installer or a publish step | The build output is the package |
-| `package-files` | The files of the release package, as glob patterns relative to `path`, separated by commas, for example `bin/Release/*.exe, bin/Release/*.dll`. A release zips them into `<name>-v<version>.zip`. | No package is made or uploaded |
+| `package-command` | Runs after the build of a tagged version and prepares the release package, for example an installer or a publish step. When it prints `Package: <path>` lines, as the package script `tools/New-ReleasePackage.ps1` does, those files are the packages and `package-files` stays empty | The build output is the package |
+| `package-files` | The files of the release package, as glob patterns relative to `path`, separated by commas, for example `bin/Release/*.exe, bin/Release/*.dll`. A release zips them into `<name>-v<version>.zip`. | No package is made or uploaded, unless `package-command` names it |
 | `remote-platform`, `merge-method`, `push-policy` | Overrides for this project's repository | The workspace value |
 
 The commands run in the project folder (`path`). `push-policy` (`auto`, `ask`, or
@@ -378,7 +378,9 @@ project, the body is one line in English that describes the change, and there is
     release never commits a version number: it tags, and then builds.
   - `none`: no file carries the version; it only exists as the git tag.
 - A version is built and packaged from its tag: the release creates the tag, builds
-  the tagged commit, and runs `package-command`, before anything is pushed.
+  the tagged commit, and runs `package-command`, before anything is pushed. A project
+  with the package script lists the files of its package in `tools/package.psd1`
+  and gets one zip per platform listed there.
 - Only `/ss-workflow:release` and hotfix branches change a version.
 - The workspace itself has no version.
 <!-- /ss-workflow:managed -->

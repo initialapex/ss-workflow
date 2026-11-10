@@ -165,7 +165,7 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 - 專案的 `master` 只接收它自己的 release 和 hotfix。它的 v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
 - 正式版打完 tag 後，`master` 會 merge 回 `develop`，讓 `develop` 上從最近的 tag 讀版號的 build 也找得到它。
 - Alpha / Beta 版需要版號來自 tag（`version-source: git-tag` 或 `none`）：`develop` 上的 tag 前面不能有改版號的 commit。Release branch 在各個 release candidate 期間都保持開啟：小修正直接改在上面，較大的修改走 request 進 `develop`，再把 `develop` merge 進 release branch。正式版不一定要先出 release candidate。
-- 每個版本都先在本地打 tag，從 tag build 並打包（`package-command`，再把 `package-files` 壓成 `<name>-v<version>.zip`）。全部成功之後才一起 push，並建立附上 package 的平台 release。
+- 每個版本都先在本地打 tag，從 tag build 並打包：由專案的打包 script 產生（`package-command`，每個平台一包），或把 `package-files` 壓成 `<name>-v<version>.zip`。全部成功之後才一起 push，並建立附上 package 的平台 release。
 - workspace 的 `master` 是各專案最新 release 的組合：每次 release 都把 `develop` merge 進來，並把每個專案指向它自己的 `master`。
 - Request 先逐一 merge 各專案，最後才是 workspace。
 - Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，裡面有各專案的 worktree，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
@@ -231,6 +231,8 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 
 **版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`），由每個專案檔直接 import，Visual Studio 2010（MSBuild 4.0）以後都能用，需要 Windows PowerShell 3.0 以上。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
 
+**Release 打包 script。** plugin 也附了 `New-ReleasePackage.ps1`（Windows PowerShell 3.0 以上）。由 request 複製到專案的 `tools/`，搭配 `tools/package.psd1` 列出 release build 要打包的檔案和要出貨的平台，`package-command` 執行它。它把 release build 壓成 `dist/<name>-v<version>.zip`，有多個平台時每個平台一包 `<name>-v<version>-<platform>.zip`；有未 commit 的變更時拒絕打包；沒有 workspace 也能執行。init、加入專案、升級時都會詢問是否製作，和轉換成 `git-tag` 是分開的 request。
+
 專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
 ## 更新
@@ -262,6 +264,7 @@ skills/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
 tests/git-version.sh         檢查版號產生器；實際 build SDK-style 與舊式 (MSBuild 4) C# 專案
+tests/release-package.sh     檢查 release 打包 script
 ss-workflow-skill.md         設計規格
 ```
 
@@ -291,6 +294,12 @@ bash tests/migrations.sh
 
 ```bash
 bash tests/git-version.sh
+```
+
+打包 script 也用同樣方式以假的 build 輸出測試：版號、zip 裡的檔案與資料夾、平台，以及會拒絕的情況：
+
+```bash
+bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

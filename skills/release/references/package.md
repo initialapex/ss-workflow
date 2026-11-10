@@ -38,11 +38,23 @@ Undo only with the developer's agreement, and say what it removes.
    `git-tag`, an unignored generated file makes every build `-dirty`. The fix belongs
    to the release or hotfix branch (or to a request for an alpha or beta version);
    undo the run's tags first.
-5. Run `package-command` if it is set, in the project folder.
+5. Run `package-command` if it is set, in the project folder. A command that fails
+   stops the run; undo the run's tags first.
 
 ## Make the package
 
-Skip this section when `package-files` is empty: the version has no package.
+A version has a package in one of two ways:
+
+- **`package-command` printed `Package: <path>` lines**, as the plugin's package
+  script `New-ReleasePackage.ps1` does
+  (`${CLAUDE_PLUGIN_ROOT}/skills/init/references/release-package.md`): those files
+  are the packages, one per platform, and the rest of this section is skipped. Check
+  that each file exists and that its name contains `-v<version>`: a different version
+  (`-dirty`, `-1-g<sha>`, another tag) means the build did not run on the tag; stop
+  and report it. List each zip and its entries for the report.
+- **Otherwise, `package-files` is set**: the steps below make one zip.
+
+With neither, the version has no package.
 
 1. Expand each pattern of `package-files` in the project folder. A pattern that
    matches nothing is an error: stop and report it, because the build or the package
@@ -77,12 +89,13 @@ tags, the build of the tagged version, and the package.
    tag is the version.
 4. **Platform release**: when the project tag is on the remote and the project's
    `remote-platform` is not `none`, create the release from the tag, in the project
-   folder, with the package as its asset:
-   - GitHub: `gh release create v<version> <zip> --verify-tag --title v<version>
+   folder, with every package of the version as its assets (`<zips>`: one or one per
+   platform):
+   - GitHub: `gh release create v<version> <zips> --verify-tag --title v<version>
      --generate-notes`, with `--prerelease` for an alpha, beta, or release candidate
      version
-   - GitLab: `glab release create v<version> <zip> --name v<version> --notes
+   - GitLab: `glab release create v<version> <zips> --name v<version> --notes
      "<notes>"`, where the notes list the changes of this version grouped by type
-   Without `package-files`, create the release without an asset. The title and the
+   Without a package, create the release without an asset. The title and the
    notes describe the project's changes, with no request id and no workspace name.
-   Without a remote platform, report the zip's path: the developer publishes it.
+   Without a remote platform, report the zips' paths: the developer publishes them.

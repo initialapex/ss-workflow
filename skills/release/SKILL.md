@@ -94,10 +94,11 @@ Supporting files:
    too (`git tag -l "<name>/v*"`): the workspace tag of the last final is
    `<name>/v<last final>`. Do not use `git describe` on the workspace main branch for
    it: the main branch contains the alpha and beta tags of `develop`.
-7. With `version-source: git-tag`, check the project's version generator as "Keeping
-   the generator up to date" in `${CLAUDE_PLUGIN_ROOT}/skills/init/references/git-version.md`
-   says. An older or missing generator does not stop the release: keep it for the
-   report.
+7. With `version-source: git-tag`, or a `package-command` that runs
+   `New-ReleasePackage.ps1`, check the plugin's scripts in the project as "Keeping
+   the plugin's scripts up to date" in
+   `${CLAUDE_PLUGIN_ROOT}/skills/init/references/git-version.md` says. An older or
+   missing script does not stop the release: keep it for the report.
 8. Check that there is something to release: `git -C <path> log <last tag>..<the
    commit to release> --oneline`, where the commit is the project's develop-ref, or
    the release branch, and the last tag is the newest version tag that is an ancestor
@@ -351,10 +352,10 @@ After the last step (or after the merge skill finishes), add to the report, in
 - Project commits without a request, if Step 2 found any
 - The checks that were not configured, and that the developer confirmed the release
   build themselves
-- With `version-source: git-tag`: the version generator found in Step 1, and an
-  offer for its update request when it is older than the plugin's
-- The package: the zip and its files, and where it was uploaded, or that the project
-  has no `package-files`
+- The plugin's scripts found in Step 1 (version generator, package script), and an
+  offer for an update request when one is older than the plugin's
+- The package: the zips and their files, and where they were uploaded, or that the
+  project has no package
 - What is not on the remotes yet, with the commands that push it, per repository
 - For an open release branch: that it stays open, and how to continue it
 - A reminder of anything the developer still does by hand, such as announcing the

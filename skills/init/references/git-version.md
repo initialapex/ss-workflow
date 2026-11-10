@@ -131,23 +131,28 @@ Until that request is merged, a release of the project still sets the version in
 file. The request changes `version-source` on its workspace branch, so the new value
 reaches `develop` with the merge, together with the project change that it describes.
 
-## Keeping the generator up to date
+## Keeping the plugin's scripts up to date
 
-In the health check of an upgrade, and before each release of a project with
-`version-source: git-tag`:
+The plugin's scripts in a project: the version generator (`Update-GitVersion.ps1`,
+`GitVersion.targets`) and the package script (`New-ReleasePackage.ps1`, see
+[release-package.md](release-package.md)). In the health check of an upgrade, and
+before each release of a project that uses one of them (`version-source: git-tag`, or
+a `package-command` that runs `New-ReleasePackage.ps1`):
 
-1. Find the generator files on the project's develop branch: `git -C <path> ls-tree
-   -r --name-only <develop-ref> | grep -E '(^|/)(Update-GitVersion\.ps1|GitVersion\.targets)$'`.
+1. Find the script files on the project's develop branch: `git -C <path> ls-tree
+   -r --name-only <develop-ref> | grep -E '(^|/)(Update-GitVersion\.ps1|GitVersion\.targets|New-ReleasePackage\.ps1)$'`.
 2. Read the version in their `ss-workflow-script:` line (`git -C <path> show
    <develop-branch>:<file>`), and compare it with the file of the same name in
    `${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/`.
 3. Report:
-   - An older version: offer a `chore` request "update the version generator of
-     <name> to <version>" through `/ss-workflow:new-req`. It copies the new files
-     unchanged; the plugin's migration files say when a new version needs more.
-   - No file found: the conversion request has not been merged, or the project
-     generates its version in its own way. Say so; do not change anything.
+   - An older version: offer a `chore` request "update the <version generator |
+     package script> of <name> to <version>" through `/ss-workflow:new-req`. It
+     copies the new files unchanged (never `package.psd1`); the plugin's migration
+     files say when a new version needs more.
+   - No file found while the settings expect it: the request that sets it up has not
+     been merged, or the project does it in its own way. Say so; do not change
+     anything.
    - A file that differs from the plugin's file of the same version: someone changed
      it in the project. Report it; an update would overwrite that change.
 
-A release does not stop for an older generator: it mentions it in the report.
+A release does not stop for an older script: it mentions it in the report.
