@@ -265,7 +265,7 @@ of each:
 4. `verify-command`
 5. The commands and scripts that the request names for Verify
 6. For a hotfix: check that the project's `version-source` holds the hotfix version,
-   unless it is `none`
+   unless it is `git-tag` or `none` (the merge's tag is the version then)
 
 The first four commands come from the project's entry in `projects` ("Workflow
 settings" in the root `AGENTS.md`), and they depend on the project's toolchain. Read

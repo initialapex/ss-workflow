@@ -1,6 +1,8 @@
 # --- ss-workflow (required; keep this block) ---
 # Request worktrees created by /ss-workflow:check-req
 .claude/worktrees/
+# Release packages created by /ss-workflow:release and /ss-workflow:merge
+.claude/packages/
 # Personal Claude Code settings
 .claude/settings.local.json
 CLAUDE.local.md

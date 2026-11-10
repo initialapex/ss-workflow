@@ -81,16 +81,50 @@ SSDisp-workspace/
 工作流本身不相依任何一種專案形式，Visual Studio / Keil / ESP32 或其他類型都適用。
 
 - 專案類型由 developer 在初始化時說明 (自由描述，e.g.「Visual Studio solution，old-style C# 專案，用 MSBuild 建置」、「Keil MDK-ARM」、「ESP-IDF」)；每個專案各自說明
-- 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在 workspace，plugin 不內建任何 toolchain 的範本或指令
+- 所有跟專案形式有關的內容，都是初始化問答的答案，記錄在 workspace，plugin 不內建任何 toolchain 的範本或指令；唯一例外是選用的版號產生器 (見「版號來自 git tag」)
   - root `AGENTS.md` 的 Workflow settings: workspace 層的設定，加上 `projects:` 清單，每個專案一筆:
     - `name`、`path` (`projects/<name>`)、`main-branch`、`develop-branch`、`project-type`、`project-kind`
-    - `project-file`、`version-source` (路徑以專案資料夾為基準，`version-source` 可為 `none`)
-    - `setup-command`、`build-command`、`test-command`、`verify-command` (在專案資料夾內執行)
+    - `project-file`、`version-source` (路徑以專案資料夾為基準；`version-source` 可為檔案與欄位、`git-tag` (build 時從 git tag 產生版號檔，檔案被 git 忽略) 或 `none`)
+    - `setup-command`、`build-command`、`test-command`、`verify-command`、`package-command` (在專案資料夾內執行)
+    - `package-files`: release package 的檔案 (glob，逗號分隔，以專案資料夾為基準)，release 時由 agent 壓成 `<P>-v<version>.zip`；用打包 script 的專案留空 (見「Release 打包 script」)
     - 選填的 `remote-platform`、`merge-method`、`push-policy`: 覆寫 workspace 的預設值 (e.g. source repo 在 GitHub 要求發 PR，workspace 只在本機)
   - `projects/AGENTS.md` 的 `## Project: <name>` 章節: 需要安裝的工具、不在 `PATH` 上的工具如何找到、已知限制、新檔案 / 專案如何加入 build、哪些是產生的檔案不可手改、build 輸出位置、命名慣例
 - AI 依偵測到的內容與對該 toolchain 的了解提出建議值，由 developer 確認或修正；不確定時直接詢問，不猜指令
 - 指令可以留空 (e.g. 只能在 IDE 內 build 的專案): 該步驟會被略過並回報「未設定」，skill 不會自行編造指令
 - init 不建立專案檔、build 檔或版本檔，這些由 developer 或第一個 request 產生
+
+### 版號來自 git tag
+
+- `version-source: git-tag`: 專案檔案裡沒有版號，build 時由 tag 決定版號並產生版號檔 (加入 gitignore，build 完才不會 dirty)；release 流程變成「打 tag → build → package」
+- plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 3.0 以上，Windows 7 要另裝 WMF 3.0+；版本不夠時 script 報錯、build 失敗) 與 `GitVersion.targets` (MSBuild 4.0 / VS2010 以上)
+- 每個產生 binary 的專案檔直接 `<Import Project="..\tools\GitVersion.targets" />` (舊式 `.csproj` 放在 `Microsoft.CSharp.targets` 之後，`.vcxproj` 放在 `Microsoft.Cpp.targets` 之後，SDK-style 放最後)；不用 `Directory.Build.targets`，因為 VS2015 以前 (MSBuild 14 以前) 不會讀它。之後新增的專案檔也要加同一行
+- **tag 帶 `v`，產生的版號不帶 `v`**: 專案的 tag 一律是 `v1.2.3` / `v1.2.3-beta4` / `v1.2.3-rc1` (沒有 `v` 的 tag 不算)；產生器把找到的 tag 去掉開頭的 `v` 再寫進檔案
+- 產生的版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`
+  - HEAD 就是 tag `v1.2.3` 那個 commit: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
+  - tag `v1.2.3` 之後 4 個 commit: `1.2.3-4-g123dcda`；最長 (tag `v1.2.3-beta4` 之後 5 個 commit 且有變更): `1.2.3-beta4-5-g321aceb-dirty`
+  - 沒有 tag、shallow clone 沒有 tag、沒有 git: `0.1.0-unknown`
+  - 只接受 `vX.Y.Z` / `vX.Y.Z-<stage>R` 格式的 tag (annotated 或 lightweight 都可以)；取 HEAD 所包含的 tag 中**版號最高**的 (不是 `git describe` 的最近 tag，否則 hotfix merge 回 develop 後會蓋過 alpha)
+- 產生的檔案 (依副檔名):
+  - `.cs`: `AssemblyVersion` / `AssemblyFileVersion` = `X.Y.Z.0` (第 4 段固定 0)，`AssemblyInformationalVersion` = 完整版號；寫在 `obj/` 裡，並關掉 SDK 自己產生的版本 attribute
+  - `.h`: `<PREFIX>VERSION_MAJOR/MINOR/PATCH/BUILD`、`_STRING`、`_NUMERIC_STRING`，`.rc` 也可以 include
+  - 內容沒變就不寫檔，避免每次 build 都重新編譯
+- 支援: MSBuild 的 C# (SDK-style 與 old-style) 與 C++；CMake 待辦；其他 toolchain 不支援 (專案自己有產生方式時仍可設 `git-tag`)
+- 專案要能脫離 workspace 獨立 build，所以產生器要 commit 在專案 repo (`tools/`)；init 不寫專案 repo，改由 init / 加入專案 / 升級之後開一個 `chore` request (轉換 request) 來複製檔案、移除舊的版號設定、把 `version-source` 改成 `git-tag`
+- 產生器檔案內有 `ss-workflow-script: <name> <version>` 標記；升級的健康檢查與每次 release 都會比對專案內的版本，比 plugin 舊時建議開 request 更新
+
+### Release 打包 script
+
+- 目的: 打包由 script 決定，不由 agent 決定；同樣的輸入一定得到同樣的 zip，developer、CI、沒有 workspace 時都能執行
+- plugin 附 `skills/init/scripts/New-ReleasePackage.ps1` (Windows PowerShell 3.0 以上、.NET Framework 4.5 以上)；和 `git-tag` 無關，`version-source` 是檔案的專案也能用
+- 由 request 複製到專案 `tools/` (不修改)，檔案清單放在專案自己的 `tools/package.psd1` (屬於專案，更新 script 時不覆寫)；專案 `.gitignore` 加 `dist/`
+- `package.psd1`: `Name`、`Platforms` (選填)、`Files` (`From` 以 repo 根目錄為基準、可用萬用字元，資料夾連子資料夾一起；`To` 是 zip 內的資料夾；`{Platform}` 代表各平台)；只打包 Release 的輸出
+- 平台**明確列出**，不從 `.sln` 自動推算 (`.sln` 常有不出貨的 `Any CPU`、`Mixed Platforms`)；製作 request 會讀 `.sln` 的 `Release|<platform>` 提出建議值讓 developer 確認。沒有或只有一個平台: `<Name>-v<version>.zip`；多個平台: 每個平台一包 `<Name>-v<version>-<platform>.zip`
+- 版號: `-Version` → HEAD 上版號最高的 tag (去掉 `v`) → 旁邊有 `Update-GitVersion.ps1` 時用它的版號 (tag 之後是 `1.2.3-4-g<sha>`)；都沒有就失敗
+- 拒絕: 有未 commit 的變更 (不含 untracked，含 submodule)、沒有版號、某個 `From` 找不到檔案 (該平台沒 build)、未知的 placeholder、zip 裡兩個不同檔案同名；任何一包失敗就一包都不寫
+- 用 .NET `ZipArchive` 寫 zip (路徑用 `/`，不用 `Compress-Archive`)；預設輸出到 repo 的 `dist/`；每包印出 `Package: <完整路徑>`
+- release 的介面: `package-command` 執行 script，`package-files` 留空；`package-command` 印出 `Package:` 行時，那些檔案就是 package，release 檢查檔名含 `-v<version>` 後全部上傳到 platform release；沒有 `Package:` 行時才由 agent 依 `package-files` 打包 (沒有用 script 的專案)
+- init (問答 Round 3)、加入專案、升級 (migration 0.10.0) 都會詢問是否製作；和 `git-tag` 轉換是分開的 request
+- script 內有 `ss-workflow-script: New-ReleasePackage <version>` 標記，與產生器一樣在升級健康檢查和 release 時比對版本
 
 ## 發佈方式 (Claude Code plugin)
 
@@ -131,6 +165,8 @@ ss-workflow/
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
+  - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 SDK-style C# 專案，有 .NET Framework 的 MSBuild 4 時再 build 一個舊式 C# 專案 (VS2012 的 build 方式)
+  - `tests/release-package.sh`: 以 Windows PowerShell 與假的 build 輸出測試打包 script
 
 ## skill: `/ss-workflow:init`
 
@@ -175,14 +211,13 @@ ss-workflow/
 - 語言設定 (見「環境設定」)，包含 reqs / docs 使用的語言
 - workspace 的主分支名稱: `master` 或 `main`
 - remote 平台: GitHub (`gh`) / GitLab (`glab`) / 無 (workspace 的預設值，各專案可覆寫)
-- 每個專案: 專案類型與 toolchain (見「專案形式」)、main / develop branch 名稱、主要專案檔、setup / build / test 指令、版本號來源、工具注意事項、專案規則，以及需要時覆寫的 remote 設定
+- 每個專案: 專案類型與 toolchain (見「專案形式」)、main / develop branch 名稱、主要專案檔、setup / build / test 指令、版本號來源 (檔案、`git-tag` 或 `none`)、package 指令與 package 檔案 (release 從 tag build 後壓成 zip 上傳，可留空)、工具注意事項、專案規則，以及需要時覆寫的 remote 設定
 - merge 方式 (`merge-method`): 每次詢問 / local merge / 發 merge-request
 - push 方式 (`push-policy`): `auto` (預設) / `ask` / `never`，見「Remote 與 push」
 
 問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的欄位，init 不詢問，由 developer 需要時自行填入:
 
-- 各專案的 `verify-command`: `/ss-workflow:review` 在 build 與測試之後額外執行的驗證 script
-- `agent-files`: 內建清單以外、會影響 agent 行為的檔案路徑 (glob，逗號分隔，可指向 `projects/<P>/...`)，e.g. 產品內附的 prompt 檔，見「如實回報與 agent 行為檔」
+- 各專案的 `verify-command`: `/ss-workflow:review` 在 build 與測試之後額外執行的驗證 script- `agent-files`: 內建清單以外、會影響 agent 行為的檔案路徑 (glob，逗號分隔，可指向 `projects/<P>/...`)，e.g. 產品內附的 prompt 檔，見「如實回報與 agent 行為檔」
 - `legacy-project`: 由「轉換 0.5.0 以下的 repo」寫入的專案名稱，沒有 `projects` 欄位的舊 request 屬於它；不是轉換來的 workspace 留空
 
 ### 轉換 0.5.0 以下的 repo
@@ -480,26 +515,39 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 任何一步中斷 (merge-request 等待中、受保護的 branch)，下一次執行時以 `merge-base --is-ancestor` (專案 branch 是否已在專案 develop、workspace branch 是否已在 workspace develop) 判斷做到哪裡再接續
   - 發 merge-request 的情況下，專案已合併但 workspace 還沒 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow:review REQ-xxxx` 重新開啟並繼續 review
 
+- 版本 tag 的位置 (專案)
+  - 正式版 `v1.2.3`: 只在專案 main (release / hotfix / pre-1.0 sync 的 merge commit)
+  - Alpha / Beta `v1.2.3-alpha4` / `v1.2.3-beta4`: 只在專案 develop 的最新 commit；不開 release branch、不 merge；workspace 在記錄該 commit 的 develop commit 打 `<P>/v1.2.3-beta4`。只有 `version-source` 為 `git-tag` 或 `none` 的專案可以打 (develop 上不能有改版號的 commit)
+  - Release candidate `v1.2.3-rc4`: 只在 `release/v1.2.3`；workspace 不打 tag (workspace develop 記錄的是專案 develop，不是 release branch)
+  - 不接受其他版本 tag 格式
+
 - release (各專案自己的版本，見 `/ss-workflow:release`)
-  - source repo: 從專案 develop 開 `release/v1.0.0-beta1`，完成後 merge 回專案 main 與 develop，在專案 main 的 merge commit 打 `v1.0.0-beta1`
-  - workspace: 沒有 release branch；develop 的 gitlink 更新為專案 develop (release 沒有自己的 commit 時不需要)，再把 workspace develop `--no-ff` merge 到 workspace master，在同一個 merge commit 把**每個**專案的 gitlink 設為各自專案 main 的最新 commit (`git update-index --cacheinfo 160000,<sha>,projects/<P>`，這也解掉 gitlink 的衝突)，打 `<P>/v1.0.0-beta1`
+  - source repo: 從專案 develop 開 `release/v1.2.3` (只用正式版號命名)，在上面打 rc；正式版 merge 到專案 main，在 merge commit 打 `v1.2.3`，再把專案 main `--no-ff` merge 回專案 develop
+  - main merge 回 develop (而不是 release branch merge 回 develop) 的原因: 正式版 tag 在 main 的 merge commit 上，要讓它成為 develop 的祖先，develop 上從最近 tag 產生版號 (`git-tag`) 時才不會停在舊的 rc
+  - release branch 在 rc 期間保持開啟: 小修正直接在 release branch 上修；大修改走 request 回 develop，再把 develop merge 進 release branch 出下一個 rc；release branch 開著時 develop 不打 alpha / beta；正式版不一定要先出 rc
+  - 兩個 rc 之間專案切回 gitlink，根目錄可以繼續做 review 與規格討論
+  - workspace: 沒有 release branch；develop 的 gitlink 更新為專案 develop (含 main merge 回來的 commit)，再把 workspace develop `--no-ff` merge 到 workspace master，在同一個 merge commit 把**每個**專案的 gitlink 設為各自專案 main 的最新 commit (`git update-index --cacheinfo 160000,<sha>,projects/<P>`，這也解掉 gitlink 的衝突)，打 `<P>/v1.2.3`
   - 不開 worktree
-  - merge 前檢查: 專案的 version-source 的版本與 branch 相符、兩層的 tag 都尚未存在、build + test 通過
-  - push 專案 main、workspace master 與 tag 等於對外釋出，不論 `push-policy` 為何，push 前都再確認一次，並用 `git push --atomic` 一次推送 (每個 repo 各一次)；`push-policy: never` 時不 push，只列出指令由 developer 執行
-  - 完成後可選擇是否在專案的平台上建立 release (`gh release create` / `glab release create`)
+  - merge 前檢查: version-source 為檔案時版本與 branch 相符、兩層的 tag 都尚未存在、build + test 通過
+  - 流程: 本地打 tag → 從 tag build (`build-command`) → `package-command` (打包 script 時由它產生每個平台的 zip) → 沒有打包 script 時把 `package-files` 壓成 `.claude/packages/<P>-v<version>.zip` (workspace 忽略此資料夾) → 所有 repo 的本地步驟都成功後才發佈
+  - 發佈: push 專案 main / develop / tag、workspace master / develop / tag 等於對外釋出，不論 `push-policy` 為何，push 前都再確認一次，並用 `git push --atomic` 一次推送 (先專案、後 workspace)；`push-policy: never` 時不 push，只列出指令由 developer 執行；接著在專案的平台建立 release (`gh release create` / `glab release create`)，附上 zip，alpha / beta / rc 標為 prerelease
+  - 在第一個 tag 或 merge commit 之前記下各 branch 的 commit，任何本地步驟失敗時可以完整復原 (刪掉本次的 tag、把未 push 的 branch reset 回去)
+  - merge-method 為 remote 時例外: merge 先在 remote 公開，tag 與 package 在 merge 之後
 
 - hotfix (各專案)
-  - 專案: `hotfix/v1.0.1` 從專案 main 開，完成後 merge 回專案 main 與 develop，打 `v1.0.1`
+  - 專案: `hotfix/v1.0.1` 從專案 main 開，完成後 merge 到專案 main，打 `v1.0.1`，從 tag build 並打包，再把專案 main merge 回專案 develop (有開著的 release branch 時詢問是否也把 main merge 進去)；只有正式版
   - workspace: `hotfix/<P>-v1.0.1` 從 workspace master 開，完成後 merge 回 workspace master (gitlink = 專案 main 的 hotfix merge commit，打 `<P>/v1.0.1`) 與 workspace develop (gitlink = 專案 develop)
   - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 開始)，Verify / Review / merge 一樣在根目錄
   - merge 回專案 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
-  - 若該專案有進行中的 release branch，詢問是否也 merge 進去
+  - version-source 為 `git-tag` 或 `none` 時不 commit 版號，tag 就是版本
+  - hotfix 版號: 專案 main 所包含的最高正式版 tag 的 PATCH + 1 (main 會透過 develop 包含 alpha / beta tag，所以不用 `git describe`)
+  - 發佈方式與 release 相同 (全部本地步驟成功後才 push 與上傳 package)
   - request 檔在 workspace hotfix branch 上關閉 (開始時已從 draft branch 複製過來)；merge 回 workspace develop 時用 `--no-commit`，在同一個 merge commit 內 (0.8.0 以前開始的 hotfix 才有) 刪除 develop 上仍為 `ready` 的舊副本，並把 gitlink 設為專案 develop
 
 - master (兩層都持續存在)
   - 專案 main: 主要是在有新版要釋出時，才會有新的 commit
   - workspace master: 任一專案 release 或 hotfix 時更新，內容 = 各專案最新 release 的組合，加上當時的 request 紀錄
-  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
+  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，再把專案 main merge 回 develop，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
 
 - develop (兩層都持續存在)
   - 主要是開發 branch，所有變動大部分都會在這邊
@@ -509,16 +557,21 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 參數: `[<project>] [version]`；workspace 只有一個專案時可省略 `<project>`
 
 - 在 workspace 根目錄的 develop 上使用此 skill，表示想釋出某個專案的新版本
-  - 檢查適合的版本號推薦給使用者 (依該專案 source repo 的上一個 tag 與專案 develop 上的 commit type)，使用者同意後，從專案 develop 建立 release branch
-  - release branch 建立後，檢查是否有未完成需求 (`projects` 含該專案、非 `done` 的 request)、未完成 worktree；若有未完成，讓 developer 決定是否 release?
+  - 檢查適合的版本號推薦給使用者 (依該專案所有符合格式的 tag 與專案 develop 上的 commit type)，依情況提供:
+    - 沒有 release branch、version-source 為 `git-tag` / `none`: 在專案 develop 最新 commit 打 alpha / beta (Part A)，或開 release branch
+    - 沒有 release branch、版號在檔案裡: 只能開 release branch
+    - 開 release branch 時: 第一個 tag 是 `rc1` 或直接正式版
+  - Part A (alpha / beta): 檢查未完成工作 → 專案 detach 到 develop 最新 commit → build / test / verify → 打 tag → 從 tag build 並打包 → workspace develop 記錄 gitlink 並打 `<P>/v<version>` → 發佈 (專案只 push tag) → 專案切回 gitlink
+  - Part B (release branch): 從專案 develop 建立 `release/vX.Y.Z`，檢查是否有未完成需求 (`projects` 含該專案、非 `done` 的 request)、未完成 worktree；若有未完成，讓 developer 決定是否 release?
     - 若不同意，先處理完需求， developer 要再下一次此 skill
-  - 若同意 release ，則去檢查該專案 `version-source` (以及 `## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方) 的版本號是否與 release branch 相符
-    - 若不相符作相對應的修改並 commit (在 source repo)
-  - 若相符則直接啟用 release merge 規則 (見 `/ss-workflow:merge`)
-- 若專案已有 release branch，表示接續先前的 release (根目錄停在 develop，專案停在該 release branch)
-  - 專案 develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否納入這次 release
-- 每個專案一次只進行一個 release；已有 release branch 時不再建立新的；不同專案可以先後 release
-- 這次 release 包含的 request: 上一個 `<P>/v*` tag 之後 `reqs/done/` 新增、且 `projects` 含該專案的 request (沒有 `projects` 欄位的舊 request 屬於 `legacy-project`；`projects: []` 的 request 不屬於任何專案的 release)
+  - 若同意 release，version-source 為檔案時檢查它 (以及 `## Project: <P>` 章節列出的其他位置、專案內另外設定版本的地方) 的版本號是否與這次的 rc 或正式版相符
+    - 若不相符作相對應的修改並 commit (在 source repo 的 release branch)
+  - rc: 在 release branch 最新 commit 打 tag → 從 tag build 並打包 → 發佈 (push release branch 與 tag，平台 prerelease) → 專案切回 gitlink，release branch 保持開啟
+  - 正式版: 直接啟用 release merge 規則 (見 `/ss-workflow:merge`)
+- 若專案已有 release branch，表示接續先前的 release (專案可能在 gitlink，也可能停在該 release branch)
+  - 專案 develop 有 release branch 沒有的 commit 時 (e.g. 剛完成的 request)，詢問是否 merge 進 release branch 納入這次 release，之後建議先出 rc
+- 每個專案一次只進行一個 release；已有 release branch 時不再建立新的，也不在 develop 打 alpha / beta；不同專案可以先後 release
+- 這次 release 包含的 request: 上一個正式版 `<P>/v*` tag 之後 `reqs/done/` 新增、且 `projects` 含該專案的 request (沒有 `projects` 欄位的舊 request 屬於 `legacy-project`；`projects: []` 的 request 不屬於任何專案的 release)；prerelease / rc 另外標出上一個同目標 tag 之後新增的部分
 - 版本號格式: `vX.Y.Z-{alpha/beta/rc}{R}`
   - X / Y / Z (MAJOR / MINOR / PATCH) 為 0 到 99 的整數，最多兩位數，不補零
   - 正式版本沒有後綴: `v1.0.0`；prerelease 使用後綴，階段只有 `alpha` / `beta` / `rc`，R 從 1 開始、直接接在階段後面: `v1.0.0-alpha1`、`v1.0.0-beta2`、`v1.0.0-rc1`
@@ -527,11 +580,14 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - tag: source repo 為 `v<version>`，workspace 為 `<P>/v<version>`
 - 版本號推薦規則
   - 要遞增的位數已經是 99 時: 改推薦進位到上一位 (`1.4.99` → `1.5.0`) 並說明原因；MAJOR 已是 99 時沒有合法的下一版，交給 developer 決定
-  - 尚無 tag (第一次 release): 使用 version-source 目前的版本
-  - 1.0.0 以上: breaking → MAJOR、`feat` → MINOR、其他 → PATCH
+  - 讀取專案所有符合格式的 `v*` tag (不分 annotated / lightweight)，找出: 最高的正式版 (last final)、目標 X.Y.Z (比 last final 高的 prerelease 中最高者的 X.Y.Z；沒有時依 commit 推算)、目標目前最高的階段
+  - 尚無正式版 tag (第一次 release): version-source 為檔案時使用它目前的版本，`git-tag` / `none` 時推薦 `0.1.0`
+  - 1.0.0 以上: breaking → MAJOR、`feat` → MINOR、其他 → PATCH (以 last final 為基準)
   - 1.0.0 以下: breaking 與 `feat` → MINOR、其他 → PATCH；升到 1.0.0 由 developer 決定，不主動推薦
-  - 上一個 tag 是 prerelease (e.g. `1.0.0-beta1`): 候選為同階段的下一個 (`beta2`) / 下一階段的第一個 (`rc1`) / 正式版
-  - 上一個 tag 是正式版: 推薦正式版，另提供 prerelease 作為替代，階段由 developer 選擇 (`alpha1` / `beta1` / `rc1` 都可以)
+  - develop 上: 候選為目標同階段的下一個 (`beta2`) / 下一階段的第一個 / 開 release branch
+  - release branch 上: 候選為下一個 rc / 正式版；X.Y.Z 不變
+  - 目標被後來的 commit 超過時 (e.g. 打了 `1.4.3-beta1` 之後又有 `feat`)，同時提供較高的目標
+  - 驗證: 比 last final 高、同一個 X.Y.Z 階段不回頭、種類符合 tag 的位置、tag 與 release branch 尚未存在
   - 可直接帶版本號 `/ss-workflow:release SSDisp 1.0.0-beta1` 跳過推薦
 - 未完成工作的判定 (只看該專案)
   - 未完成 (需 developer 決定): `in-progress`、`review`、merge pending 的 request，以及該專案未合併的 hotfix
@@ -541,8 +597,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - workspace 以外的變更: request 不再以 `Refs:` 標示，改由已關閉 request 的 `Merged into develop` 紀錄找出它們的 merge commit；專案 develop 的 first-parent 歷史中其他的 commit 都來自 workspace 以外 (例如別人自己的 workspace)
   - workspace 的 `docs/<P>/` 與 `docs/overview.md` 內標示該專案目前版本的地方: workspace 沒有 release branch，由 release merge 在 workspace develop merge 到 master **之前**修改 (master 才會顯示新版本)；hotfix 在 workspace hotfix branch 上修改
   - 版本號的寫法依專案形式而定，沿用該欄位原本的格式 (e.g. 只能放四段數字的欄位寫成 `X.Y.Z.0`)
-  - `version-source` 為 `none` 時不改檔案，版本只以 git tag 表示
-- release branch 上只做 release 相關的變更 (版本號、release notes、阻擋 release 的修正)，新功能一律走 request
+  - `version-source` 為 `git-tag` 或 `none` 時不改檔案，版本只以 git tag 表示；alpha / beta 不改任何檔案；README / docs / CHANGELOG 只在正式版更新
+- release branch 上只做 release 相關的變更 (版本號、release notes、rc 發現問題的小修正)，新功能與較大的修改一律走 request 進 develop
 
 ## Remote 與 push
 

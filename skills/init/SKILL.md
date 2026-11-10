@@ -26,6 +26,15 @@ Supporting files (read them when the step that needs them comes up):
 - [references/add-project.md](references/add-project.md): adding a project from a URL or a local path
 - [references/convert-legacy.md](references/convert-legacy.md): converting a repository in the layout of ss-workflow 0.5.0 and older
 - [references/upgrade.md](references/upgrade.md): upgrading a workspace created by an older ss-workflow version
+- [references/git-version.md](references/git-version.md): `version-source: git-tag`,
+  the version generator in `scripts/`, the conversion request that sets it up in a
+  project, and how an upgrade keeps it up to date
+- [references/release-package.md](references/release-package.md): the release package
+  script in `scripts/`, its `package.psd1`, and the request that sets it up in a
+  project
+- `scripts/`: the version generator (`Update-GitVersion.ps1`, `GitVersion.targets`)
+  and the package script (`New-ReleasePackage.ps1`). Init never copies them into a
+  project itself: a request does.
 - `migrations/`: one file per plugin version that needs more than new template text
   when a repository is upgraded. `${CLAUDE_PLUGIN_ROOT}/skills/init/migrations/` is
   its full path.
@@ -202,6 +211,25 @@ developer can run them, and do not handwrite the JSON.
   can only clone the workspace with its projects when every project has a URL that
   they can reach.
 
+## Step 9b: Requests for the plugin's scripts
+
+After the commits and the push, with the root checkout on `develop`, start one request
+after another:
+
+- For each project for which the developer chose `git-tag` in Round 3 of the
+  questionnaire, and whose toolchain the generator supports: the conversion request,
+  as "The conversion request" in [references/git-version.md](references/git-version.md)
+  says. The project's entry keeps its current `version-source` until that request is
+  merged.
+- For each project for which the developer chose the package script in Round 3: the
+  package script request, as "The package script request" in
+  [references/release-package.md](references/release-package.md) says. The project's
+  entry keeps its current `package-command` and `package-files` until that request
+  is merged.
+
+They are separate requests, also for a project that gets both. **Add project** mode
+does the same after its commit (section 5 of `add-project.md`).
+
 ## Step 10: Report
 
 Summarize in the discussion language:
@@ -216,6 +244,10 @@ Summarize in the discussion language:
 - Project repositories whose `.gitignore` misses build output: suggest a request
 - The optional `verify-command` of each project, for a verification script that
   `/ss-workflow:review` runs after the build and the tests
+- The optional `package-command` and `package-files` of each project, for the release
+  package that a release builds from the tag and uploads with the platform release
+- The requests that Step 9b started (conversion to `git-tag`, package script), and
+  their state (draft or `ready`)
 - The optional `agent-files` setting, for files outside the built-in list that tell an
   agent how to behave, such as prompt files that a product ships
 - What was pushed, and what the developer still has to push, per repository

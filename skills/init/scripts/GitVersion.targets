@@ -1,0 +1,57 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    ss-workflow-script: GitVersion.targets 1.0.0
+    The version of the C# and C++ projects that import this file comes from the git
+    tags: Update-GitVersion.ps1 (in this folder) writes it into a generated file
+    before the compiler runs. MSBuild 4.0 (Visual Studio 2010) or later.
+    Import it in each project file, after the import of the language targets, with
+    the path from that project file to this one:
+      C#:  after <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />,
+           or anywhere inside <Project> of an SDK-style project
+      C++: after <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+      <Import Project="..\tools\GitVersion.targets" />
+    C#:  obj\...\GitVersion.g.cs, added to the compilation. The SDK's own version
+         attributes are turned off. Remove AssemblyVersion, AssemblyFileVersion, and
+         AssemblyInformationalVersion from an existing Properties\AssemblyInfo.cs.
+    C++: GitVersion.g.h next to the project file (set GitVersionHeader before the
+         import to change it, and GitVersionPrefix for the macro prefix). Git must
+         ignore it.
+    Requires Windows PowerShell 3.0 or later. Skipped in design-time builds.
+  -->
+  <PropertyGroup>
+    <GitVersionScript>$(MSBuildThisFileDirectory)Update-GitVersion.ps1</GitVersionScript>
+    <GitVersionCommand>powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(GitVersionScript)&quot;</GitVersionCommand>
+  </PropertyGroup>
+
+  <!-- An SDK-style project imports this before the SDK sets its defaults, which only fill empty values. -->
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+  </PropertyGroup>
+
+  <Target Name="UpdateGitVersion" BeforeTargets="CoreCompile"
+          Condition="'$(MSBuildProjectExtension)' == '.csproj' and '$(DesignTimeBuild)' != 'true'">
+    <!-- Set here, not at import time: an SDK-style project defines IntermediateOutputPath after its own body. -->
+    <PropertyGroup>
+      <GitVersionFile Condition="'$(GitVersionFile)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)GitVersion.g.cs</GitVersionFile>
+    </PropertyGroup>
+    <Exec Command="$(GitVersionCommand) -OutputPath &quot;$(GitVersionFile)&quot;" />
+    <ItemGroup>
+      <Compile Remove="$(GitVersionFile)" />
+      <Compile Include="$(GitVersionFile)" />
+      <FileWrites Include="$(GitVersionFile)" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.vcxproj'">
+    <GitVersionHeader Condition="'$(GitVersionHeader)' == ''">$(MSBuildProjectDirectory)\GitVersion.g.h</GitVersionHeader>
+    <!-- Windows PowerShell drops an empty argument after -File, so pass -Prefix only when set. -->
+    <GitVersionPrefixArgument Condition="'$(GitVersionPrefix)' != ''"> -Prefix &quot;$(GitVersionPrefix)&quot;</GitVersionPrefixArgument>
+  </PropertyGroup>
+
+  <Target Name="UpdateGitVersionHeader" BeforeTargets="PrepareForBuild"
+          Condition="'$(MSBuildProjectExtension)' == '.vcxproj' and '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="$(GitVersionCommand) -OutputPath &quot;$(GitVersionHeader)&quot;$(GitVersionPrefixArgument)" />
+  </Target>
+</Project>

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.9.1" src="https://img.shields.io/badge/version-0.9.1-blue">
+  <img alt="Version 0.10.0" src="https://img.shields.io/badge/version-0.10.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -47,7 +47,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.9.1, early.** The six skills are written and the plugin manifest
+> **Status: 0.10.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -117,8 +117,8 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
 | `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
-| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. Creates the tags for releases and hotfixes, and deletes the branches. |
-| `/ss-workflow:release` | You want to release a new version of a project | Root checkout | Recommends the project's version, creates its release branch, checks for its unfinished work, sets the version number, and hands over to the release merge. |
+| `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
+| `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, builds and packages each tagged version, and hands the final version over to the release merge. |
 
 > [!NOTE]
 > The root checkout is the workspace's primary working tree. Tests, scripts, and
@@ -205,11 +205,30 @@ Both the workspace and every project follow gitflow, each with its own `master` 
 | Branch | Workspace | Project | Example |
 |--------|-----------|---------|---------|
 | Request | From and into `develop`, from the first draft on | Named after the change, from and into its `develop` | `feat/REQ-0012-gui-button`, `feat/gui-button` |
-| Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.0.0-beta1` | From `develop`, into `master` and `develop`, tagged `v1.0.0-beta1` | `release/v1.0.0-beta1` |
-| Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, and into `develop`, tagged `v1.0.1` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
+| Release | No branch: `develop` merges into `master`, tagged `SSDisp/v1.2.0` | From `develop`, release candidates tagged on it (`v1.2.0-rc1`), into `master`, tagged `v1.2.0`; then `master` back into `develop` | `release/v1.2.0` |
+| Hotfix | From and into `master`, and into `develop`, tagged `SSDisp/v1.0.1` | From and into `master`, tagged `v1.0.1`; then `master` back into `develop` | `hotfix/SSDisp-v1.0.1`, `hotfix/v1.0.1` |
+
+Where a project's version tags go:
+
+| Version | Project tag | Workspace tag |
+|---------|-------------|---------------|
+| Final, `v1.2.0` | On `master`, the merge of the release or hotfix | On the workspace `master` |
+| Alpha or beta, `v1.3.0-beta2` | On the tip of the project's `develop`, without a release branch | On the workspace `develop` commit that records it |
+| Release candidate, `v1.2.0-rc1` | On `release/v1.2.0` | None |
 
 - A project's `master` only receives its releases and hotfixes. Before its v1.0.0,
   its `develop` may also be merged into it directly.
+- After a final tag, `master` is merged back into `develop`, so that a build on
+  `develop` that reads its version from the nearest tags finds it.
+- Alpha and beta versions need a version that comes from the tag
+  (`version-source: git-tag` or `none`): a tag on `develop` cannot follow a version
+  commit. A release branch stays open through its release candidates: small fixes go
+  onto it, larger changes go through a request into `develop`, which is then merged
+  into the release branch. A final version does not need a release candidate.
+- Every version is tagged locally, built from its tag, and packaged: by the
+  project's package script (`package-command`, one zip per platform), or by zipping
+  `package-files` into `<name>-v<version>.zip`. Only then is everything pushed, and
+  the platform release created with the packages.
 - The workspace `master` is the set of the latest released projects: each release
   merges `develop` into it and points every project to its own `master`.
 - A request is merged project by project, and the workspace last.
@@ -283,14 +302,15 @@ stay where their toolchain puts them.
 
 ## Project types
 
-The plugin ships no templates or commands for any toolchain. During init you describe
+The plugin ships no templates or commands for any toolchain, apart from one optional
+version generator (below). During init you describe
 the type of each project in your own words, and the agent proposes the values below
 for you to confirm. They are stored in the workspace, and every skill reads them from
 there.
 
 | What | Where it is stored |
 |------|--------------------|
-| Branches, main project file, version source, and the setup, build, test, and verify commands of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
+| Branches, main project file, version source (a file and its field, `git-tag`, or `none`), the setup, build, test, verify, and package commands, and the package files of each project | The project's entry in `projects`, "Workflow settings" in the root `AGENTS.md` |
 | Extra files that tell an agent how to behave, such as prompt files that the product ships (`agent-files`) | "Workflow settings" in the root `AGENTS.md` |
 | Required tools, how to find tools that are not on `PATH`, known limits | "Toolchain" in the project's section of `projects/AGENTS.md` |
 | How new files and projects are registered with the build, generated files, naming | "Project rules" in the project's section of `projects/AGENTS.md` |
@@ -300,6 +320,28 @@ there.
 > A command may stay empty, for example when a project can only be built inside an
 > IDE. The skills then skip that step and report it as "not configured". They do not
 > invent a command.
+
+**The version from git tags.** With `version-source: git-tag`, a project has no
+version number in its files: the build reads it from the git tags and writes it,
+without the tag's leading `v`, into generated files that git ignores (`1.2.3` on the
+tag `v1.2.3`, `1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted
+changes, `0.1.0-unknown` without a tag).
+For C# and C++ projects built with MSBuild on Windows, the plugin ships a generator
+(`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`), which each
+project file imports; it works from Visual Studio 2010 (MSBuild 4.0) on and needs
+Windows PowerShell 3.0 or later. Init and
+the upgrade never copy it into a project themselves: they start a request that does,
+so the project builds the same without the workspace. The upgrade reports when a
+project's copy is older than the plugin's. CMake is not supported yet.
+
+**The release package script.** The plugin also ships `New-ReleasePackage.ps1`
+(Windows PowerShell 3.0 or later). A request copies it into the project's `tools/`
+with `tools/package.psd1`, which lists the files of the release build and the
+platforms that ship; `package-command` runs it. It zips the release build into
+`dist/<name>-v<version>.zip`, or one `<name>-v<version>-<platform>.zip` per listed
+platform, refuses uncommitted changes, and runs the same without the workspace. Init,
+adding a project, and the upgrade ask whether to make it, separately from the
+conversion to `git-tag`.
 
 A project does not have to be code. For a repository of documents or analysis
 reports, leave the build and test commands empty, or set `verify-command` to a
@@ -336,7 +378,7 @@ changes outside the managed blocks, and changes nothing there without your answe
 ├─ plugin.json               plugin manifest; "version" is the single version source
 └─ marketplace.json          makes this repository its own marketplace
 skills/
-├─ init/                     SKILL.md, references/, templates/, migrations/
+├─ init/                     SKILL.md, references/, templates/, migrations/, scripts/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md, references/
 ├─ review/                   SKILL.md
@@ -344,6 +386,9 @@ skills/
 └─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
 tests/migrations.sh          checks that a template change ships a migration file
+tests/git-version.sh         checks the version generator, with real SDK-style and
+                             old-style (MSBuild 4) C# builds
+tests/release-package.sh     checks the release package script
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -379,6 +424,24 @@ changed since the last release tag and no migration file for a newer version exi
 
 ```bash
 bash tests/migrations.sh
+```
+
+The version generator in `skills/init/scripts/` is tested with Windows PowerShell on
+throwaway repositories: the version on a tag, after it, dirty, the tag formats that
+count, and the generated `.cs` and `.h` files. With the .NET SDK, it also builds an
+SDK-style C# project that imports `GitVersion.targets` and reads the version of the
+assembly; with the MSBuild of the .NET Framework (MSBuild 4), it does the same with an
+old-style project, as Visual Studio 2012 builds it:
+
+```bash
+bash tests/git-version.sh
+```
+
+The release package script is tested the same way, with fake build output: the
+version, the files and folders in the zip, the platforms, and what it refuses:
+
+```bash
+bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

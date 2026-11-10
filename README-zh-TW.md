@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.9.1" src="https://img.shields.io/badge/version-0.9.1-blue">
+  <img alt="Version 0.10.0" src="https://img.shields.io/badge/version-0.10.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.9.1，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.10.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -95,8 +95,8 @@
 | `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，request branch | 建立 request branch 與 request 檔，決定它修改哪些專案，跟你討論規格。你確認後可以直接開始實作，或以 `ready` 狀態留待之後再做。 |
 | `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
-| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch；為 release 和 hotfix 建立 tag，並刪除 branch。 |
-| `/ss-workflow:release` | 要釋出某個專案的新版本 | 根目錄 | 推薦該專案的版本號、建立它的 release branch、檢查它未完成的工作、設定版本號，然後交給 release merge。 |
+| `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch。Release / hotfix 時：在專案 `master` 打 tag、從 tag build 並打包、把 `master` merge 回 `develop`，最後才一起發佈。刪除 branch。 |
+| `/ss-workflow:release` | 要釋出某個專案的新版本、prerelease 或 release candidate | 根目錄 | 推薦該專案的版本號。在專案 `develop` 打 alpha / beta，或開 release branch 並在上面打 release candidate。檢查它未完成的工作、在有檔案帶版號時設定版本號、每個打 tag 的版本都 build 並打包，正式版交給 release merge。 |
 
 > [!NOTE]
 > 根目錄指的是 workspace 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
@@ -151,10 +151,21 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 | Branch | Workspace | 專案 | 範例 |
 |--------|-----------|------|------|
 | Request | 從 `develop` 開、merge 回 `develop`，從 draft 開始就存在 | 以變更內容命名，從它的 `develop` 開、merge 回去 | `feat/REQ-0012-gui-button`、`feat/gui-button` |
-| Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.0.0-beta1` | 從 `develop` 開，merge 到 `master` 與 `develop`，tag 為 `v1.0.0-beta1` | `release/v1.0.0-beta1` |
-| Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `v1.0.1` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
+| Release | 沒有 branch：`develop` merge 到 `master`，tag 為 `SSDisp/v1.2.0` | 從 `develop` 開，release candidate 打在上面（`v1.2.0-rc1`），merge 到 `master`，tag 為 `v1.2.0`；再把 `master` merge 回 `develop` | `release/v1.2.0` |
+| Hotfix | 從 `master` 開，merge 回 `master` 與 `develop`，tag 為 `SSDisp/v1.0.1` | 從 `master` 開，merge 回 `master`，tag 為 `v1.0.1`；再把 `master` merge 回 `develop` | `hotfix/SSDisp-v1.0.1`、`hotfix/v1.0.1` |
+
+專案各種版本 tag 的位置：
+
+| 版本 | 專案 tag | Workspace tag |
+|------|----------|---------------|
+| 正式版 `v1.2.0` | 打在 `master` 上 release 或 hotfix 的 merge commit | 打在 workspace 的 `master` |
+| Alpha / Beta `v1.3.0-beta2` | 打在專案 `develop` 的最新 commit，不開 release branch | 打在記錄它的 workspace `develop` commit |
+| Release candidate `v1.2.0-rc1` | 打在 `release/v1.2.0` | 不打 |
 
 - 專案的 `master` 只接收它自己的 release 和 hotfix。它的 v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
+- 正式版打完 tag 後，`master` 會 merge 回 `develop`，讓 `develop` 上從最近的 tag 讀版號的 build 也找得到它。
+- Alpha / Beta 版需要版號來自 tag（`version-source: git-tag` 或 `none`）：`develop` 上的 tag 前面不能有改版號的 commit。Release branch 在各個 release candidate 期間都保持開啟：小修正直接改在上面，較大的修改走 request 進 `develop`，再把 `develop` merge 進 release branch。正式版不一定要先出 release candidate。
+- 每個版本都先在本地打 tag，從 tag build 並打包：由專案的打包 script 產生（`package-command`，每個平台一包），或把 `package-files` 壓成 `<name>-v<version>.zip`。全部成功之後才一起 push，並建立附上 package 的平台 release。
 - workspace 的 `master` 是各專案最新 release 的組合：每次 release 都把 `develop` merge 進來，並把每個專案指向它自己的 `master`。
 - Request 先逐一 merge 各專案，最後才是 workspace。
 - Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，裡面有各專案的 worktree，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。
@@ -205,11 +216,11 @@ init 不會寫入專案的任何檔案。專案的測試、sample 與第三方�
 
 ## 專案形式
 
-Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
+Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用的版號產生器（見下方）。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
 
 | 內容 | 存放位置 |
 |------|----------|
-| 每個專案的 branch、主要專案檔、版本號來源，以及 setup、build、test、verify 指令 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
+| 每個專案的 branch、主要專案檔、版本號來源（檔案與欄位、`git-tag` 或 `none`）、setup、build、test、verify、package 指令，以及 package 檔案 | root `AGENTS.md`「Workflow settings」的 `projects` 中該專案的項目 |
 | 其他會影響 agent 行為的檔案，例如產品內附的 prompt 檔（`agent-files`） | root `AGENTS.md` 的「Workflow settings」 |
 | 需要的工具、不在 `PATH` 上的工具怎麼找、已知限制 | `projects/AGENTS.md` 該專案章節的「Toolchain」 |
 | 新檔案和專案如何加入 build、哪些是產生的檔案、命名慣例 | `projects/AGENTS.md` 該專案章節的「Project rules」 |
@@ -217,6 +228,10 @@ Plugin 不內建任何 toolchain 的範本或指令。init 時你用自己的話
 
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
+
+**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`），由每個專案檔直接 import，Visual Studio 2010（MSBuild 4.0）以後都能用，需要 Windows PowerShell 3.0 以上。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
+
+**Release 打包 script。** plugin 也附了 `New-ReleasePackage.ps1`（Windows PowerShell 3.0 以上）。由 request 複製到專案的 `tools/`，搭配 `tools/package.psd1` 列出 release build 要打包的檔案和要出貨的平台，`package-command` 執行它。它把 release build 壓成 `dist/<name>-v<version>.zip`，有多個平台時每個平台一包 `<name>-v<version>-<platform>.zip`；有未 commit 的變更時拒絕打包；沒有 workspace 也能執行。init、加入專案、升級時都會詢問是否製作，和轉換成 `git-tag` 是分開的 request。
 
 專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
@@ -240,7 +255,7 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 ├─ plugin.json               plugin manifest；"version" 是唯一的版本來源
 └─ marketplace.json          讓這個 repo 同時是自己的 marketplace
 skills/
-├─ init/                     SKILL.md、references/、templates/、migrations/
+├─ init/                     SKILL.md、references/、templates/、migrations/、scripts/
 ├─ new-req/                  SKILL.md
 ├─ check-req/                SKILL.md、references/
 ├─ review/                   SKILL.md
@@ -248,6 +263,8 @@ skills/
 └─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
+tests/git-version.sh         檢查版號產生器；實際 build SDK-style 與舊式 (MSBuild 4) C# 專案
+tests/release-package.sh     檢查 release 打包 script
 ss-workflow-skill.md         設計規格
 ```
 
@@ -271,6 +288,18 @@ bash tests/git-sequences.sh
 
 ```bash
 bash tests/migrations.sh
+```
+
+`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repo 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 SDK-style C# 專案並讀取 assembly 的版本；有 .NET Framework 的 MSBuild（MSBuild 4）時，用舊式專案再做一次，和 Visual Studio 2012 的 build 方式相同：
+
+```bash
+bash tests/git-version.sh
+```
+
+打包 script 也用同樣方式以假的 build 輸出測試：版號、zip 裡的檔案與資料夾、平台，以及會拒絕的情況：
+
+```bash
+bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

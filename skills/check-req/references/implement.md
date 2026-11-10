@@ -236,7 +236,7 @@ gitlinks, which are their latest releases.
   its notes are committed on the workspace hotfix branch.
 - Set the hotfix version in the project's `version-source` on the project hotfix
   branch as its own commit: `chore(release): bump version to <version>`. Skip this if
-  `version-source` is `none`. If the workspace docs state the project's current
+  `version-source` is `git-tag` or `none`: the merge's tag is the version. If the workspace docs state the project's current
   version (`docs/<name>/`, `docs/overview.md`), update them on the workspace hotfix
   branch: `docs(<name>): update the version to v<version>`.
 - Step 3.2 merges the main branches, not the develop branches. The diff base is the
