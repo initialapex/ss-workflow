@@ -97,9 +97,10 @@ SSDisp-workspace/
 
 - `version-source: git-tag`: 專案檔案裡沒有版號，build 時由 tag 決定版號並產生版號檔 (加入 gitignore，build 完才不會 dirty)；release 流程變成「打 tag → build → package」
 - plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 5.1) 與 `GitVersion.targets` (MSBuild，由專案的 `Directory.Build.targets` import)
-- 版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`，產生的內容不帶 `v`
-  - 剛好在 tag 上: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
-  - 不在 tag 上: `1.2.3-4-g123dcda`；最長: `1.2.3-beta4-5-g321aceb-dirty`
+- **tag 帶 `v`，產生的版號不帶 `v`**: 專案的 tag 一律是 `v1.2.3` / `v1.2.3-beta4` / `v1.2.3-rc1` (沒有 `v` 的 tag 不算)；產生器把找到的 tag 去掉開頭的 `v` 再寫進檔案
+- 產生的版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`
+  - HEAD 就是 tag `v1.2.3` 那個 commit: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
+  - tag `v1.2.3` 之後 4 個 commit: `1.2.3-4-g123dcda`；最長 (tag `v1.2.3-beta4` 之後 5 個 commit 且有變更): `1.2.3-beta4-5-g321aceb-dirty`
   - 沒有 tag、shallow clone 沒有 tag、沒有 git: `0.1.0-unknown`
   - 只接受 `vX.Y.Z` / `vX.Y.Z-<stage>R` 格式的 tag (annotated 或 lightweight 都可以)；取 HEAD 所包含的 tag 中**版號最高**的 (不是 `git describe` 的最近 tag，否則 hotfix merge 回 develop 後會蓋過 alpha)
 - 產生的檔案 (依副檔名):

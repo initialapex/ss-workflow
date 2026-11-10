@@ -370,9 +370,11 @@ project, the body is one line in English that describes the change, and there is
     updates it too. A release candidate, a final version, and a hotfix set it with a
     commit `chore(release): bump version to <version>` on their release or hotfix
     branch, before the tag.
-  - `git-tag`: the tag is the version. The build reads it from the nearest tags
-    (`1.2.0` on the tag `v1.2.0`, `1.2.0-4-g1a2b3c4` four commits after it, `-dirty`
-    with uncommitted changes) and writes it into generated files that git ignores. A
+  - `git-tag`: the tag is the version. The build reads the highest version tag that
+    its commit contains and writes it, without the tag's leading `v`, into generated
+    files that git ignores (`1.2.0` on the tag `v1.2.0`, `1.2.0-4-g1a2b3c4` four
+    commits after it, `-dirty` with uncommitted changes). The tags themselves always
+    keep the `v`. A
     release never commits a version number: it tags, and then builds.
   - `none`: no file carries the version; it only exists as the git tag.
 - A version is built and packaged from its tag: the release creates the tag, builds

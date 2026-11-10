@@ -321,9 +321,10 @@ there.
 > invent a command.
 
 **The version from git tags.** With `version-source: git-tag`, a project has no
-version number in its files: the build reads it from the git tags (`1.2.3` on the tag,
-`1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted changes,
-`0.1.0-unknown` without a tag) and writes it into generated files that git ignores.
+version number in its files: the build reads it from the git tags and writes it,
+without the tag's leading `v`, into generated files that git ignores (`1.2.3` on the
+tag `v1.2.3`, `1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted
+changes, `0.1.0-unknown` without a tag).
 For C# and C++ projects built with MSBuild on Windows, the plugin ships a generator
 (`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`). Init and
 the upgrade never copy it into a project themselves: they start a request that does,

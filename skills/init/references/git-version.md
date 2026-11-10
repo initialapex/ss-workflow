@@ -12,17 +12,21 @@ The plugin ships a generator for this, in `${CLAUDE_PLUGIN_ROOT}/skills/init/scr
 | `Update-GitVersion.ps1` | Reads the highest version tag that `HEAD` contains, and writes `.cs` and `.h` files. Windows PowerShell 5.1 or later. |
 | `GitVersion.targets` | Runs the script before the compiler in MSBuild: for C# it adds `obj\…\GitVersion.g.cs` to the compilation and turns off the SDK's own version attributes; for C++ (`.vcxproj`) it writes `GitVersion.g.h` next to the project file. |
 
-The version it writes:
+**The tag has the `v`, the version it writes does not.** The project's tags always
+start with `v` (`v1.2.3`, `v1.2.3-beta4`, `v1.2.3-rc1`); a tag without it does not
+count. The generator drops the `v` from the tag it found and writes the rest, as
+.NET versions and most version macros expect:
 
-| State | Version | Numeric fields |
-|-------|---------|----------------|
-| On the tag `v1.2.3` | `1.2.3` | `1.2.3.0` |
-| Uncommitted changes in tracked files or submodules (untracked files do not count) | `1.2.3-dirty` | `1.2.3.0` |
-| Four commits after the tag | `1.2.3-4-g1a2b3c4` | `1.2.3.0` |
-| After a prerelease, with changes | `1.2.3-beta4-5-g1a2b3c4-dirty` | `1.2.3.0` |
-| No version tag, a shallow clone without tags, or no git | `0.1.0-unknown` | `0.1.0.0` |
+| State | Tag that counts | Version it writes | Numeric fields |
+|-------|-----------------|-------------------|----------------|
+| `HEAD` is the tagged commit | `v1.2.3` | `1.2.3` | `1.2.3.0` |
+| The same, with uncommitted changes in tracked files or submodules (untracked files do not count) | `v1.2.3` | `1.2.3-dirty` | `1.2.3.0` |
+| Four commits after the tag | `v1.2.3` | `1.2.3-4-g1a2b3c4` | `1.2.3.0` |
+| Five commits after a prerelease tag, with changes | `v1.2.3-beta4` | `1.2.3-beta4-5-g1a2b3c4-dirty` | `1.2.3.0` |
+| No version tag, a shallow clone without tags, or no git | none | `0.1.0-unknown` | `0.1.0.0` |
 
-Only tags in the form of "Versioning" count, annotated or lightweight; of those that
+Only tags in the form of "Versioning" count (`vX.Y.Z` or `vX.Y.Z-<alpha|beta|rc>R`),
+annotated or lightweight; of those that
 `HEAD` contains, the highest version wins, not the nearest tag. The sha has 7
 characters. `.cs`: `AssemblyVersion` and `AssemblyFileVersion` take the numeric
 fields, `AssemblyInformationalVersion` the full version. `.h`:

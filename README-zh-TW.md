@@ -229,7 +229,7 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
 
-**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取（在 tag 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`），寫進被 git 忽略的產生檔。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`）。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
+**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`）。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
 
 專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
