@@ -27,6 +27,8 @@
     A file is written only when its content changes, so an unchanged version does
     not trigger a rebuild. The generated files must be ignored by git.
 
+    Requires Windows PowerShell 3.0 or later, and git 1.8.5 or later on the PATH.
+
 .PARAMETER OutputPath
     One or more files to write. Relative paths are relative to the current folder.
 
@@ -43,6 +45,7 @@
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File tools\Update-GitVersion.ps1 -OutputPath obj\GitVersion.g.cs
 #>
+#Requires -Version 3.0
 # ss-workflow-script: Update-GitVersion 1.0.0
 [CmdletBinding()]
 param(
@@ -52,7 +55,8 @@ param(
     [switch] $PrintOnly
 )
 
-# Windows PowerShell 5.1 leaves $PSScriptRoot empty in parameter defaults.
+# Windows PowerShell leaves $PSScriptRoot empty in parameter defaults (5.1) or
+# altogether (before 3.0), so take the folder from the invocation.
 if (-not $RepoPath) { $RepoPath = Split-Path -Parent $MyInvocation.MyCommand.Path }
 
 # Native commands write to stderr on failure; with 'Stop', Windows PowerShell 5.1

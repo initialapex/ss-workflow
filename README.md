@@ -326,7 +326,9 @@ without the tag's leading `v`, into generated files that git ignores (`1.2.3` on
 tag `v1.2.3`, `1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted
 changes, `0.1.0-unknown` without a tag).
 For C# and C++ projects built with MSBuild on Windows, the plugin ships a generator
-(`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`). Init and
+(`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`), which each
+project file imports; it works from Visual Studio 2010 (MSBuild 4.0) on and needs
+Windows PowerShell 3.0 or later. Init and
 the upgrade never copy it into a project themselves: they start a request that does,
 so the project builds the same without the workspace. The upgrade reports when a
 project's copy is older than the plugin's. CMake is not supported yet.
@@ -374,8 +376,8 @@ skills/
 └─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
 tests/migrations.sh          checks that a template change ships a migration file
-tests/git-version.sh         checks the version generator, with a real C# build when
-                             the .NET SDK is installed
+tests/git-version.sh         checks the version generator, with real SDK-style and
+                             old-style (MSBuild 4) C# builds
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -415,8 +417,10 @@ bash tests/migrations.sh
 
 The version generator in `skills/init/scripts/` is tested with Windows PowerShell on
 throwaway repositories: the version on a tag, after it, dirty, the tag formats that
-count, and the generated `.cs` and `.h` files. With the .NET SDK, it also builds a C#
-project that imports `GitVersion.targets` and reads the version of the assembly:
+count, and the generated `.cs` and `.h` files. With the .NET SDK, it also builds an
+SDK-style C# project that imports `GitVersion.targets` and reads the version of the
+assembly; with the MSBuild of the .NET Framework (MSBuild 4), it does the same with an
+old-style project, as Visual Studio 2012 builds it:
 
 ```bash
 bash tests/git-version.sh

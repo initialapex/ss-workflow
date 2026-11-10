@@ -96,7 +96,8 @@ SSDisp-workspace/
 ### 版號來自 git tag
 
 - `version-source: git-tag`: 專案檔案裡沒有版號，build 時由 tag 決定版號並產生版號檔 (加入 gitignore，build 完才不會 dirty)；release 流程變成「打 tag → build → package」
-- plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 5.1) 與 `GitVersion.targets` (MSBuild，由專案的 `Directory.Build.targets` import)
+- plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 3.0 以上，Windows 7 要另裝 WMF 3.0+；版本不夠時 script 報錯、build 失敗) 與 `GitVersion.targets` (MSBuild 4.0 / VS2010 以上)
+- 每個產生 binary 的專案檔直接 `<Import Project="..\tools\GitVersion.targets" />` (舊式 `.csproj` 放在 `Microsoft.CSharp.targets` 之後，`.vcxproj` 放在 `Microsoft.Cpp.targets` 之後，SDK-style 放最後)；不用 `Directory.Build.targets`，因為 VS2015 以前 (MSBuild 14 以前) 不會讀它。之後新增的專案檔也要加同一行
 - **tag 帶 `v`，產生的版號不帶 `v`**: 專案的 tag 一律是 `v1.2.3` / `v1.2.3-beta4` / `v1.2.3-rc1` (沒有 `v` 的 tag 不算)；產生器把找到的 tag 去掉開頭的 `v` 再寫進檔案
 - 產生的版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`
   - HEAD 就是 tag `v1.2.3` 那個 commit: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
@@ -150,7 +151,7 @@ ss-workflow/
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
-  - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 C# 專案
+  - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 SDK-style C# 專案，有 .NET Framework 的 MSBuild 4 時再 build 一個舊式 C# 專案 (VS2012 的 build 方式)
 
 ## skill: `/ss-workflow:init`
 

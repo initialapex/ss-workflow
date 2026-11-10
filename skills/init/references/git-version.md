@@ -9,8 +9,8 @@ The plugin ships a generator for this, in `${CLAUDE_PLUGIN_ROOT}/skills/init/scr
 
 | File | What it does |
 |------|--------------|
-| `Update-GitVersion.ps1` | Reads the highest version tag that `HEAD` contains, and writes `.cs` and `.h` files. Windows PowerShell 5.1 or later. |
-| `GitVersion.targets` | Runs the script before the compiler in MSBuild: for C# it adds `obj\…\GitVersion.g.cs` to the compilation and turns off the SDK's own version attributes; for C++ (`.vcxproj`) it writes `GitVersion.g.h` next to the project file. |
+| `Update-GitVersion.ps1` | Reads the highest version tag that `HEAD` contains, and writes `.cs` and `.h` files. Windows PowerShell 3.0 or later, git 1.8.5 or later. |
+| `GitVersion.targets` | Runs the script before the compiler in MSBuild: for C# it adds `obj\…\GitVersion.g.cs` to the compilation and turns off the SDK's own version attributes; for C++ (`.vcxproj`) it writes `GitVersion.g.h` next to the project file. MSBuild 4.0 (Visual Studio 2010) or later. |
 
 **The tag has the `v`, the version it writes does not.** The project's tags always
 start with `v` (`v1.2.3`, `v1.2.3-beta4`, `v1.2.3-rc1`); a tag without it does not
@@ -38,12 +38,15 @@ when its content changes.
 
 | Toolchain | Support |
 |-----------|---------|
-| C# with MSBuild, SDK-style or old-style projects | `GitVersion.targets`, imported from `Directory.Build.targets` |
-| C++ with MSBuild (`.vcxproj`) | `GitVersion.targets`, imported from `Directory.Build.targets`; the code and the `.rc` file include `GitVersion.g.h` |
+| C# with MSBuild 4.0 or later (Visual Studio 2010 or later), SDK-style or old-style projects | `GitVersion.targets`, imported in each project file |
+| C++ with MSBuild 4.0 or later (`.vcxproj`, Visual Studio 2010 or later) | `GitVersion.targets`, imported in each project file; the code and the `.rc` file include `GitVersion.g.h` |
 | CMake | Not yet (planned) |
 | Others (Keil, ESP-IDF, Python, Node, …) | Not supported by the plugin. A project may still use `git-tag` when it generates its version from the tags in its own way: then it needs no conversion request, and "Toolchain" in its section of `projects/AGENTS.md` says how it does it. |
 
-The generator runs on Windows only, because MSBuild starts `powershell.exe`.
+The generator runs on Windows only, because MSBuild starts `powershell.exe`, and
+needs Windows PowerShell 3.0 or later (Windows 8 and later have it; Windows 7 needs
+the Windows Management Framework 3.0 or later installed). With an older PowerShell
+the script stops with an error, and so does the build.
 
 ## Where the files go in a project
 
@@ -52,14 +55,30 @@ folder):
 
 ```
 <project>/
-├─ Directory.Build.targets      <Import Project="$(MSBuildThisFileDirectory)tools\GitVersion.targets" />
+├─ App.sln
+├─ App/
+│  └─ App.csproj        <Import Project="..\tools\GitVersion.targets" />
+├─ Driver/
+│  └─ Driver.vcxproj    <Import Project="..\tools\GitVersion.targets" />
 └─ tools/
    ├─ Update-GitVersion.ps1
    └─ GitVersion.targets
 ```
 
-If the project already has a `Directory.Build.targets`, add the `<Import>` to it. The
-files are copied unchanged: each one carries its version in a line
+Each project file that builds a binary imports `GitVersion.targets` itself, with the
+relative path from that project file. Not `Directory.Build.targets`: Visual Studio
+2015 and older (MSBuild 14 and older) do not read it, and an explicit import works
+in every version. Where the import goes:
+
+| Project file | Position |
+|--------------|----------|
+| Old-style `.csproj` | After `<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />` |
+| SDK-style `.csproj` | Anywhere inside `<Project>`, usually at the end |
+| `.vcxproj` | After `<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />`; a `GitVersionHeader` or `GitVersionPrefix` property goes before the import |
+
+A project that is added to the solution later needs the same line; "Toolchain" in
+the project's section of `projects/AGENTS.md` says so (see the conversion request).
+The files are copied unchanged: each one carries its version in a line
 `ss-workflow-script: <name> <version>`, which the upgrade compares (below).
 
 ## The conversion request
@@ -84,8 +103,12 @@ version generator of ss-workflow <plugin version>.
 
 - Copy Update-GitVersion.ps1 and GitVersion.targets from
   ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/ into <name>/tools/, unchanged.
-- Import tools/GitVersion.targets from the project's Directory.Build.targets
-  (create it, or add the <Import> to the existing one).
+- Import tools/GitVersion.targets in each project file that builds a binary, with
+  the relative path from that file (for example
+  <Import Project="..\tools\GitVersion.targets" />): old-style .csproj after the
+  import of Microsoft.CSharp.targets, .vcxproj after the import of
+  Microsoft.Cpp.targets, SDK-style .csproj at the end. No Directory.Build.targets:
+  Visual Studio 2015 and older do not read it.
 - C#: remove AssemblyVersion, AssemblyFileVersion, and AssemblyInformationalVersion
   from Properties/AssemblyInfo.cs, and <Version>, <VersionPrefix>, <AssemblyVersion>,
   <FileVersion>, and <InformationalVersion> from the project files. Other attributes
@@ -95,9 +118,9 @@ version generator of ss-workflow <plugin version>.
   from VERSION_STRING), and remove the old version defines. Add GitVersion.g.h to
   the project's .gitignore.
 - Workspace: set version-source of <name> to git-tag, and describe the generator in
-  "Toolchain" of its section in projects/AGENTS.md (where the files are, Windows
-  PowerShell needed). Remove the other places that carried the version from that
-  section.
+  "Toolchain" of its section in projects/AGENTS.md (where the files are, that a new
+  project file needs the same <Import>, Windows PowerShell 3.0 or later needed).
+  Remove the other places that carried the version from that section.
 
 Verify: the build passes; git status of the project is clean after the build (the
 generated file is ignored); on a commit with a tag vX.Y.Z the built binaries carry

@@ -116,17 +116,12 @@ no_ "an unsupported file type fails" gen "$S/o" -OutputPath "$S/out/version.txt"
 yes_ "the script carries its version for the upgrade check" grep -q '^# ss-workflow-script: Update-GitVersion [0-9]' "$SCRIPTS/Update-GitVersion.ps1"
 yes_ "and so does the targets file" grep -q 'ss-workflow-script: GitVersion.targets [0-9]' "$SCRIPTS/GitVersion.targets"
 
-sec "a C# project that imports GitVersion.targets"
+sec "an SDK-style C# project that imports GitVersion.targets"
 if ! command -v dotnet >/dev/null 2>&1; then
   echo "  SKIP  the .NET SDK is not installed"
 else
   git init -q cs; mkdir -p cs/tools cs/App
   cp "$SCRIPTS/Update-GitVersion.ps1" "$SCRIPTS/GitVersion.targets" cs/tools/
-  cat > cs/Directory.Build.targets <<'EOF'
-<Project>
-  <Import Project="$(MSBuildThisFileDirectory)tools\GitVersion.targets" />
-</Project>
-EOF
   cat > cs/App/App.csproj <<'EOF'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -134,6 +129,7 @@ EOF
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <Import Project="..\tools\GitVersion.targets" />
 </Project>
 EOF
   cat > cs/App/Program.cs <<'EOF'
@@ -159,6 +155,74 @@ EOF
     build && eq_ "with uncommitted changes" "$(run)" "1.4.0-1-g$(short "$S/cs")-dirty|1.4.0.0|1.4.0.0"
   else
     ng "the project builds with the generated version file (see $S/build.log)"; cat "$S/build.log" | tail -20
+  fi
+fi
+
+sec "an old-style C# project built by MSBuild 4 (as Visual Studio 2012 does)"
+MSB4=/c/Windows/Microsoft.NET/Framework/v4.0.30319/MSBuild.exe
+if [ ! -x "$MSB4" ]; then
+  echo "  SKIP  the MSBuild of the .NET Framework is not installed"
+else
+  git init -q old; mkdir -p old/tools old/App/Properties
+  cp "$SCRIPTS/Update-GitVersion.ps1" "$SCRIPTS/GitVersion.targets" old/tools/
+  cat > old/App/App.csproj <<'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>App</RootNamespace>
+    <AssemblyName>App</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\tools\GitVersion.targets" />
+</Project>
+EOF
+  cat > old/App/Properties/AssemblyInfo.cs <<'EOF'
+using System.Reflection;
+[assembly: AssemblyTitle("App")]
+EOF
+  cat > old/App/Program.cs <<'EOF'
+using System;
+using System.Reflection;
+class Program
+{
+    static void Main()
+    {
+        Assembly a = typeof(Program).Assembly;
+        var info = (AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(a, typeof(AssemblyInformationalVersionAttribute));
+        var file = (AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(a, typeof(AssemblyFileVersionAttribute));
+        Console.WriteLine(info.InformationalVersion + "|" + a.GetName().Version + "|" + file.Version);
+    }
+}
+EOF
+  printf "bin/\nobj/\n" > old/.gitignore
+  git -C old add -A; git -C old commit -q -m "first"; git -C old tag -a v2.1.0-beta3 -m "v2.1.0-beta3"
+  # Dash switches: Git Bash would rewrite /p:... into a path.
+  build4() { ( cd old/App && "$MSB4" App.csproj -nologo -v:q -p:Configuration=Release >"$S/build4.log" 2>&1 ); }
+  run4() { old/App/bin/Release/App.exe | tr -d '\r'; }
+  if build4; then
+    ok "MSBuild 4 builds the project with the generated version file"
+    eq_ "the assembly carries the tag's version" "$(run4)" "2.1.0-beta3|2.1.0.0|2.1.0.0"
+    eq_ "the build leaves the repository clean" "$(git -C old status --porcelain | wc -l | tr -d ' ')" "0"
+    yes_ "the generated file is in obj/" test -f old/App/obj/Release/GitVersion.g.cs
+    echo "// change" >> old/App/Program.cs; git -C old commit -q -am "second"
+    build4 && eq_ "one commit after the tag" "$(run4)" "2.1.0-beta3-1-g$(short "$S/old")|2.1.0.0|2.1.0.0"
+  else
+    ng "MSBuild 4 builds the project with the generated version file (see $S/build4.log)"; tail -20 "$S/build4.log"
   fi
 fi
 
