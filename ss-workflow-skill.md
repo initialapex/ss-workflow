@@ -289,7 +289,7 @@ created: 2026-09-07
 (問過 developer 的問題與回答，依發問順序記錄，只增不改)
 
 ## Notes
-(Assumption、implementation summary、行為變更、Verify / code review / Review 結果，都帶日期)
+(Assumption、cold read、implementation summary、行為變更、Verify / design check / code review / Review 結果，都帶日期)
 ```
 
 - `branch` 同時是 workspace 與各專案的 branch 名稱 (hotfix 例外: workspace 為 `hotfix/<P>-v<version>`，專案為 `hotfix/v<version>`)
@@ -345,6 +345,31 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - Note:
     - 若 developer 使用 `.md` 的方式加入新需求，原始需求的內容必須保留在 `## Original` 區段
 
+### Spec 的標準
+
+`reqs/AGENTS.md` 的 managed 區段 "Spec" (`reqs-spec`) 是 `## Spec` 格式的唯一依據；new-req 依它撰寫、check-req 依它實作、review 依它檢查。workspace 尚未升級到 0.11.0、沒有這個區段時，skill 改讀 plugin 內的 `skills/init/templates/reqs-AGENTS.md`。
+
+- 合格標準 (收斂): 不管是資深工程師、資淺工程師或不同的 agent，只看 spec 與 repo 各自獨立實作，做出來的檔案、型別與名稱、public 成員、資料與狀態、流程、每個錯誤與邊界條件的處理、測試都幾乎一樣；只有 "Left to the implementation" 列出的部分可以不同。兩個稱職的工程師可能做出不同選擇的地方，一律在 spec 決定；拿不準就寫進 spec
+- 不寫程式碼: spec 不放任何程式語言的程式碼與 pseudo-code (連簽章也不用程式語法寫)；型別、成員、流程用表格與文字描述，但名稱一律寫出來 (檔案路徑、型別、成員、參數與其型別)；例外是資料格式範例 (JSON / XML / INI、通訊協定的 byte 配置) 與使用者要輸入的指令
+- 名稱依既有程式碼的慣例，但仍要逐一寫出；做決定的地方不用「例如」「之類」「等」「視情況」「需要時」這類留下空間的字眼
+- 各部分依序為 Goal / Scope / Architecture / Detailed design / Acceptance criteria / How to verify / Out of scope；沒有 Open questions (未決的問題是 `## Q&A` 的 pending 紀錄)
+- Detailed design 是 Architecture 之下、讓實作收斂的一層，固定小節:
+
+| 小節 | 內容 |
+|------|------|
+| File changes | 每個要新增 / 修改 / 刪除 / 改名的檔案一列: 專案 (或 Workspace)、路徑、動作、內容或變更；含 build 要知道的檔案 (專案檔、solution、資源檔) 與要跟著改的 docs；沒列的檔案就不改 |
+| Types and public members | 每個新增 / 修改 / 刪除的型別一張表: 名稱、種類、namespace 或位置、所在檔案、base type 與實作的介面、一句話的責任；下面每個 public 成員一列: 名稱、種類、依序的參數名稱與型別、回傳或屬性型別、行為 (做什麼、前提、失敗時回傳或丟出什麼)；只有型別自己用的成員不列；UI 另列每個 view 與其控制項 bind 的成員 |
+| Data and state | 每個儲存、在元件間傳遞或顯示的資料: 名稱、型別、單位、預設值、範圍、由誰擁有與修改；每個讀寫的檔案、設定、訊息、通訊 frame 的確切格式 |
+| Flows | 每個情境 (啟動、每個使用者操作、每個外部事件) 一個編號清單: 哪個元件依什麼順序做什麼、呼叫哪個 public 成員、在哪個 thread / async context；在哪裡等待、鎖什麼、取消時怎麼處理 |
+| Errors and edge cases | 每個條件一列: 在哪裡偵測、確切的結果 (例外型別或回傳值、訊息文字、UI 顯示、log、之後的狀態) |
+| Configuration and dependencies | 新增或修改的設定 (key、型別、預設值、存放位置)；相依套件 (名稱、確切版本、參考方式) |
+| Tests | 每個要新增或修改的自動測試一列: 測試專案與檔案、測試類別、測試名稱、準備什麼與驗證什麼、對應的 acceptance criterion；名稱依專案既有測試的慣例；沒有自動測試的專案明講，改由 How to verify 的人工檢查 |
+| Left to the implementation | 實作可以自己決定的部分: 只有型別自己用的成員、區域命名、函式內部寫法，以及 developer 同意留給實作的項目；其他 spec 沒決定的都算 spec 的缺漏 |
+
+  - 小變更也必寫，詳細度隨變更大小 (一行的 bug fix 寫出檔案、成員與改變的行為即可)；沒有內容的小節寫一行 "None"，不省略
+  - `projects: []` 的 request: File changes 列 workspace 檔案，描述程式碼的小節寫 "None"
+  - 0.11.0 以前核准、沒有 Detailed design 的 request: check-req 開工或接續時先補上，由 developer 確認
+
 ### request 修改 workspace 檔案
 
 程式碼只 commit 在各專案；但 request 也可能需要改 workspace 本身的檔案 (更新 spec、知識庫、專案規則)，否則「所有工作都從 request 開始」與「workspace branch 只有 request 檔與 gitlink」互相矛盾。
@@ -375,12 +400,19 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - 從 develop 開 `<type>/REQ-<id>-<slug>` branch，在上面建立 `status: draft` 的 request 檔 (若提供 .md，原文放入 `## Original`)，commit 後立即 push (同時占住流水號)
 - 讀程式碼前先 fetch 各專案，讀 source 的最新 develop (gitlink 可能落後)；docs 只讀 `docs/overview.md` 與相關專案的 `docs/<name>/`
 - 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論不 commit，只在暫停與核准時 commit
-  - Spec 內含 Goal / Scope / Architecture / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查或 Review 人工檢查) / Out of scope
+  - Spec 依「Spec 的標準」撰寫: Goal / Scope / Architecture / Detailed design / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查 (列出 Tests 的測試) 或 Review 人工檢查) / Out of scope；不寫程式碼
   - `projects` 在 Spec 討論時決定；修改多個專案時，Scope 與 Architecture 依專案分別寫，並寫明專案之間的相依 (e.g. SSDisp 需要 SSLib 的新 API)
   - workspace 檔案的修改 (含要跟著更新的 `docs/<name>/spec.md`) 在 Scope 的「Workspace」小節列出；只改 workspace 檔案時 `projects: []`，How to verify 全部標為 Review
   - 每一輪問過的問題與回答寫入 `## Q&A`；還沒有答案的寫 `A: (pending)`，不另外放 Open questions；有 pending 時不能 Approve
-  - 開工前要講定的範圍: developer 或使用者看得到、用得到的東西 (UI、指令、檔案格式、對外 API，寫在 Scope)，以及軟體架構 (寫在 Architecture: 新增或修改的模組 / 元件、各自的責任、呼叫關係、資料流、重要的資料結構與狀態、新的相依)；更細的實作細節留給實作，除非 developer 想談
+  - 開工前要講定的範圍: developer 或使用者看得到、用得到的東西 (UI、指令、檔案格式、對外 API，寫在 Scope)、軟體架構 (寫在 Architecture: 新增或修改的模組 / 元件、各自的責任、呼叫關係、資料流、重要的資料結構與狀態、新的相依)，以及架構之下所有兩個工程師可能做法不同的決定 (寫在 Detailed design)；只有 "Left to the implementation" 列出的部分留給實作
   - Architecture 不可省略: 不需要架構決定的變更也要用一句話寫明，並指出放在既有結構的哪裡；由 AI 依現有程式碼提出，有多種合理結構時列出取捨並推薦，由 developer 確認
+  - Detailed design: developer 同意架構後由 AI 依既有程式碼的慣例撰寫，逐一對照每個 acceptance criterion；不逐一詢問名稱，由 developer 跟其他部分一起看過再修改；只有程式碼無法決定且會改變行為、或選項差異 developer 會在意的地方 (例外或錯誤碼、新的相依、儲存格式) 才發問
+  - Cold read (核准前): `## Q&A` 沒有 pending、各部分都寫完後，以 Agent tool 開一個全新的 subagent (不是 fork，不知道討論內容)，只讀 `## Spec` (不讀 Original / Q&A / Notes) 與各專案最新的程式碼，列出實作時必須猜測、可能做出不同結果、spec 前後矛盾或與程式碼不符、缺小節、含程式碼的地方
+    - 每一項: 程式碼能回答的直接修 spec；需要 developer 決定的在下一輪發問並記入 `## Q&A`；不是缺漏的說明原因；developer 想保留彈性的加入 "Left to the implementation"
+    - spec 有修改就再開新的 subagent 重讀 (告知已處理的項目)，直到沒有真正的缺漏；第三次仍有缺漏時，剩下的逐項由 developer 決定後結束
+    - 結果寫入 `## Notes` 的 `### Cold read`；無法開 subagent 時由 AI 依同樣的清單自檢，並註明 cold read 未執行
+    - 核准前最後一次 cold read 之後 spec 不可再有修改，有修改要重跑
+  - 接續 0.11.0 以前的 draft 時: 補上 Detailed design；spec 內有程式碼時改寫成表格與文字
   - `## Original` 只有需求或困擾、沒有做法時先探索: 先問問題本身 (誰需要、現在怎麼做、哪裡不好、有什麼限制)，再提出兩到三個做法 (對使用者如何運作、架構概要、影響範圍、代價與風險) 並推薦一個，developer 選定後才起草 Spec
   - developer 答不出來時: AI 提出預設值與理由，developer 接受後寫入 Spec、補完該筆 `## Q&A`，並在 `## Notes` 記為 Assumption，留待 Review 再確認；不自行默默決定
   - 只有別人能回答、或 developer 想晚點再答的問題，以 `A: (pending)` 留在 `## Q&A`，request 維持 draft
@@ -421,11 +453,14 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 對外介面或行為改變時，在 workspace worktree 更新該專案的 `docs/<name>/` 與需要時的 overview，並列在 implementation summary 的 What changed
   - worktree 內只嘗試 `setup-command` (需要時) 與 `build-command` (編譯，在專案資料夾內)，不跑測試 / script / 執行檔 / 燒錄；`build-command` 留空或環境限制導致無法 build 時不算失敗，記錄在 `## Notes` 留給 Verify
   - 動手前先讀 `projects/AGENTS.md` 中該專案的 `## Project: <P>` 章節，以及專案本身的 `AGENTS.md` / `CLAUDE.md` / README (若有)；新檔案要依 Project rules 加入 build
-  - 依 Spec 的 Architecture 實作，不自行更改架構；Spec 沒有 Architecture 時先提出並由 developer 確認；implementation summary 註明架構是否照 Spec
+  - 依 Spec 的 Architecture 與 Detailed design 實作，不自行更改；Spec 沒有 Architecture 或 Detailed design (0.11.0 以前核准) 時先提出並由 developer 確認 (接續中的 request 也一樣，已實作的部分照現況描述)
+  - 實作計畫逐項對照 File changes: 每一列都要在計畫裡，計畫不動沒列的檔案
+  - 只有 "Left to the implementation" 列出的部分可以自己決定；其他 spec 沒寫到的決定 (public 成員、檔案、型別、相依、錯誤時的行為) 都是 spec 的缺漏，停下來問；列出的變更造成的機械性結果 (把列出的新檔加入 build、工具產生的 designer 檔) 不算缺漏，在 implementation summary 的 "Not in the detailed design" 列出
+  - 交付前自己依 Detailed design 逐節比對 diff，與 review 的 design check 相同；不符的修正或當作 spec 缺漏詢問
   - 規格不清楚或有誤時停下來問，不自行猜測；問題與回答寫入 `## Q&A` (階段 `implementation`)，規格異動要更新 `## Spec`；session 結束前還沒有答案時留 `A: (pending)`
   - workspace 的 commit 帶 `Refs: REQ-xxxx`；source repo 的 commit 只描述變更內容，不提 request、編號或 workspace，沒有 `Refs:`；每個 commit 都 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把各專案 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary
-    - 固定欄位: What changed (依專案) / Architecture / Ran in the worktree (實際跑過的指令與結果) / Did not run (沒跑的與原因) / Not done (沒做完的 criteria 或規格) / Verify / Review by hand / Follow-ups
+    - 固定欄位: What changed (依專案) / Architecture and detailed design / Not in the detailed design / Ran in the worktree (實際跑過的指令與結果) / Did not run (沒跑的與原因) / Not done (沒做完的 criteria 或規格) / Verify / Review by hand / Follow-ups
     - 每一行都依實際發生的事寫，不依預期寫；沒有的欄位寫 "none"，不省略
     - 動到 agent 行為檔時另外寫 `### Behavior changes` (見「如實回報與 agent 行為檔」)
   - 交付: status 改為 `review`，連同各專案的 gitlink 一起 commit 並 push → 確認兩層沒有未 commit / 未 push 的內容 → 依「worktree 的結構」的順序刪除 worktree、保留 branch → 提示 `/ss-workflow:review REQ-xxxx`
@@ -437,7 +472,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 
 由 developer 觸發，在根目錄對一個 `review` 狀態的 request 做 Verify 與 Review；不會 merge
 
-- Verify: AI 執行 build / Test 專案 / 驗證 script；Review: developer 人工驗證，AI 引導
+- Design check: AI 比對實作與 Spec 的 Detailed design；Verify: AI 執行 build / Test 專案 / 驗證 script；Review: developer 人工驗證，AI 引導
 - 在根目錄執行 (不在 worktree)；根目錄必須在 develop 且乾淨，或已在該 request branch 上 (接續 review)
 - 根目錄在 request branch 上，但 request 檔的 status 不是 `review` (e.g. 退回重做或 merge 做到一半被中斷、手動 checkout): 屬於未定義的狀態，回報 branch、status、可能原因與未 commit 的變更，由 developer 選擇
   - 重新開始 review: status 改回 `review` (檔案在 `reqs/done/` 時先移回 `reqs/`)，Verify 與 Review 從頭執行
@@ -446,16 +481,17 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - 流程
   1. 選擇 request (可帶 `REQ-xxxx`；否則列出所有 `review` 的 request)
   2. 根目錄 checkout workspace request branch、`git submodule update`，各 request 專案 checkout 其 project branch，並把各專案 develop (hotfix 為 main) 的新 commit merge 進來
-  3. Verify: 對每個 request 的專案依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (在專案資料夾內；留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果依專案寫入 `## Notes`
-  4. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<project branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的檔案不跑 code review，改由 Review 讀 diff
+  3. Design check: 依 Detailed design 逐節比對各專案的變更 (File changes 對照 `git diff --name-status`、型別與 public 成員的名稱 / 參數 / 型別、資料與設定、流程、錯誤處理、測試)；沒列的 public 成員或檔案也算偏離 (implementation summary 列為機械性結果的檔案除外)；`## Q&A` 已決定且 spec 已更新的不算偏離；結果寫入 `## Notes` 的 `### Design check`，每個偏離都列入 Review 由 developer 決定修正 (小修當場、大改退回) 或接受 (記入 `## Q&A` 並更新 Detailed design)；沒有 Detailed design 的舊 request 記為 not applicable
+  4. Verify: 對每個 request 的專案依序執行 `setup-command` (需要時)、`build-command`、`test-command`、`verify-command`、request 內指定的 script (在專案資料夾內；留空的指令略過並記為「未設定」；build 與 test 都未設定時要明講 Verify 沒有自動檢查任何東西)；能由這些檢查證明的 acceptance criteria 打勾；結果依專案寫入 `## Notes`
+  5. Code review (可選): Verify 通過後詢問 developer 是否執行；對每個專案以 `<base>...<project branch>` (有 remote 時 base 為該專案的 `origin/<develop-branch>`，hotfix 為 main) 為範圍、在專案資料夾內呼叫 Claude Code 的 `code-review` skill，只檢查這個 request 的變更；workspace 的檔案不跑 code review，改由 Review 讀 diff
      - 不帶範圍不可執行: `/code-review` 預設只看尚未 push 的 commit，而這個工作流每個 commit 都會 push
      - 發現的問題先對照程式碼確認: 小問題當場修 (修完重跑 Verify)、大問題提議退回、不屬於這個 request 的記為 follow-up、不確定的交給 developer 決定
      - 結果 (含 skipped / not available) 寫入 `## Notes`；不打勾 acceptance criteria；不帶 `--fix` / `--comment`
      - 無法呼叫時不以自行讀 diff 代替；雲端的 `ultra` 只能由 developer 自己輸入，skill 只列出指令
      - Review 期間 developer 也可以隨時要求執行
-  5. Review: 列出需要人工確認的項目 (含 workspace 檔案的每一個 diff，以及行為改了但 `docs/<name>/` 沒跟著改的專案)，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
-  6. 詢問結果
-     - Review 通過: 其餘 criteria 打勾、記錄結果 (連同 gitlink)、根目錄切回 develop，提示 `/ss-workflow:merge REQ-xxxx` 結案
+  6. Review: 列出需要人工確認的項目 (含 design check 尚未決定的偏離、workspace 檔案的每一個 diff，以及行為改了但 `docs/<name>/` 沒跟著改的專案)，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
+  7. 詢問結果
+     - Review 通過: design check 不可留有未決定的偏離 (design check 之後有修改到 Detailed design 涵蓋的程式碼時重新比對)；其餘 criteria 打勾、記錄結果 (連同 gitlink)、根目錄切回 develop，提示 `/ss-workflow:merge REQ-xxxx` 結案
      - 小修: 直接在根目錄修正，程式碼 commit 在專案的 request branch，workspace 更新 gitlink，重跑 Verify
      - 需要大改: feedback 寫入 `## Notes`、status 退回 `in-progress`、根目錄切回 develop，提示 `/ss-workflow:check-req REQ-xxxx` 在 worktree 繼續
      - 還在 review: 保留根目錄在 request branch 上，之後再下一次 `/ss-workflow:review` 接續
