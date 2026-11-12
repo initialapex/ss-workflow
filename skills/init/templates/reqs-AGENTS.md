@@ -42,7 +42,7 @@ created: 2026-09-07
 
 ## Spec
 
-<!-- The agreed specification: goal, scope, acceptance criteria, out of scope. -->
+<!-- The agreed specification: goal, scope, architecture, detailed design, acceptance criteria, how to verify, out of scope. See "Spec" below. -->
 
 ## Original
 
@@ -54,7 +54,7 @@ created: 2026-09-07
 
 ## Notes
 
-<!-- Assumptions, implementation summary, behavior changes, verify results, and review feedback, each with a date. -->
+<!-- Assumptions, cold read, implementation summary, behavior changes, verify results, design check, and review feedback, each with a date. -->
 ```
 
 | Field | Values |
@@ -70,6 +70,70 @@ The frontmatter is the only source of truth for a request's state.
 
 Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English and
 in this order. The skills look them up.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-spec -->
+## Spec
+
+`## Spec` is what the implementation builds and what the review checks the result
+against. Its subheadings are written in `reqs-language`.
+
+**The standard.** A spec is complete when anyone who implements it from the spec and
+the repository alone, each on their own, builds almost the same thing: a senior
+engineer, a junior engineer, or another agent. They create and change the same files,
+with the same types, names, and public members, the same data and stored state, the
+same flows, the same handling of every error and edge case, and the same tests. Their
+work may differ only where "Left to the implementation" allows it. A decision on
+which two competent implementers could reasonably choose differently is settled in
+the spec, not in the code. When in doubt, settle it.
+
+**No code.** The spec contains no program code and no pseudo-code, not even a
+signature in the project's language. Types, members, flows, and rules are described
+in tables and plain sentences, and everything that the implementation creates is
+named: file paths, types, members, parameters, and their types are written out as
+names (`FrameBuffer`, `IReadOnlyList<Frame>`). Two kinds of examples may be shown in
+code blocks: data formats (a JSON, XML, or INI file, the byte layout of a protocol
+frame), and commands that a developer or a user types.
+
+Names follow the conventions of the existing code, and the spec still writes each one
+out. Where the spec decides something, it does not use words that leave the decision
+open, such as "for example", "such as", "or similar", "etc.", "as appropriate", or
+"if needed".
+
+`## Spec` has these parts, in this order:
+
+| Part | Content |
+|------|---------|
+| Goal | The problem to solve or the outcome wanted, in one or two sentences |
+| Scope | The concrete changes that a developer or a user sees or uses: behavior, UI, commands and their options, file formats, the public API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. |
+| Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Never left out. |
+| Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the member, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
+| Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
+| How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify), naming its tests from "Tests" in "Detailed design", or by hand (Review). |
+| Out of scope | What this request deliberately does not cover |
+
+"Detailed design" has these sections:
+
+| Section | Content |
+|---------|---------|
+| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed. |
+| Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also each view that is added or changed, and the members that each of its controls binds to. |
+| Data and state | Every data item that is added or changed and that is stored, passed between components, or shown: its name, type, unit, default value, allowed range, and which component owns and changes it. The exact layout of every file, setting, message, or protocol frame that is read or written. |
+| Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which public member it calls, and on which thread or async context it runs. Say where the flow waits, what it locks, and what happens when it is cancelled. |
+| Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the exception type or the return value, the message text, what the UI shows, what is logged, and the state afterwards. |
+| Configuration and dependencies | New or changed settings with their key, type, default value, and where they are stored. New or changed dependencies with the package name, the exact version, and how the project references them. |
+| Tests | One row per automated test to add or change: the test project and file, the test class, the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
+| Left to the implementation | What the implementation decides on its own: the members that only a type itself uses, local names, how a function body is written, and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
+
+For a request with `projects: []`, "File changes" lists the workspace files, and the
+sections that describe code say "None".
+
+The spec has no "Open questions" part. A question that is not decided yet is an entry
+in `## Q&A` with `A: (pending)`.
+
+A request approved before ss-workflow 0.11.0 may have no "Detailed design".
+`/ss-workflow:check-req` writes it, and the developer confirms it, before the
+implementation starts.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-qa -->
@@ -110,8 +174,8 @@ Decision: "Scope" lists the menu entry only. The toolbar is in "Out of scope".
 <!-- ss-workflow:managed id=reqs-results -->
 ## Results and behavior changes
 
-`## Notes` holds the dated results: the implementation summary, the Verify result,
-the code review, and the Review.
+`## Notes` holds the dated results: the cold read of the spec, the implementation
+summary, the Verify result, the design check, the code review, and the Review.
 
 - Every result lists each check with exactly one of these: `passed`, `failed` (with
   the reason), `did not run` (with the reason), or `not configured`. A check that did

@@ -45,22 +45,40 @@ anything.
 3. For each project, run `setup-command` if the worktree needs it. Then try
    `build-command` once before you change anything, to know the baseline. If the code
    does not compile before your changes, tell the developer before you continue.
-4. If `## Spec` has no "Architecture" part, stop. Propose one, and ask the developer to
-   confirm it. Write it into `## Spec`, and record the question and the answer in
-   `## Q&A` (stage `implementation`).
-5. Write a short implementation plan (the steps, and the files or parts affected in
-   each project) that follows the "Architecture" part of the spec, and show it to the
-   developer. Wait for an answer only if the plan needs a decision that the spec does
-   not cover. Otherwise, start.
+4. If `## Spec` has no "Architecture" part, or no "Detailed design" part (a request
+   approved before ss-workflow 0.11.0), stop. Propose the missing part as "Spec" in
+   `reqs/AGENTS.md` describes, from the code (if that file has no "Spec" section, read
+   it from `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`), and ask the
+   developer to confirm it. Write it into `## Spec`, and record the question and the
+   answer in `## Q&A` (stage `implementation`).
+5. Write a short implementation plan that follows "Architecture" and "Detailed
+   design": the steps, and for each step the rows of "File changes" that it covers.
+   Every row of "File changes" is in the plan, and the plan changes no file that
+   "File changes" does not list. Show it to the developer. Wait for an answer only if
+   the plan needs a decision that the spec does not settle (see "If the spec is unclear"
+   below). Otherwise, start.
 
 ## Step 2: Implement
 
+- When you resume a request here and its spec has no "Detailed design" (a request
+  started before ss-workflow 0.11.0), do Step 1.4 first. Describe the code that the
+  request has already changed as it is, and settle the rest; the developer confirms
+  both.
 - Work through the acceptance criteria. Stay inside the request's scope. If you find
   something worth doing outside the scope, record it in `## Notes` as a follow-up, and
   suggest `/ss-workflow:new-req` for it at the end.
-- Build what the "Architecture" part of the spec describes. Do not change the
-  architecture on your own. If it does not fit the code as you find it, that is an
-  error in the spec: see the next point.
+- Build what "Architecture" and "Detailed design" describe: the files of "File
+  changes" and no others, the types and public members with the names, parameters,
+  and types given there, the data layouts, the flows, the handling of each error and
+  edge case, and the tests with their names. Decide on your own only what "Left to
+  the implementation" names. Any other decision that the spec does not settle is a gap
+  in the spec, for example a public member, a file, a type, a dependency, or the
+  behavior on an error that it does not mention: see the next point. Do not change the
+  architecture or the detailed design on your own. If they do not fit the code as you
+  find it, that is an error in the spec: see the next point.
+- A mechanical consequence of a listed change is not a gap: registering a listed new
+  file with the build, a designer file that a tool generates for a listed view. Name
+  each one under "Not in the detailed design" in the implementation summary.
 - **If the spec is unclear or turns out to be wrong, stop and ask.** Do not guess.
   Add the question to `## Q&A` (stage `implementation`), as "Questions and answers" in
   `reqs/AGENTS.md` describes. When the developer decides, complete the entry with the
@@ -119,6 +137,11 @@ anything.
    run, also read it once more for logic errors, as a reviewer would. Read the
    workspace diff too (`git diff <workspace base>...HEAD`, leaving out the request
    file and the gitlinks): the docs must match what the code now does.
+4. Compare the diffs with "Detailed design", section by section, as the design check
+   of `/ss-workflow:review` will: every row of "File changes" against the changed
+   files (`git -C <path> diff --name-status <project base>...HEAD`), every type and
+   public member with its name, parameters, and types, the data layouts, the error
+   handling, and the tests. Fix every difference, or ask about it as a gap in the spec.
 
 If something cannot be finished, do not hand the request over as complete. Report what
 is missing, and ask whether to continue, to change the spec, or to split the rest into
@@ -131,7 +154,8 @@ a new request.
    ```markdown
    ### Implementation summary (yyyy-MM-dd)
    - What changed: <per project, and the workspace files, or "workspace files: none">
-   - Architecture: as in the spec / changed with the developer's decision in Q<n>
+   - Architecture and detailed design: as in the spec / changed with the developer's decision in Q<n>
+   - Not in the detailed design: <mechanical consequences of listed changes, per project and file; or "none">
    - Ran in the worktree: <each command that ran, with its project and `passed` or `failed (<reason>)`; "nothing" if none ran>
    - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `could not run (<reason>)`>
    - Not done: <acceptance criteria or parts of the spec that are not implemented, with the reason; or "none">
