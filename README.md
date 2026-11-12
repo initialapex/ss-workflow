@@ -117,7 +117,7 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | Skill | When to use it | Where it runs | What it does |
 |-------|----------------|---------------|--------------|
 | `/ss-workflow:init` | Once per workspace, to add a project, and again after a plugin update | Root checkout | Creates the workspace: the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files, and adds projects as submodules from a URL or a local path. Converts a repository of version 0.5.0 or older, or upgrades a workspace made by an older version. |
-| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you, down to a detailed design that any implementer would follow the same way. A fresh agent reads the spec cold and lists every place where it would have to guess. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
+| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, traces the existing code and records every fact with its evidence, and discusses the spec with you, down to a detailed design that any implementer would follow the same way. A fresh agent reads the spec cold, re-checks the evidence against the code, and lists every place where it would have to guess. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
 | `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Design check: compares the changes with the detailed design of the spec, and lists every deviation. Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
@@ -162,6 +162,7 @@ Your original text is kept unchanged in its `## Original` section.
 | `## Spec` | The agreed specification: goal, scope, architecture, detailed design (file changes, types and public members, data and state, flows, errors and edge cases, configuration and dependencies, tests, what is left to the implementation), acceptance criteria, how to verify, out of scope. Written in tables and plain sentences, without code. |
 | `## Original` | Your request as you gave it, never edited |
 | `## Q&A` | Every question that changed the request, your answer in your own words, and the decision, in the order asked. An open question has `A: (pending)`. |
+| `## Evidence` | The facts that the request rests on, one entry each (`E1`, `E2`, ...): the evidence (`file:line` at a commit, command output, a log, a measurement, a test result), a status (`verified`, `developer-stated`, `inferred`, `to trace`, `to test`, `failed`), a step-by-step trace with the call stack and the values of the variables where one is needed, and a dated history. The spec cites them: "(E3)". |
 | `## Notes` | Assumptions, the cold read of the spec, the implementation summary, behavior changes, and the Verify, design check, code review, and Review results, each with a date |
 
 - One workspace branch, `feat/REQ-0012-gui-button`, carries the request from the
@@ -192,6 +193,12 @@ Your original text is kept unchanged in its `## Original` section.
   runs Claude Code's `/code-review` on the changes of the request only, in each
   project (`origin/develop...<request branch>`). You can also ask for it later in the same
   review. Its result is recorded in the request's `## Notes`.
+- Evidence, not guesses. Every statement about how the code or the system behaves, or
+  why a problem happens, rests on evidence that you can check, or is marked as
+  inferred, to trace, to test, or stated by you. Existing flows and the root cause of
+  a bug are traced step by step through the code. You can approve a request only when
+  no fact that its spec relies on is still to trace, and the Review passes only when
+  the facts that needed a test were tested, or you accepted them untested.
 - Results are reported as they are. Every check is recorded as `passed`, `failed`,
   `did not run`, or `not configured`, and the implementation summary lists what is not
   done. A check that did not run is never recorded as passed.

@@ -42,7 +42,7 @@ created: 2026-09-07
 
 ## Spec
 
-<!-- The agreed specification: goal, scope, architecture, detailed design, acceptance criteria, how to verify, out of scope. See "Spec" below. -->
+<!-- The agreed specification: goal, scope, architecture, detailed design, acceptance criteria, how to verify, out of scope. Facts cite their entries in ## Evidence. See "Spec" below. -->
 
 ## Original
 
@@ -51,6 +51,10 @@ created: 2026-09-07
 ## Q&A
 
 <!-- Every question to the developer and its answer, in the order asked. Append only. -->
+
+## Evidence
+
+<!-- The facts that the request rests on, each with its evidence and status (E1, E2, ...). See "Evidence" below. -->
 
 ## Notes
 
@@ -68,8 +72,9 @@ created: 2026-09-07
 
 The frontmatter is the only source of truth for a request's state.
 
-Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English and
-in this order. The skills look them up.
+Keep the headings `## Spec`, `## Original`, `## Q&A`, `## Evidence`, and `## Notes` in
+English and in this order. The skills look them up. A request approved before
+ss-workflow 0.12.0 may have no `## Evidence`.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-spec -->
@@ -94,6 +99,11 @@ named: file paths, types, members, parameters, and their types are written out a
 names (`FrameBuffer`, `IReadOnlyList<Frame>`). Two kinds of examples may be shown in
 code blocks: data formats (a JSON, XML, or INI file, the byte layout of a protocol
 frame), and commands that a developer or a user types.
+
+**Facts cite their evidence.** Every statement in the spec about what exists today
+(how the code or the system behaves, where a problem comes from, what a file or a
+device holds) ends with the ids of its entries in `## Evidence`, for example "(E3)".
+A statement without an id is a decision of the spec, not a fact. See "Evidence" below.
 
 Names follow the conventions of the existing code, and the spec still writes each one
 out. Where the spec decides something, it does not use words that leave the decision
@@ -134,6 +144,129 @@ in `## Q&A` with `A: (pending)`.
 A request approved before ss-workflow 0.11.0 may have no "Detailed design".
 `/ss-workflow:check-req` writes it, and the developer confirms it, before the
 implementation starts.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-evidence -->
+## Evidence
+
+`## Evidence` is the single source of truth for the facts that a request rests on:
+how the existing code and system behave, where a problem comes from, and what a log,
+a measurement, or a test showed. Nothing is stated as a fact without evidence that
+someone else can check. A conclusion drawn from names, comments, or how such code
+usually works is not evidence.
+
+### What counts as evidence
+
+| Kind | How it is written |
+|------|-------------------|
+| Code | `<project>@<short sha>:<path>:<line>`, or a range `:<from>-<to>`, with the code lines that the statement stands on, quoted. The commit is the one that was read: in a spec discussion the project's `origin/<develop-branch>`, during the implementation the project branch. A workspace file is `workspace@<short sha>:<path>:<line>`. |
+| Command output | The command, where it ran (project and commit), and the lines of its output that matter, quoted |
+| Log or measurement | Its source (file, device, tool), when it was taken, and the values with their units |
+| Test result | The project, the test name, the commit, and `passed` or `failed`, from a run whose output was seen |
+| Document | The path or URL and the section (a datasheet, a protocol description). It proves what the document says, not what the system does. |
+
+What the developer says is not evidence. It is recorded with the status
+`developer-stated`.
+
+### Status
+
+Every entry has exactly one status:
+
+| Status | Meaning | Before the approval | Before the Review passes |
+|--------|---------|---------------------|--------------------------|
+| `verified` | The evidence shows the statement, and anyone can repeat the check from it | Allowed | Allowed |
+| `developer-stated` | The developer said it. Nobody checked it against code or data. | Allowed. "How to verify" names a check for each one that the spec cites. | Verify or Review checks it, and it becomes `verified` or `failed`. |
+| `inferred` | Concluded by reasoning, without direct evidence. The entry names the entries and the reasoning that it follows from. | Only when the developer accepts it: a `## Q&A` entry, and an `Assumption` in `## Notes` | Allowed, as an accepted assumption |
+| `to trace` | Not traced yet. The entry says what has to be traced and where to start. | Not allowed while the spec cites it: trace it, or turn it into a `## Q&A` entry with `A: (pending)` | Not allowed while the spec cites it |
+| `to test` | Traced statically (the trace is in the entry), but only running it can confirm it: timing, threads, hardware, an external system, data at run time | Allowed. "How to verify" names a check for each one that the spec cites. | Verify or Review checks it, and it becomes `verified` or `failed`. |
+| `failed` | A check showed the statement wrong. The entry says what the check showed instead. | The parts of the spec that cite it are revised first (a `## Q&A` entry) | The same |
+
+A `developer-stated` or `to test` entry that cannot be checked in the Review stays
+with its status only when the developer accepts it untested: record the question and
+the answer in `## Q&A`.
+
+In the reports and answers to the developer, the same rule holds in
+`discussion-language`: a statement without evidence is called inferred, to trace, to
+test, or stated by the developer.
+
+### Entry format
+
+```markdown
+### E3 (2026-09-08): `FrameReader.Read` drops a frame whose length byte is 0
+- Status: verified
+- Evidence: `SSLib@1a2b3c4:src/FrameReader.cs:88-97`
+  > `if (length == 0) return null;`
+- Trace (static; input: the frame `AA 00 55`; state: a connected port):
+  1. `SSDisp@5d6e7f8:src/MainViewModel.cs:120` `OnDataReceived(byte[] buffer)`: `buffer` = `[0xAA, 0x00, 0x55]`; calls `FrameReader.Read(buffer)`
+  2. `SSLib@1a2b3c4:src/FrameReader.cs:88` `Read(byte[] data)`: `data[0]` = `0xAA` passes the start check at line 90; `length` = `data[1]` = `0`
+  3. `SSLib@1a2b3c4:src/FrameReader.cs:95`: `length == 0` is true; returns `null`
+  4. `SSDisp@5d6e7f8:src/MainViewModel.cs:122`: `frame == null`; returns without adding the frame to `Frames`
+- Used by: Spec "Architecture", "Errors and edge cases"; Q4
+- History:
+  - 2026-09-08 created as to trace (new-req)
+  - 2026-09-08 to trace → verified: traced at `SSLib@1a2b3c4`, `SSDisp@5d6e7f8` (new-req)
+```
+
+- **Id and heading**: `E<n>`, numbered in the order created, with the date and the
+  statement in one line. An id is never reused or renumbered.
+- **Evidence**: one or more items of the kinds above. A `developer-stated` entry
+  names who said it and when (`Q3`, or the date). An `inferred` entry names the
+  entries and the reasoning. A `to trace` entry says what to trace and where to start.
+- **Trace**: the simulated call stack, from the entry point down to the line that
+  matters, one step per call or branch. Each step gives its location
+  (`<project>@<sha>:<path>:<line>`), the member, the values of the variables that
+  decide what happens next, and what happens next. The first line says whether the
+  trace is `static` (read from the code) or `run time` (from a debugger, a log, or a
+  test, with its source), and states the input and the start state that it assumes.
+  At a branch, say which way it goes and which value decides it. At a call whose
+  target the code alone does not fix (a virtual or interface call, an event, a
+  callback, dependency injection, reflection, a setting), find the target where it is
+  registered or configured, with its `file:line`. If it cannot be found, stop the
+  trace there and say so: the entry is `to trace` or `inferred`, never `verified`.
+  Code may be quoted here and in "Evidence": the rule "No code" applies to `## Spec`
+  only.
+- **When a trace cannot be produced** (no source code, another process, hardware, a
+  binary library), the entry says why, and its status is at most `to test` or
+  `inferred`.
+- **Used by**: the parts of the spec, and the `## Q&A` entries, that cite it.
+- **History**: entries are updated in place. Every change of the status or of the
+  evidence adds a dated line with the old and the new state, why, and which skill
+  made it. Old evidence moves into its history line and is not deleted.
+
+### When a trace is required
+
+- `type` `fix` and `hotfix`: the root cause. A trace from the trigger to the faulty
+  line, which shows how the observed symptom follows from it. The symptom itself is
+  `developer-stated` until a log, a test, or a reproduction shows it.
+- `type` `fix`, `hotfix`, `refactor`, and `perf`: every existing flow that the change
+  alters or relies on.
+- `type` `feat`: every existing flow that the change alters or relies on, when there
+  is one.
+- Any request: every statement about existing behavior that the spec makes needs an
+  entry. A `perf` statement about speed or size needs a measurement, or is `to test`.
+
+A request whose spec makes no statement about what exists today (a new standalone
+file, a request with `projects: []` that adds a new document) says "None" in one line
+under `## Evidence`.
+
+### Keeping the evidence current
+
+Line numbers belong to the commit in the reference. When `/ss-workflow:check-req`
+starts or resumes the implementation, it checks every `verified` entry that the spec
+cites against the code of the project branch: the quoted lines, and every step of the
+trace.
+
+- The code is the same but moved: update the references, and add a history line
+  (`re-checked at <sha>`).
+- The code changed: trace it again. If the conclusion changes, the entry becomes
+  `failed` or gets the new conclusion, and the spec that cites it has a gap: stop and
+  ask, as for any other gap.
+
+Facts found during the implementation, Verify, or Review are added as new entries.
+Verify and Review update the entries that their checks prove or disprove.
+
+A request approved before ss-workflow 0.12.0 may have no `## Evidence`. The skills do
+not add one to it, and their evidence steps record "not applicable".
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-qa -->
@@ -230,9 +363,11 @@ Rules:
   Review all happen on this branch. `develop` receives the request file only with the
   merge, already in `reqs/done/`. The request file on its branch holds the current
   status.
-- Only approve a request after the developer explicitly approves the spec, and only
-  when `## Q&A` has no pending entry. On approval, the developer chooses to start now
-  (the request goes straight to `in-progress`) or later (`ready`, on its branch).
+- Only approve a request after the developer explicitly approves the spec, only
+  when `## Q&A` has no pending entry, and only when every entry in `## Evidence` that
+  the spec cites meets the column "Before the approval" in "Evidence". On approval,
+  the developer chooses to start now (the request goes straight to `in-progress`) or
+  later (`ready`, on its branch).
 - **Starting a request** sets `status: in-progress`, `branch`, and `project-branch`
   on the request branch, creates the worktrees, and creates the project branches
   from each project's latest `develop-branch` (not from the gitlink). Their name has

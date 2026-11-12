@@ -37,8 +37,8 @@ anything.
 
 ## Step 1: Prepare
 
-1. Read the request file completely: `## Spec`, `## Original`, `## Q&A`, and
-   `## Notes`.
+1. Read the request file completely: `## Spec`, `## Original`, `## Q&A`,
+   `## Evidence`, and `## Notes`.
 2. For each project of the request, read what the paragraph above lists, plus the
    `README.md` of each affected part of the project, and its docs in the workspace
    (`docs/<name>/`, at least `spec.md`). Read `docs/overview.md` too.
@@ -51,7 +51,17 @@ anything.
    it from `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`), and ask the
    developer to confirm it. Write it into `## Spec`, and record the question and the
    answer in `## Q&A` (stage `implementation`).
-5. Write a short implementation plan that follows "Architecture" and "Detailed
+5. **Check the evidence.** Check every `verified` entry in `## Evidence` that the
+   spec cites against the code in the project worktrees, as "Keeping the evidence
+   current" in "Evidence" of `reqs/AGENTS.md` describes (if that file has no
+   "Evidence" section, read it from
+   `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`): open each reference
+   at the worktree's `HEAD`, compare the quoted lines, and walk the trace again step by
+   step. Update moved references with a history line. If the code changed so that the
+   conclusion no longer holds, the spec has a gap: stop and ask (see "If the spec is
+   unclear" below). A request without `## Evidence` (approved before ss-workflow
+   0.12.0) skips this step.
+6. Write a short implementation plan that follows "Architecture" and "Detailed
    design": the steps, and for each step the rows of "File changes" that it covers.
    Every row of "File changes" is in the plan, and the plan changes no file that
    "File changes" does not list. Show it to the developer. Wait for an answer only if
@@ -60,6 +70,8 @@ anything.
 
 ## Step 2: Implement
 
+- When you resume a request here, do Step 1.5 first: the code may have changed since
+  the last session.
 - When you resume a request here and its spec has no "Detailed design" (a request
   started before ss-workflow 0.11.0), do Step 1.4 first. Describe the code that the
   request has already changed as it is, and settle the rest; the developer confirms
@@ -79,6 +91,14 @@ anything.
 - A mechanical consequence of a listed change is not a gap: registering a listed new
   file with the build, a designer file that a tool generates for a listed view. Name
   each one under "Not in the detailed design" in the implementation summary.
+- **Evidence, not guesses.** Before you change an existing flow that `## Evidence`
+  does not trace yet, trace it step by step through the code, with the call stack and
+  the values of the variables, as "Evidence" in `reqs/AGENTS.md` describes. Add every
+  fact that you find, and that the work relies on, as a new entry with the project
+  branch's commit in its references. An entry that turns out wrong becomes `failed`,
+  with a history line, and the spec that cites it is wrong: see the next point. You
+  cannot run anything here, so a fact that only running can confirm is `to test`, and
+  goes into "Verify" or "Review by hand" of the implementation summary.
 - **If the spec is unclear or turns out to be wrong, stop and ask.** Do not guess.
   Add the question to `## Q&A` (stage `implementation`), as "Questions and answers" in
   `reqs/AGENTS.md` describes. When the developer decides, complete the entry with the
@@ -156,6 +176,7 @@ a new request.
    - What changed: <per project, and the workspace files, or "workspace files: none">
    - Architecture and detailed design: as in the spec / changed with the developer's decision in Q<n>
    - Not in the detailed design: <mechanical consequences of listed changes, per project and file; or "none">
+   - Evidence: re-checked <ids> at <project>@<sha>; added <ids>; changed <ids, with the new status>; left for Verify and Review: <the `to test` and `developer-stated` ids>; or "not applicable (no ## Evidence)"
    - Ran in the worktree: <each command that ran, with its project and `passed` or `failed (<reason>)`; "nothing" if none ran>
    - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `could not run (<reason>)`>
    - Not done: <acceptance criteria or parts of the spec that are not implemented, with the reason; or "none">
@@ -239,6 +260,8 @@ a new request.
    - What ran in the worktrees, with its result, and what did not run and why
    - That nothing was tested or run yet
    - The behavior changes, if the request changed agent behavior files
+   - The evidence: the entries that were re-checked, added, or changed, and those
+     that Verify and Review still have to check
    - The questions in `## Q&A` that are still pending, if any
    - That the worktrees are removed, and which branches hold the work
    - Per repository, whether the branch is on the remote, or which commits the
