@@ -1,6 +1,6 @@
 ---
 name: new-req
-description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens the request branch in the root checkout, writes the request file, discusses its spec with the developer, and on approval starts the implementation right away or keeps the request ready on its branch. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
+description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens the request branch in the root checkout, writes the request file, discusses with the developer a spec detailed enough that every implementer builds the same thing, has it cold-read by a fresh subagent, and on approval starts the implementation right away or keeps the request ready on its branch. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
 argument-hint: "[requirement.md | REQ-id | short description]"
 ---
 
@@ -19,7 +19,11 @@ Input: `$ARGUMENTS`
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement") and
   `reqs/AGENTS.md` first. `reqs/AGENTS.md` is the source of truth for the file name,
-  the frontmatter, and the lifecycle. If it differs from this skill, follow it.
+  the frontmatter, the parts of the spec, and the lifecycle. If it differs from this
+  skill, follow it. If it has no "Spec" section (a workspace that is not upgraded to
+  ss-workflow 0.11.0 yet), read that section from
+  `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`, follow it, and suggest
+  `/ss-workflow:init` to upgrade the workspace in the report.
 - Talk to the developer in `discussion-language`. Write the request in `reqs-language`.
   Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English,
   because other skills look them up.
@@ -165,6 +169,9 @@ may have an "Open questions" part in its spec:
   remove the "Open questions" part.
 - Leave earlier decisions in `## Notes` where they are. Do not turn them into entries.
 - A draft from before the workspace layout lacks `projects`: add it after `type:`.
+- A draft from before ss-workflow 0.11.0 has no "Detailed design": add the part after
+  "Architecture", and write it during the discussion. Rewrite any program code in its
+  spec as tables and plain sentences ("No code" in "Spec" of `reqs/AGENTS.md`).
 - A draft on a `req/REQ-<id>-<slug>` branch (from before ss-workflow 0.8.0): rename
   the branch to `<type>/REQ-<id>-<slug>` (`git branch -m`; with a remote, push the
   new name and delete the old one when pushing is allowed), and add
@@ -174,29 +181,18 @@ may have an "Open questions" part in its spec:
 
 ### What the spec settles
 
-The spec settles the following before any code is written:
+Write `## Spec` as "Spec" in `reqs/AGENTS.md` describes: its standard, the rule
+"No code", the parts, and the sections of "Detailed design". The standard is the test
+for every part: anyone who implements the spec from the spec and the repository
+alone, a senior engineer, a junior engineer, or another agent, builds almost the same
+thing. The spec settles everything that the developer or a user sees or uses
+("Scope"), the software architecture ("Architecture"), and every decision below it on
+which two implementers could reasonably differ ("Detailed design"). Only what
+"Left to the implementation" names is decided in the code.
 
-- Everything that the developer or a user sees or uses: the UI, commands and their
-  options, file formats, and the public API. These go into "Scope".
-- The software architecture. It goes into "Architecture".
-
-Everything below that level is left to the implementation, for example the names of
-private functions and the layout of a single file. Settle such a detail in the spec
-only if the developer wants to.
-
-`## Spec` has these parts, with the subheadings in `reqs-language`:
-
-| Part | Content |
-|------|---------|
-| Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes: behavior, UI, commands, file formats, API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. |
-| Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Do not leave this part out. |
-| Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
-| How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify) or by hand (Review). |
-| Out of scope | What this request deliberately does not cover |
-
-The spec has no "Open questions" part. A question that is not decided yet is an entry
-in `## Q&A` with `A: (pending)`.
+The spec contains no program code and no pseudo-code. Describe types, members, and
+flows in tables and plain sentences, and write every name out. Examples of data
+formats and of commands that a user types are the only code blocks allowed.
 
 The spec also settles `projects` in the frontmatter: every project that the request
 changes. A project that the request only needs to read (a dependency that does not
@@ -239,6 +235,25 @@ design it. If more than one structure is reasonable, show the alternatives with 
 trade-offs, and recommend one. The developer confirms the architecture, like the rest
 of the spec.
 
+### Detailed design
+
+Write the detailed design yourself, from the architecture and the existing code, once
+the developer agrees with the architecture:
+
+- Read the code that the change touches, and follow its conventions: where files of
+  this kind live, how types and members are named, how errors are reported, how
+  tests are named. A new name follows the names around it.
+- Fill in every section that "Spec" in `reqs/AGENTS.md` lists, in its order. Walk
+  through every acceptance criterion, and check that "File changes", "Types and public
+  members", "Flows", "Errors and edge cases", and "Tests" together show how it is met.
+- Do not ask the developer about each name or row. The developer reads the detailed
+  design with the rest of the spec, and changes what they want. Ask a question only
+  where the code does not decide and the choice changes behavior, or where the
+  reasonable options differ in a way that the developer would care about (an
+  exception or an error code, a new dependency, a stored format).
+- Keep the size in proportion: a one-line fix gets a few lines, a new feature gets
+  tables. Never leave a section out: write "None" in one line when it has nothing.
+
 ### When the developer does not know
 
 If the developer cannot answer a question, do not decide it silently. Propose a
@@ -278,13 +293,67 @@ Go through these rounds with the developer:
 answer to a question: assumptions, and facts found in the code that explain a choice,
 each with the date.
 
+### Cold read
+
+When `## Q&A` has no pending entry and every part of the spec is written, check the
+standard with a reader who did not take part in the discussion:
+
+1. Save the request file in the working tree (it is not committed yet).
+2. Start a new subagent with the Agent tool: a fresh agent (general-purpose), not a
+   fork, so that it knows nothing of this discussion. Give it:
+   - the path of the request file, with the instruction to read `## Spec` only, and
+     not `## Original`, `## Q&A`, or `## Notes`: the spec has to stand on its own
+   - the paths of the projects of the request, and how to read their latest code
+     without checking anything out (`git -C projects/<name> show
+     origin/<develop-branch>:<file>`, `git -C projects/<name> grep <pattern>
+     origin/<develop-branch>`), and the path of `reqs/AGENTS.md`, whose section "Spec"
+     is the standard
+   - the task: "Read the spec as the engineer who has to implement it, and do not
+     implement anything or change any file. List every place where you would have to
+     guess or choose, or where two engineers could build different things: a missing
+     or vague file, type, member, parameter, type of a value, data layout, step of a
+     flow, thread, error behavior, setting, dependency, or test; a word that leaves a
+     decision open; a contradiction between parts of the spec, or between the spec and
+     the code (a name, file, or member that the spec assumes and the code does not
+     have); a section of 'Detailed design' that is missing; and any program code or
+     pseudo-code in the spec. For each finding, give the part of the spec, what is
+     unclear, and the options that you see. Report 'No findings' if there are none."
+3. Go through the findings yourself. For each one:
+   - The code or the existing conventions answer it: fix the spec.
+   - It needs the developer's decision: ask it in the next round, and record it in
+     `## Q&A` as usual.
+   - It is not a real gap (the spec answers it, and the reader missed it): say why
+     when you show the findings.
+   - The developer wants to leave it open: add it to "Left to the implementation".
+4. Show the developer the findings and what you did with each.
+5. If the spec changed, run the cold read again with a new subagent. List for it the
+   findings that are already settled, so that it does not report them again. Stop
+   when a run brings no finding that is a real gap. After the third run with real
+   gaps, show the ones that are left, let the developer decide on each of them, and
+   write the decisions into the spec. The cold read ends there.
+6. Record the result in `## Notes`:
+
+   ```markdown
+   ### Cold read (yyyy-MM-dd)
+   - Runs: 2
+   - Findings: 7 (spec fixed: 4; asked: Q5, Q6; not a gap: 1, <why>)
+   - Left open by the developer: <findings added to "Left to the implementation", or "none">
+   ```
+
+If no subagent can be started, check the spec yourself against the task above, item
+by item, and record `- Did not run (<reason>); self-check instead`, with the
+findings, in the same entry. Say so to the developer before the approval.
+
 ## Step 7: Approval
 
-When `## Q&A` has no pending entry, "Architecture" is filled in, and `projects` names
-at least one project (or is `[]`, and "Scope" changes workspace files only), show the
-final spec and ask with AskUserQuestion. While entries are pending, list them, and
-offer only "Keep as draft" and "Discard". The developer can ask for more changes
-through "Other": then go back to Step 6.
+When `## Q&A` has no pending entry, "Architecture" and "Detailed design" are filled
+in, `projects` names at least one project (or is `[]`, and "Scope" changes workspace
+files only), and the last cold read (Step 6) left no real gap open, show the final
+spec and ask with AskUserQuestion. A cold read counts only when `## Spec` has not
+changed since it ended: after a later change (in a later round, or through "Other"),
+run it again first. While entries are pending, list them, and offer only "Keep as draft"
+and "Discard". The developer can ask for more changes through "Other": then go back
+to Step 6.
 
 | Option | Action |
 |--------|--------|
@@ -329,6 +398,7 @@ Tell the developer, in `discussion-language`:
 - Its branch, and whether the implementation started, waits as `ready`, is a draft,
   or was discarded
 - The questions that are still pending in `## Q&A`, for a draft
+- The cold read: how many runs, and what was left open, or that it did not run and why
 - What is not on the remote yet: the branches that were not pushed
 - That the root checkout is back on `develop`
 - The next step: `/ss-workflow:check-req REQ-0012` starts a `ready` request, and

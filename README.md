@@ -30,7 +30,10 @@ checkout, and skills merge and release it by the same rules every time.
   workspace of their own for the same projects.
 - Every project has its own version: a project that did not change is not released.
 - Every change is a request file, and nothing is implemented before you approve its
-  spec, including the software architecture.
+  spec, including the software architecture and a detailed design. The spec is
+  written so that a senior engineer, a junior engineer, or another agent would all
+  build almost the same thing from it, without any code in it, and a fresh agent
+  reads it cold before you approve it.
 - Agents implement in separate git worktrees, so several sessions can work on several
   requests in parallel.
 - Verify, an optional code review, and your manual review happen in the root checkout,
@@ -114,9 +117,9 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | Skill | When to use it | Where it runs | What it does |
 |-------|----------------|---------------|--------------|
 | `/ss-workflow:init` | Once per workspace, to add a project, and again after a plugin update | Root checkout | Creates the workspace: the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files, and adds projects as submodules from a URL or a local path. Converts a repository of version 0.5.0 or older, or upgrades a workspace made by an older version. |
-| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
+| `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, and discusses the spec with you, down to a detailed design that any implementer would follow the same way. A fresh agent reads the spec cold and lists every place where it would have to guess. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
 | `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
-| `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
+| `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Design check: compares the changes with the detailed design of the spec, and lists every deviation. Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
 | `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, builds and packages each tagged version, and hands the final version over to the release merge. |
 
@@ -156,10 +159,10 @@ Your original text is kept unchanged in its `## Original` section.
 
 | Section | Holds |
 |---------|-------|
-| `## Spec` | The agreed specification: goal, scope, architecture, acceptance criteria, how to verify, out of scope |
+| `## Spec` | The agreed specification: goal, scope, architecture, detailed design (file changes, types and public members, data and state, flows, errors and edge cases, configuration and dependencies, tests, what is left to the implementation), acceptance criteria, how to verify, out of scope. Written in tables and plain sentences, without code. |
 | `## Original` | Your request as you gave it, never edited |
 | `## Q&A` | Every question that changed the request, your answer in your own words, and the decision, in the order asked. An open question has `A: (pending)`. |
-| `## Notes` | Assumptions, the implementation summary, behavior changes, and the Verify, code review, and Review results, each with a date |
+| `## Notes` | Assumptions, the cold read of the spec, the implementation summary, behavior changes, and the Verify, design check, code review, and Review results, each with a date |
 
 - One workspace branch, `feat/REQ-0012-gui-button`, carries the request from the
   first draft through the implementation and the review. `develop` gets it only with
