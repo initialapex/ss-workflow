@@ -1,6 +1,6 @@
 ---
 name: review
-description: Verify and review an implemented request of an ss-workflow workspace in the root checkout. Checks out the request branches of the workspace and of each project of the request, runs the build, the tests and the verification scripts (Verify), offers a code review of the request's changes, then guides the developer through the manual check (Review), applies small fixes, or sends the request back for rework. Use when the developer wants to start, continue, or finish the review of a request that is waiting in the review status.
+description: Verify and review an implemented request of an ss-workflow workspace in the root checkout. Checks out the request branches of the workspace and of each project of the request, compares the changes with the detailed design of the spec, runs the build, the tests and the verification scripts (Verify), offers a code review of the request's changes, then guides the developer through the manual check (Review), applies small fixes, or sends the request back for rework. Use when the developer wants to start, continue, or finish the review of a request that is waiting in the review status.
 argument-hint: "[REQ-id]"
 ---
 
@@ -12,6 +12,8 @@ project of the request (for a hotfix, `hotfix/v<version>` in its project). A req
 started before ss-workflow 0.8.0 has no `project-branch`: its project branches have
 the name of the workspace branch.
 
+- **Design check**: you compare the changes with "Detailed design" in the spec, and
+  list every deviation.
 - **Verify**: you run the build, the test projects, and the verification scripts.
 - **Code review** (optional): if the developer wants it, the `code-review` skill reads
   the request's changes for bugs.
@@ -224,7 +226,7 @@ Read the request file on this branch:
   what is not done, what to look at by hand), the assumptions, the behavior changes,
   earlier Verify results, and earlier review feedback
 
-Then check two things that the implementation owes:
+Then check three things that the implementation owes:
 
 1. **Not done**: if the implementation summary lists criteria or parts of the spec as
    not done, tell the developer now, before anything runs. Ask whether to continue
@@ -239,6 +241,50 @@ Then check two things that the implementation owes:
    items now from the diff, as "Results and behavior changes" in `reqs/AGENTS.md`
    describes, and commit them with the next commit of the request file. Every item
    becomes a point of the Review (Step 6).
+3. **Design check**: compare the changes of each project with "Detailed design" in
+   `## Spec` ("Spec" in `reqs/AGENTS.md` describes its sections; if that file has no
+   "Spec" section, read it from
+   `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`). Read the code, section
+   by section:
+   - **File changes**: `git -C <path> diff --name-status <base>...HEAD`, and `git diff
+     --name-status <base>...HEAD` in the workspace without the request file and the
+     gitlinks, against the rows. A listed file that did not change in the listed way,
+     and a changed file that is not listed, are deviations, unless the implementation
+     summary names it under "Not in the detailed design" as a mechanical consequence
+     of a listed change.
+   - **Types and public members**: each listed type with its name, kind, location,
+     base type, and interfaces; each listed public member with its name, kind,
+     parameters (names, types, order), and return or property type, and the behavior
+     that the row describes. A public member that the changes add and the spec does
+     not list is a deviation.
+   - **Data and state**, **Configuration and dependencies**: the names, types, default
+     values, ranges, layouts, keys, packages, and versions.
+   - **Flows**, **Errors and edge cases**: the order of the steps, the thread or async
+     context, and, for each condition, the behavior that the row describes.
+   - **Tests**: each listed test exists with its name, in the listed project, file,
+     and class, and asserts what the row says.
+
+   A difference that a `## Q&A` entry decided, with the spec updated to it, is not a
+   deviation. If the spec was not updated, update it now. Each deviation becomes a
+   point of the Review (Step 6). Record the result in `## Notes`, and commit it with
+   the next commit of the request file:
+
+   ```markdown
+   ### Design check (yyyy-MM-dd)
+   - SSDisp
+     - File changes: matches
+     - Types and public members: 1 deviation: `FrameView.Refresh()` is public, not listed
+     - Data and state: matches
+     - Flows: matches
+     - Errors and edge cases: 1 deviation: an empty file raises `IOException`, the spec says `InvalidDataException`
+     - Configuration and dependencies: matches
+     - Tests: matches
+   - Decisions: <each deviation: fixed in <project> <commit> / accepted in Q<n>, with the spec updated / open>
+   ```
+
+   A request whose spec has no "Detailed design" (approved and implemented before
+   ss-workflow 0.11.0) records `- Not applicable: the spec has no Detailed design`.
+   A request with `projects: []` checks "File changes" only.
 
 If a `## Q&A` entry is pending, ask the developer that question before the Review
 starts, and complete the entry.
@@ -251,7 +297,8 @@ branch.
 
 Show the developer a short overview: the request, the change per project
 (`git -C <path> diff <base>...HEAD --stat`), the workspace files that it changes, the
-agent behavior files that it changes, and the plan for Verify and Review.
+agent behavior files that it changes, the deviations of the design check, and the plan
+for Verify and Review.
 
 ## Step 4: Verify
 
@@ -402,6 +449,12 @@ Guide the developer through the manual check:
      `docs/<name>/`: show the diff, and ask whether it is right and whether it
      matches what the code now does. Also say when the request changes the behavior
      of a project, and its docs in `docs/<name>/` did not change.
+   - every deviation of the design check (Step 3) that is still open: show the spec
+     and the code, and ask the developer to decide. "Fix it": a small fix is made here
+     like the small changes of Step 7, a large one means "Rework needed". "Accept
+     it": record the question and the answer in `## Q&A` (stage `review`), and update
+     "Detailed design" so that it describes the code. Write the decision into the
+     "Decisions" line of the design check.
    - every `Assumption` in `## Notes`: ask whether it still holds
    - every check that Verify recorded as `failed` or `did not run`: the developer has
      to know about it before they decide
@@ -418,7 +471,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If a commit after the design check (Step 3) changed code that "Detailed design" covers, check those sections again and update its record. No deviation of the design check may be left open: the developer decides each one first (Step 6). If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the project branches, with normal commits in the projects, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review` with the gitlinks, and push. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`), so that the project branches are free for the worktrees. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far, with the gitlinks. Leave the root checkout and its projects on the request branches, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |
@@ -441,6 +494,7 @@ Tell the developer, in `discussion-language`:
   and failed, and what did not run or is not configured, with the reason. Do not sum
   it up as "passed" while one check is in the second or third group.
 - The acceptance criteria that are still not ticked
+- The design check: the deviations from "Detailed design", and the decision on each
 - The code review: its findings and what was done with each, or that it was skipped
   or not available
 - The behavior changes of agent behavior files, and whether the developer confirmed
