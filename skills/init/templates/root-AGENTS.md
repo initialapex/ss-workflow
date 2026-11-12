@@ -93,6 +93,16 @@ workspace that was not converted.
   into a request says what ran and passed, what ran and failed, and what did not run
   and why. A check that did not run is never reported as passed, and neither is one
   that only "should" pass.
+- Evidence, not guesses. Every statement about how the code or the system behaves,
+  why a problem happens, or what a change will do rests on evidence that someone else
+  can check: a `file:line` at a named commit, the output of a command that ran, a log
+  or a measurement, or a test result. A statement without evidence is marked as such
+  (inferred, to trace, to test, or stated by the developer) in every report, every
+  answer to the developer, and every request file. To understand an existing flow,
+  trace it step by step through the code, with the call stack and the values of the
+  variables that decide each step; do not conclude from names, comments, or how such
+  code usually works. Request files record the facts in `## Evidence` (see
+  `reqs/AGENTS.md`).
 - Agent behavior files are the files that an agent reads as instructions: `AGENTS.md`,
   `CLAUDE.md`, everything under `.claude/` except `.claude/worktrees/`, a `SKILL.md`
   and the files in its folder (in the workspace and in every project), and the paths

@@ -48,6 +48,13 @@ Input: `$ARGUMENTS` (optional `REQ-xxxx`)
   its cause, and a check is `passed` only when you ran it in this review and saw it
   pass. Do not carry a result over from the implementation summary or from an earlier
   run without saying so.
+- Evidence, not guesses: when you explain a failure, a finding, or a deviation, cite
+  the `file:line`, the command output, or the test result that shows it, and say
+  "inferred" for a cause that nothing shows yet. The facts of the request live in
+  `## Evidence` ("Evidence" in `reqs/AGENTS.md`; if that file has no such section,
+  read it from `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`). Update
+  an entry that a check proves or disproves in place, with a history line, and add a
+  new entry for a new fact.
 - Only the developer decides that the Review passed.
 - A question to the developer whose answer decides how a result is judged, or changes
   the spec, goes into `## Q&A` with the stage `review`, as "Questions and answers" in
@@ -222,11 +229,12 @@ Read the request file on this branch:
 
 - `## Spec`: the acceptance criteria, and "How to verify"
 - `## Q&A`: the decisions behind the spec, and entries that are still pending
+- `## Evidence`: the facts that the spec cites, and their status
 - `## Notes`: the implementation summary (what changed, what ran, what did not run,
   what is not done, what to look at by hand), the assumptions, the behavior changes,
   earlier Verify results, and earlier review feedback
 
-Then check three things that the implementation owes:
+Then check four things that the implementation owes:
 
 1. **Not done**: if the implementation summary lists criteria or parts of the spec as
    not done, tell the developer now, before anything runs. Ask whether to continue
@@ -285,6 +293,14 @@ Then check three things that the implementation owes:
    A request whose spec has no "Detailed design" (approved and implemented before
    ss-workflow 0.11.0) records `- Not applicable: the spec has no Detailed design`.
    A request with `projects: []` checks "File changes" only.
+4. **Evidence to check**: list the entries in `## Evidence` that the spec cites and
+   that are `to test` or `developer-stated`, and the entries whose status is `failed`
+   while the spec still cites them. For each `to test` and `developer-stated` entry,
+   decide where it is checked: by a check of Verify (a test or a script that "How to
+   verify" names), or by hand in the Review (Step 6). A cited `failed` entry means
+   that the spec relies on something wrong: show it to the developer now, like a
+   deviation. A request without `## Evidence` (approved before ss-workflow 0.12.0)
+   has nothing to list here.
 
 If a `## Q&A` entry is pending, ask the developer that question before the Review
 starts, and complete the entry.
@@ -297,8 +313,8 @@ branch.
 
 Show the developer a short overview: the request, the change per project
 (`git -C <path> diff <base>...HEAD --stat`), the workspace files that it changes, the
-agent behavior files that it changes, the deviations of the design check, and the plan
-for Verify and Review.
+agent behavior files that it changes, the deviations of the design check, the evidence
+entries to check, and the plan for Verify and Review.
 
 ## Step 4: Verify
 
@@ -334,6 +350,12 @@ on these branches.
 Then go through the acceptance criteria. Tick (`- [x]`) each criterion that these
 checks actually prove. Leave the others for the Review.
 
+Go through the evidence entries of Step 3 that Verify checks. Each one whose check
+ran and passed becomes `verified`, with the test or command and the commit as its
+evidence. Each one whose check failed becomes `failed`, with what the check showed.
+An entry whose check did not run keeps its status. Add a history line to each changed
+entry.
+
 If a check fails:
 
 | Kind of problem | Action |
@@ -356,6 +378,7 @@ Record the result in `## Notes`:
   - verify script: not configured
   - request scripts: did not run (<reason>)
 - Fixed during Verify: <project and commits, or "none">
+- Evidence: <ids now verified; ids now failed; ids left for the Review; or "none to check">
 - Not verified automatically: <criteria left for the Review>
 ```
 
@@ -410,7 +433,9 @@ or the Review, and it ticks no acceptance criteria.
    <develop-branch>`, or with the main branch for a hotfix. Its findings are handled
    like the others.
 8. Show the findings to the developer. Check each one against the code before you act
-   on it:
+   on it: trace it at the cited lines, with the values that trigger it, and say for
+   each one whether the trace confirms it, disproves it, or could not settle it
+   (inferred):
 
 | Kind of finding | Action |
 |-----------------|--------|
@@ -456,6 +481,13 @@ Guide the developer through the manual check:
      "Detailed design" so that it describes the code. Write the decision into the
      "Decisions" line of the design check.
    - every `Assumption` in `## Notes`: ask whether it still holds
+   - every evidence entry that the spec cites and that is still `to test` or
+     `developer-stated`: say how to check it, and update the entry with the result
+     (`verified` or `failed`, with what the developer saw as its evidence). If it
+     cannot be checked, ask whether the developer accepts it untested, and record the
+     question and the answer in `## Q&A`
+   - every cited entry that is `failed`: the spec relies on something wrong; decide it
+     like a deviation of the design check
    - every check that Verify recorded as `failed` or `did not run`: the developer has
      to know about it before they decide
 2. For each one, say how to check it: which sample or application to start (with the
@@ -471,7 +503,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If a commit after the design check (Step 3) changed code that "Detailed design" covers, check those sections again and update its record. No deviation of the design check may be left open: the developer decides each one first (Step 6). If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If a commit after the design check (Step 3) changed code that "Detailed design" covers, check those sections again and update its record. No deviation of the design check may be left open: the developer decides each one first (Step 6). No evidence entry that the spec cites may be left `to trace`, `failed`, or, unless the developer accepted it untested in `## Q&A`, `to test` or `developer-stated`. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, the evidence entries that the Review verified or that the developer accepted untested, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the project branches, with normal commits in the projects, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review` with the gitlinks, and push. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`), so that the project branches are free for the worktrees. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far, with the gitlinks. Leave the root checkout and its projects on the request branches, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |
@@ -495,6 +527,8 @@ Tell the developer, in `discussion-language`:
   it up as "passed" while one check is in the second or third group.
 - The acceptance criteria that are still not ticked
 - The design check: the deviations from "Detailed design", and the decision on each
+- The evidence: the entries that Verify and Review verified or disproved, and those
+  accepted untested
 - The code review: its findings and what was done with each, or that it was skipped
   or not available
 - The behavior changes of agent behavior files, and whether the developer confirmed

@@ -49,6 +49,10 @@ Supporting files:
   list the unpushed branches in the report.
 - Report results as they are: what ran and passed, what ran and failed, and what did
   not run and why. Nothing that did not run is reported as passed.
+- Evidence, not guesses: a state that you report (an anomaly, a leftover worktree, the
+  cause of a failed build) names the command and the output that show it. What you
+  conclude without such evidence, say as inferred. In the implementation, follow
+  `## Evidence` as [references/implement.md](references/implement.md) describes.
 - Do not take over an `in-progress` request without asking: another session may be
   working on it.
 

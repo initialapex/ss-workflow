@@ -1,6 +1,6 @@
 ---
 name: new-req
-description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens the request branch in the root checkout, writes the request file, discusses with the developer a spec detailed enough that every implementer builds the same thing, has it cold-read by a fresh subagent, and on approval starts the implementation right away or keeps the request ready on its branch. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
+description: Create a new request (feature, fix, docs change, hotfix) in an ss-workflow repository. Opens the request branch in the root checkout, writes the request file, traces the existing code and records every fact with its evidence, discusses with the developer a spec detailed enough that every implementer builds the same thing, has it and its evidence cold-read by a fresh subagent, and on approval starts the implementation right away or keeps the request ready on its branch. Use when the developer asks to add a request, requirement, feature, or bug fix to the workflow, hands over a requirement .md file, or wants to continue a draft request.
 argument-hint: "[requirement.md | REQ-id | short description]"
 ---
 
@@ -23,10 +23,17 @@ Input: `$ARGUMENTS`
   skill, follow it. If it has no "Spec" section (a workspace that is not upgraded to
   ss-workflow 0.11.0 yet), read that section from
   `${CLAUDE_PLUGIN_ROOT}/skills/init/templates/reqs-AGENTS.md`, follow it, and suggest
-  `/ss-workflow:init` to upgrade the workspace in the report.
+  `/ss-workflow:init` to upgrade the workspace in the report. Do the same for its
+  "Evidence" section (ss-workflow 0.12.0).
 - Talk to the developer in `discussion-language`. Write the request in `reqs-language`.
-  Keep the headings `## Spec`, `## Original`, `## Q&A`, and `## Notes` in English,
-  because other skills look them up.
+  Keep the headings `## Spec`, `## Original`, `## Q&A`, `## Evidence`, and `## Notes`
+  in English, because other skills look them up.
+- **Evidence, not guesses.** Every fact about the existing code or system that the
+  spec, a question, or a proposal rests on is an entry in `## Evidence`, as
+  "Evidence" in `reqs/AGENTS.md` describes, with its evidence and its status. Trace
+  existing flows step by step through the code, with the call stack and the values of
+  the variables. Never present an `inferred`, `to trace`, `to test`, or
+  `developer-stated` statement to the developer as a fact: say which it is.
 - This skill runs in the root checkout of the workspace, not in a worktree.
 - Until the approval, the request branch changes only its own request file. Nothing
   is committed in the project repositories.
@@ -128,8 +135,8 @@ Then check the following:
    `name` in "Workflow settings", and `[]` when it is not clear yet. The spec
    discussion settles it.
 2. Put the original input into `## Original`, byte for byte. If the input came from a
-   file, add one line above it: `Source: <original path>`. `## Q&A` starts empty, apart
-   from its comment.
+   file, add one line above it: `Source: <original path>`. `## Q&A` and `## Evidence`
+   start empty, apart from their comments.
 3. If the source file is inside the repository (for example, the developer dropped it
    into `reqs/`), ask whether to delete it on this branch now that its content is
    preserved in `## Original`. Leave files outside the repository alone.
@@ -160,6 +167,13 @@ Before you ask the developer anything, read what the request touches:
 
 Do not ask the developer questions that the repository already answers.
 
+Record what you find as entries in `## Evidence` while you read, not afterwards from
+memory. A `file:line` reference names the commit that you read:
+`git -C projects/<name> rev-parse --short origin/<develop-branch>`. Get the line
+numbers from the same commit, for example with `git -C projects/<name> grep -n
+<pattern> origin/<develop-branch>`, or by numbering the output of `git show`. What you
+did not read yet is `to trace`, not a guess.
+
 When you continue a draft, read its `## Q&A` first, and start with the entries that
 are still pending. A draft from an older ss-workflow version may lack the section, and
 may have an "Open questions" part in its spec:
@@ -172,6 +186,9 @@ may have an "Open questions" part in its spec:
 - A draft from before ss-workflow 0.11.0 has no "Detailed design": add the part after
   "Architecture", and write it during the discussion. Rewrite any program code in its
   spec as tables and plain sentences ("No code" in "Spec" of `reqs/AGENTS.md`).
+- A draft from before ss-workflow 0.12.0 has no `## Evidence`: add it between
+  `## Q&A` and `## Notes`. Give every statement of its spec about what exists today
+  an entry: trace it and cite it, or record it as `to trace`.
 - A draft on a `req/REQ-<id>-<slug>` branch (from before ss-workflow 0.8.0): rename
   the branch to `<type>/REQ-<id>-<slug>` (`git branch -m`; with a remote, push the
   new name and delete the old one when pushing is allowed), and add
@@ -213,6 +230,33 @@ compared as versions), in the form that "Versioning" in the root `AGENTS.md`
 describes. The main branch can contain alpha and beta tags through the develop
 branch, so the nearest tag (`git describe`) is not always the released version.
 
+### Problem and code analysis
+
+Establish the facts before you propose a solution or an architecture. "When a trace
+is required" in "Evidence" of `reqs/AGENTS.md` says which flows need a trace for the
+request's `type`.
+
+1. **The symptom** (for `fix` and `hotfix`): what happens, with which input, and in
+   which state. As the developer describes it, it is `developer-stated`. A log, a
+   test result, or a reproduction that you can run without changing anything makes it
+   `verified`. Ask the developer for logs or data that the repository does not hold.
+2. **The trace**: follow each flow step by step through the code, from its entry
+   point (a user action, an event, a call from another project) to the line that
+   matters, and write it into the entry as a simulated call stack, with the values of
+   the variables that decide each step. Do not skip a step because a name says what it
+   does. Where the code alone does not fix the target of a call, find where it is
+   registered or configured.
+3. **The root cause** (for `fix` and `hotfix`): the entry that shows how the symptom
+   follows from the faulty line. If more than one cause fits the evidence, record each
+   one, and say what tells them apart. A cause that is not `verified` is presented
+   to the developer as what it is: say which check would decide it.
+4. **Where the change goes**: the members, files, and flows that the change touches,
+   each with its entry.
+
+Then build the spec on these entries, and cite them. If a decision depends on an
+entry that is still `to trace`, trace it first. If it can only be confirmed at run
+time, record it as `to test`, and add its check to "How to verify".
+
 ### How to start
 
 Look at `## Original`:
@@ -224,7 +268,8 @@ Look at `## Original`:
      (compatibility, performance, hardware, time).
   2. Propose two or three ways to solve it, from what you read in the code. For each
      one, say how it works for the user, its architecture in a few lines, what it
-     affects, and its cost and risks. Recommend one, and say why. Ask with
+     affects, and its cost and risks, and cite the entries in `## Evidence` that it
+     relies on. Recommend one, and say why. Ask with
      AskUserQuestion, with the recommended one first.
   3. Draft the spec from the way that the developer chose or changed.
 
@@ -281,6 +326,10 @@ Go through these rounds with the developer:
    - Complete the pending entries that were answered in this round. Do not change an
      entry that already has an answer: a changed decision is a new entry.
    - Write the decisions into `## Spec`.
+   - Add the facts of this round to `## Evidence`, and update the entries whose status
+     changed, with a history line. A fact that the developer stated is
+     `developer-stated`. An `inferred` entry that the developer accepted gets its
+     `## Q&A` entry and an `Assumption` in `## Notes`.
 
    Do not commit after each round. The file stays changed in the root checkout until
    the developer pauses or approves (Step 7).
@@ -301,13 +350,14 @@ standard with a reader who did not take part in the discussion:
 1. Save the request file in the working tree (it is not committed yet).
 2. Start a new subagent with the Agent tool: a fresh agent (general-purpose), not a
    fork, so that it knows nothing of this discussion. Give it:
-   - the path of the request file, with the instruction to read `## Spec` only, and
-     not `## Original`, `## Q&A`, or `## Notes`: the spec has to stand on its own
+   - the path of the request file, with the instruction to read `## Spec` and
+     `## Evidence` only, and not `## Original`, `## Q&A`, or `## Notes`: the spec has
+     to stand on its own
    - the paths of the projects of the request, and how to read their latest code
      without checking anything out (`git -C projects/<name> show
      origin/<develop-branch>:<file>`, `git -C projects/<name> grep <pattern>
-     origin/<develop-branch>`), and the path of `reqs/AGENTS.md`, whose section "Spec"
-     is the standard
+     origin/<develop-branch>`), and the path of `reqs/AGENTS.md`, whose sections
+     "Spec" and "Evidence" are the standard
    - the task: "Read the spec as the engineer who has to implement it, and do not
      implement anything or change any file. List every place where you would have to
      guess or choose, or where two engineers could build different things: a missing
@@ -316,10 +366,22 @@ standard with a reader who did not take part in the discussion:
      decision open; a contradiction between parts of the spec, or between the spec and
      the code (a name, file, or member that the spec assumes and the code does not
      have); a section of 'Detailed design' that is missing; and any program code or
-     pseudo-code in the spec. For each finding, give the part of the spec, what is
-     unclear, and the options that you see. Report 'No findings' if there are none."
+     pseudo-code in the spec. Then check the evidence: open every reference of every
+     `verified` entry in `## Evidence` at its commit, and walk its trace again step by
+     step; report an entry whose quoted lines differ from the code, whose trace skips a
+     step or gives a value that does not follow from the code, or whose evidence does
+     not show its statement. Also report every statement in the spec about the
+     existing code or system that cites no entry, and every cited entry whose status
+     does not allow the approval ('Before the approval' in 'Evidence'). For each
+     finding, give the part of the spec or the entry, what is unclear or wrong, and
+     the options that you see. Report 'No findings' if there are none."
 3. Go through the findings yourself. For each one:
    - The code or the existing conventions answer it: fix the spec.
+   - An evidence finding: check the entry against the code yourself. If the reader is
+     right, trace it again and correct the entry, with a history line; its status may
+     go down (`verified` to `to trace`, `inferred`, or `failed`). Then fix the parts of
+     the spec that cite it, and ask the developer where that changes a decision. A
+     statement without an entry gets one.
    - It needs the developer's decision: ask it in the next round, and record it in
      `## Q&A` as usual.
    - It is not a real gap (the spec answers it, and the reader missed it): say why
@@ -337,6 +399,7 @@ standard with a reader who did not take part in the discussion:
    ### Cold read (yyyy-MM-dd)
    - Runs: 2
    - Findings: 7 (spec fixed: 4; asked: Q5, Q6; not a gap: 1, <why>)
+   - Evidence: 5 verified entries re-checked; findings: 1 (E3 corrected, still verified)
    - Left open by the developer: <findings added to "Left to the implementation", or "none">
    ```
 
@@ -348,12 +411,17 @@ findings, in the same entry. Say so to the developer before the approval.
 
 When `## Q&A` has no pending entry, "Architecture" and "Detailed design" are filled
 in, `projects` names at least one project (or is `[]`, and "Scope" changes workspace
-files only), and the last cold read (Step 6) left no real gap open, show the final
-spec and ask with AskUserQuestion. A cold read counts only when `## Spec` has not
-changed since it ended: after a later change (in a later round, or through "Other"),
-run it again first. While entries are pending, list them, and offer only "Keep as draft"
-and "Discard". The developer can ask for more changes through "Other": then go back
-to Step 6.
+files only), every entry of `## Evidence` that the spec cites meets the column
+"Before the approval" in "Evidence" of `reqs/AGENTS.md` (no `to trace`, every
+`inferred` accepted, every `failed` one no longer relied on, a check in "How to
+verify" for every `to test` and `developer-stated` one), and the last cold read
+(Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
+Show with it the entries that are not `verified`, with their status. A cold read
+counts only when `## Spec` and `## Evidence` have not changed since it ended: after a
+later change (in a later round, or through "Other"), run it again first. While
+`## Q&A` entries are pending, or a cited evidence entry does not allow the approval,
+list them, and offer only "Keep as draft" and "Discard". The developer can ask for
+more changes through "Other": then go back to Step 6.
 
 | Option | Action |
 |--------|--------|
@@ -399,6 +467,8 @@ Tell the developer, in `discussion-language`:
   or was discarded
 - The questions that are still pending in `## Q&A`, for a draft
 - The cold read: how many runs, and what was left open, or that it did not run and why
+- The evidence: how many entries per status, and the `to test` and
+  `developer-stated` entries that Verify or Review has to check
 - What is not on the remote yet: the branches that were not pushed
 - That the root checkout is back on `develop`
 - The next step: `/ss-workflow:check-req REQ-0012` starts a `ready` request, and
