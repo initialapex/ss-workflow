@@ -64,6 +64,14 @@ workspace that was not converted.
 - Discuss with the developer in `discussion-language`; keep technical terms in English.
 - Agent-facing docs (AGENTS.md, CLAUDE.md) use `agent-doc-language`.
 - Request files (`reqs/`) use `reqs-language`; developer docs (`docs/`) use `docs-language`.
+- Write terms out in full instead of abbreviating them, in every request file, doc,
+  agent file, commit message, report, and answer to the developer: "Layer 1", not
+  "L1"; "configuration", not "cfg". Keep the abbreviations that are standard in the
+  field (API, UI, JSON, CI) and names that are spelled that way in code, commands, or
+  ids (`REQ-0012`, `E3`). When an abbreviation that is not standard has to appear,
+  because the developer, a document, or the code uses it, write the full term at its
+  first use with the abbreviation in parentheses, and keep using the full term after
+  that.
 - All work starts from a request in `reqs/`. Do not implement features or fixes that
   have no request. If the developer asks for something directly, offer to create a
   request first with `/ss-workflow:new-req`.
