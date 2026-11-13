@@ -8,6 +8,9 @@
 - README.md 為英文，但同步產生 README-zh-TW.md
 - AGENTS 相關給 AI 看的文件使用英文
 - 以上為預設，在初始化問答時，讓 developer 選擇
+- 盡量不用縮寫 (寫入 root `AGENTS.md` 的 Working agreement，不是初始化問答的選項): request 檔、docs、agent 檔、commit message、報告與回覆都寫出全名，e.g. 寫「Layer 1」不寫「L1」
+  - 可以保留: 業界通用的縮寫 (API、UI、JSON、CI)，以及程式碼、指令、編號裡本來就這樣寫的名稱 (`REQ-0012`、`E3`)
+  - 非通用的縮寫非出現不可時 (developer、文件或程式碼這樣用)，第一次出現寫全名並在括號附縮寫，之後仍以全名為主
 
 ## Workspace 架構
 
