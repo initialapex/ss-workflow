@@ -330,7 +330,8 @@ Only after the developer has checked the workspace:
 - The requests that moved: ready, done, and drafts, with their ids
 - Docs that stayed in the project repository
 - What the developer still has to push, per repository
-- That the workspace records `ss-workflow-version: 0.6.0` (or the plugin version), and
-  that the old repository has no workflow marker any more
+- That the workspace records the plugin version in `ss-workflow-version`, so no
+  migration applies to it, and that the old repository has no workflow marker any
+  more
 - Next step: open the workspace, and continue with `/ss-workflow:check-req` or
   `/ss-workflow:new-req` there

@@ -163,7 +163,7 @@ ss-workflow/
   - 需要 migration 檔的版本: 新增 / 改名 / 移除 Workflow settings 的欄位或可用的值、改變 request 檔格式、新增 / 搬動 / 移除產生的檔案或需要修改 managed 區段以外的文字、skill 改名、工作流行為有 developer 必須事先知道的改變
   - 只改 managed 區段內規則文字的版本不需要
   - 檔案內容: 「What changes」(行為差異，改之前 / 改之後，升級時先講給 developer 聽)、「Steps」(改哪個檔、改什麼、維持舊行為的值、是否需要 developer 回答、如何判斷已經做過)、「Check」
-  - 升級順序: 從 repo 記錄的版本到 plugin 版本，依版本由低到高逐一套用 migration → 重新 render managed 區段 → 寫入新的 `ss-workflow-version` → 給 developer 看 diff 後才 commit
+  - 升級順序: 從 repo 記錄的版本到 plugin 版本，依版本由低到高逐一套用 migration 的 Steps → 重新 render managed 區段 → 依版本跑每個 migration 的 Check (Check 可能檢查 managed 區段的文字，所以排在重新 render 之後；有一項失敗就停止，不寫入新版本) → 寫入新的 `ss-workflow-version` → 給 developer 看 diff 後才 commit
   - 預設值一律選「維持舊版行為」的那個；行為要不要改由 developer 決定
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
@@ -226,6 +226,8 @@ ss-workflow/
 ### 轉換 0.5.0 以下的 repo
 
 0.5.0 以下的架構是單一 repo (程式碼在 `src/`、`tests/`、`samples/`，request 在同一個 repo)。升級到 0.6.0 必須轉換，developer 拒絕時升級停止:
+
+- 轉換以目前的範本建立 workspace，記錄的是 plugin 版本；之後不再套用任何 migration (連 0.6.0 以上的也不套用)，因為它們要達成的結果轉換時已經直接建立。轉換前先把到 plugin 版本為止每個 migration 的「What changes」講給 developer 聽
 
 - 舊 repo 變成 source repo: 保留 remote、全部歷史與既有的版本 tag，不改寫歷史
 - 前提 (不符合時停止並列出清單，請 developer 先完成或放棄): 沒有 `in-progress` / `review` / merge pending 的 request、沒有 `release/*` / `hotfix/*` branch、沒有 worktree；draft (`req/` branch) 與 `ready` 的 request 會帶到 workspace
