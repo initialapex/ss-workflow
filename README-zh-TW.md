@@ -15,7 +15,7 @@
   <a href="README.md">English</a> | 繁體中文
 </p>
 
-一個 Claude Code plugin，在 gitflow 之上為你的專案建立以 request 為核心的開發流程，而且不改變專案 repo 原本的檔案架構。外面包一層 workspace repo：它放 request 與工作流的檔案，每個專案以 git submodule 加入。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
+一個 Claude Code plugin，在 gitflow 之上為你的專案建立以 request 為核心的開發流程，而且不改變專案 repository 原本的檔案架構。外面包一層 workspace repository：它放 request 與工作流的檔案，每個專案以 git submodule 加入。每個變更都從一個 request 檔開始，規格由你確認；agent 在獨立的 git worktree 裡實作，你在根目錄驗證和 review，再由 skill 依照固定的規則 merge 和 release。
 
 - 專案維持自己的檔案架構，以 submodule 加入 workspace (remote URL 或 local 路徑都可以)；一個 workspace 可以有多個專案。
 - 專案的歷史只有實作的 commit，branch 與 commit 的寫法跟該專案其他的 branch、commit 一樣。Request 編號、規格討論、request 狀態與 review 結果都留在 workspace，所以每位開發者都可以為同樣的專案各自建立自己的 workspace。
@@ -24,7 +24,7 @@
 - Agent 在各自的 git worktree 裡實作，所以多個 session 可以平行處理多個 request。
 - Verify、可選的 code review 和你的人工 review 都在根目錄的 request branch 上進行。
 - Merge 和 release 依照固定的 gitflow 規則：`--no-ff` merge、tag 和推薦的版本號。
-- 不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware、分析報告的 repo 或其他類型，用法都一樣。
+- 不相依任何一種專案形式：Visual Studio solution、Keil 專案、ESP32 firmware、分析報告的 repository 或其他類型，用法都一樣。
 - 沒有 remote 也能用，可以搭配任何 git remote，也可以搭配 GitHub 或 GitLab 的 merge request。由設定決定 agent 是自動 push、先詢問，還是完全不 push。
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
@@ -61,14 +61,14 @@
 
 ### 安裝
 
-把這個 repo 加為 plugin marketplace，再安裝 plugin。在 Claude Code session 裡執行：
+把這個 repository 加為 plugin marketplace，再安裝 plugin。在 Claude Code session 裡執行：
 
 ```text
 /plugin marketplace add <owner>/ss-workflow
 /plugin install ss-workflow@ss-workflow
 ```
 
-把 `<owner>/ss-workflow` 換成 GitHub repo；其他平台請用完整的 git URL。
+把 `<owner>/ss-workflow` 換成 GitHub repository；其他平台請用完整的 git URL。
 
 > [!TIP]
 > 想讓 workspace 的所有成員都取得這個 plugin，可以讓 `/ss-workflow:init` 把 marketplace 註冊到 workspace 的 `.claude/settings.json`。
@@ -91,7 +91,7 @@
 
 | Skill | 使用時機 | 在哪裡執行 | 做什麼 |
 |-------|----------|------------|--------|
-| `/ss-workflow:init` | 每個 workspace 一次、加入專案時，以及 plugin 更新後 | 根目錄 | 建立 workspace：git branch、`AGENTS.md` / `CLAUDE.md` 和 README，並以 URL 或 local 路徑把專案加入為 submodule。也能轉換 0.5.0 以下的 repo，或升級由舊版建立的 workspace。 |
+| `/ss-workflow:init` | 每個 workspace 一次、加入專案時，以及 plugin 更新後 | 根目錄 | 建立 workspace：git branch、`AGENTS.md` / `CLAUDE.md` 和 README，並以 URL 或 local 路徑把專案加入為 submodule。也能轉換 0.5.0 以下的 repository，或升級由舊版建立的 workspace。 |
 | `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，request branch | 建立 request branch 與 request 檔，決定它修改哪些專案，逐條 trace 既有程式碼並把每個事實連同事證記錄下來，跟你討論規格，一直寫到任何人照著實作都會一樣的 detailed design；再由一個全新的 agent 冷讀規格、對照程式碼複查事證，列出實作時必須猜測的地方。你確認後可以直接開始實作，或以 `ready` 狀態留待之後再做。 |
 | `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Design check：比對實作與規格的 detailed design，列出每一個偏離。Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
@@ -143,7 +143,7 @@ flowchart LR
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
 - Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並在每個專案用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
 - 事證，不推測。對程式碼或系統行為、問題原因的每個描述都要有你能檢查的事證，否則標明是推測、待 trace、待測試或你口述的。既有流程與 bug 的根因都要逐條 trace。規格依賴的事實還有待 trace 的，request 就不能核准；需要測試的事實要測過，或由你接受不測，Review 才能通過。
-- 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」。業界通用的縮寫（API、UI、JSON）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
+- 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」、寫「repository」不寫「repo」。業界通用的縮寫（API、UI、JSON、SHA、spec、docs）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
 
@@ -179,7 +179,7 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 
 這個工作流不需要 remote。沒有 remote 時，request 都放在本機的 branch 上，所有 branch 都在本機 merge；所有 fetch、pull、push 的步驟都會略過。
 
-workspace 與每個專案各自判斷：專案可以覆寫 workspace 的設定，例如專案的 repo 要求發 merge request，而 workspace 只在你的機器上。有 remote 時，由 root `AGENTS.md` 的 `push-policy` 設定決定 agent 會 push 什麼：
+workspace 與每個專案各自判斷：專案可以覆寫 workspace 的設定，例如專案的 repository 要求發 merge request，而 workspace 只在你的機器上。有 remote 時，由 root `AGENTS.md` 的 `push-policy` 設定決定 agent 會 push 什麼：
 
 | `push-policy` | Agent 的行為 | 適合 |
 |---------------|--------------|------|
@@ -205,8 +205,8 @@ SSDisp-workspace/
 │  └─ SSDisp/spec.md
 └─ projects/
    ├─ AGENTS.md              各專案的 toolchain 與規則
-   ├─ SSLib/                 submodule：SSLib repo，維持它自己的結構
-   └─ SSDisp/                submodule：SSDisp repo，維持它自己的結構
+   ├─ SSLib/                 submodule：SSLib repository，維持它自己的結構
+   └─ SSDisp/                submodule：SSDisp repository，維持它自己的結構
       ├─ SSDisp.sln
       ├─ SSDisp/
       └─ SSDisp.Test/
@@ -215,7 +215,7 @@ SSDisp-workspace/
 init 不會寫入專案的任何檔案。專案的測試、sample 與第三方檔案，都依它的 toolchain 放在原本的位置。
 
 > [!IMPORTANT]
-> ss-workflow 0.5.0 以下建立的 repo 把程式碼與 request 放在同一個 repo。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repo 變成專案的 repo，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構：Visual Studio 是 solution 在根目錄、各專案資料夾都在它旁邊，不再有 `src/`、`tests/`、`samples/`；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
+> ss-workflow 0.5.0 以下建立的 repository 把程式碼與 request 放在同一個 repository。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repository 變成專案的 repository，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構：Visual Studio 是 solution 在根目錄、各專案資料夾都在它旁邊，不再有 `src/`、`tests/`、`samples/`；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
 
 ## 專案形式
 
@@ -236,7 +236,7 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 
 **Release 打包 script。** plugin 也附了 `New-ReleasePackage.ps1`（Windows PowerShell 3.0 以上）。由 request 複製到專案的 `tools/`，搭配 `tools/package.psd1` 列出 release build 要打包的檔案和要出貨的平台，`package-command` 執行它。它把 release build 壓成 `dist/<name>-v<version>.zip`，有多個平台時每個平台一包 `<name>-v<version>-<platform>.zip`；有未 commit 的變更時拒絕打包；沒有 workspace 也能執行。init、加入專案、升級時都會詢問是否製作，和轉換成 `git-tag` 是分開的 request。
 
-專案不一定是程式碼。文件或分析報告的 repo 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
+專案不一定是程式碼。文件或分析報告的 repository 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
 ## 更新
 
@@ -249,14 +249,14 @@ Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版
 > [!IMPORTANT]
 > Plugin 更新不會改動 init 在你 workspace 裡產生的檔案。更新之後，請在 workspace 裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。
 
-有些版本需要的不只是新的規則文字，例如新增設定或改變 request 檔的格式。這類版本都會附一份 migration 檔 `skills/init/migrations/<version>.md`。升級時會從你 repo 記錄的版本開始，依版本順序逐一套用到已安裝的版本。每一份都會先告訴你工作流的行為有什麼不同，再提出 managed 區段以外需要的修改；沒有你的回答，不會動那些內容。
+有些版本需要的不只是新的規則文字，例如新增設定或改變 request 檔的格式。這類版本都會附一份 migration 檔 `skills/init/migrations/<version>.md`。升級時會從你 repository 記錄的版本開始，依版本順序逐一套用到已安裝的版本。每一份都會先告訴你工作流的行為有什麼不同，再提出 managed 區段以外需要的修改；沒有你的回答，不會動那些內容。
 
 ## 開發這個 plugin
 
 ```text
 .claude-plugin/
 ├─ plugin.json               plugin manifest；"version" 是唯一的版本來源
-└─ marketplace.json          讓這個 repo 同時是自己的 marketplace
+└─ marketplace.json          讓這個 repository 同時是自己的 marketplace
 skills/
 ├─ init/                     SKILL.md、references/、templates/、migrations/、scripts/
 ├─ new-req/                  SKILL.md
@@ -281,19 +281,19 @@ claude plugin validate .
 claude --plugin-dir /path/to/ss-workflow
 ```
 
-這些 skill 依賴 git 的特定行為：request branch 如何從 draft 一路帶到 merge、專案的 worktree 如何放在 workspace 的 worktree 裡並移除、關閉的 request 與它的 gitlink 如何進到 `develop`、release 如何設定 workspace `master` 的 gitlink、hotfix 如何 merge，以及舊 repo 如何轉換。這支 script 會在暫存的沙盒裡跑這些指令並檢查結果。它測的是 git，不是 agent。修改 skill 的 git 步驟後請重跑一次：
+這些 skill 依賴 git 的特定行為：request branch 如何從 draft 一路帶到 merge、專案的 worktree 如何放在 workspace 的 worktree 裡並移除、關閉的 request 與它的 gitlink 如何進到 `develop`、release 如何設定 workspace `master` 的 gitlink、hotfix 如何 merge，以及舊 repository 如何轉換。這支 script 會在暫存的沙盒裡跑這些指令並檢查結果。它測的是 git，不是 agent。修改 skill 的 git 步驟後請重跑一次：
 
 ```bash
 bash tests/git-sequences.sh
 ```
 
-`skills/init/templates/` 底下的檔案最後會出現在別的 repo 裡，plugin 更新碰不到它們。新增設定、改變 request 檔格式、搬動產生的檔案、改 skill 名稱，或改變工作流行為的版本，都需要附 migration 檔。什麼情況需要、格式怎麼寫，見 [skills/init/migrations/README.md](skills/init/migrations/README.md)。範本自上一個 release tag 之後有變更，卻沒有更新版本的 migration 檔時，這支 script 會失敗：
+`skills/init/templates/` 底下的檔案最後會出現在別的 repository 裡，plugin 更新碰不到它們。新增設定、改變 request 檔格式、搬動產生的檔案、改 skill 名稱，或改變工作流行為的版本，都需要附 migration 檔。什麼情況需要、格式怎麼寫，見 [skills/init/migrations/README.md](skills/init/migrations/README.md)。範本自上一個 release tag 之後有變更，卻沒有更新版本的 migration 檔時，這支 script 會失敗：
 
 ```bash
 bash tests/migrations.sh
 ```
 
-`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repo 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 SDK-style C# 專案並讀取 assembly 的版本；有 .NET Framework 的 MSBuild（MSBuild 4）時，用舊式專案再做一次，和 Visual Studio 2012 的 build 方式相同：
+`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repository 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 SDK-style C# 專案並讀取 assembly 的版本；有 .NET Framework 的 MSBuild（MSBuild 4）時，用舊式專案再做一次，和 Visual Studio 2012 的 build 方式相同：
 
 ```bash
 bash tests/git-version.sh

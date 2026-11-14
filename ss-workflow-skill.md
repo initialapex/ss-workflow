@@ -9,7 +9,8 @@
 - AGENTS 相關給 AI 看的文件使用英文
 - 以上為預設，在初始化問答時，讓 developer 選擇
 - 盡量不用縮寫 (寫入 root `AGENTS.md` 的 Working agreement，不是初始化問答的選項): request 檔、docs、agent 檔、commit message、報告與回覆都寫出全名，e.g. 寫「Layer 1」不寫「L1」
-  - 可以保留: 業界通用的縮寫 (API、UI、JSON、CI)，以及程式碼、指令、編號裡本來就這樣寫的名稱 (`REQ-0012`、`E3`)
+  - 可以保留: 業界通用的縮寫 (API、UI、JSON、CI、SHA，以及工作流本身的用詞 spec、docs)，以及程式碼、指令、編號裡本來就這樣寫的名稱 (`REQ-0012`、`E3`)
+  - `repo` 不算通用縮寫，一律寫 repository
   - 非通用的縮寫非出現不可時 (developer、文件或程式碼這樣用)，第一次出現寫全名並在括號附縮寫，之後仍以全名為主
 
 ## Workspace 架構
@@ -179,9 +180,9 @@ ss-workflow/
 | 模式 | 條件 | 做什麼 |
 |------|------|--------|
 | New workspace | 空目錄 (或只有暫存檔) | 建立 workspace repo；帶入的 URL / 路徑加入為專案；沒有帶入時 workspace 先是空的 |
-| Add project | 已是 workspace，帶 `--add` | 加入一個或多個專案 (第二、第三個專案也一樣) |
+| Add project | 已是 workspace，帶了專案 (URL / 路徑，或 `--add`)，沒有 `--upgrade` | workspace 版本低於 plugin 版本時先升級 (含 commit) 再加入；加入一個或多個專案 (第二、第三個專案也一樣) |
 | 在既有專案內執行 | 目錄是有程式碼、但不是 workspace 的 git repo | 提議在旁邊建立 `../<Name>-workspace`，把這個 repo 加入為專案；原 repo 不動 |
-| Upgrade | root `AGENTS.md` 有 `ss-workflow-version:` | 依「發佈方式」升級；版本低於 0.6.0 時為「轉換 0.5.0 以下的 repo」 |
+| Upgrade | root `AGENTS.md` 有 `ss-workflow-version:`，沒有帶專案，或帶了 `--upgrade` | 依「發佈方式」升級；版本低於 0.6.0 時為「轉換 0.5.0 以下的 repo」；`--upgrade` 表示只升級，同時帶的專案不加入 |
 
 - 建立 workspace repo 時建立 `master` (或 `main`，問答決定) 與 `develop`，並完成第一個 commit
 - 全新的專案 (還沒有任何 source code): developer 先建好一個空的 repo (remote 或 local)，再用 URL 或路徑加入
@@ -617,7 +618,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 發 merge-request 的情況下，專案已合併但 workspace 還沒 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow:review REQ-xxxx` 重新開啟並繼續 review
 
 - 版本 tag 的位置 (專案)
-  - 正式版 `v1.2.3`: 只在專案 main (release / hotfix / pre-1.0 sync 的 merge commit)
+  - 正式版 `v1.2.3`: 只在專案 main (release / hotfix / pre-1.0 merge 的 merge commit)
   - Alpha / Beta `v1.2.3-alpha4` / `v1.2.3-beta4`: 只在專案 develop 的最新 commit；不開 release branch、不 merge；workspace 在記錄該 commit 的 develop commit 打 `<P>/v1.2.3-beta4`。只有 `version-source` 為 `git-tag` 或 `none` 的專案可以打 (develop 上不能有改版號的 commit)
   - Release candidate `v1.2.3-rc4`: 只在 `release/v1.2.3`；workspace 不打 tag (workspace develop 記錄的是專案 develop，不是 release branch)
   - 不接受其他版本 tag 格式
@@ -649,7 +650,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - master (兩層都持續存在)
   - 專案 main: 主要是在有新版要釋出時，才會有新的 commit
   - workspace master: 任一專案 release 或 hotfix 時更新，內容 = 各專案最新 release 的組合，加上當時的 request 紀錄
-  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，再把專案 main merge 回 develop，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
+  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，再把專案 main merge 回 develop，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 merge 處理，僅在 developer 要求時執行)
 
 - develop (兩層都持續存在)
   - 主要是開發 branch，所有變動大部分都會在這邊

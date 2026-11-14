@@ -4,25 +4,25 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 
 ## 1. Compare versions
 
-- Repo version: the `ss-workflow-version:` value in root `AGENTS.md`.
+- Recorded version: the `ss-workflow-version:` value in root `AGENTS.md`.
 - Plugin version: `version` in the plugin's `.claude-plugin/plugin.json`. `SKILL.md`
   gives the full path of that file at its top.
 
 | Result | Action |
 |--------|--------|
-| Repo version = plugin version | Report "up to date", then run the health check (section 5). |
-| Repo version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
-| Repo version > plugin version | The installed plugin is older than the repo. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
+| Recorded version = plugin version | Report "up to date", then run the health check (section 5). |
+| Recorded version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
+| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
 
 An upgrade has three parts, in this order: the migrations (section 2), the managed
 blocks (section 3), and the version (section 4). Do all of them before you commit.
 
-**A repo version below `0.6.0`** is the single-repository layout, and the upgrade is
+**A recorded version below `0.6.0`** is the single-repository layout, and the upgrade is
 the conversion into a workspace. Do not run sections 2 to 4 in the old repository:
 the current templates are workspace templates, and the old repository's workflow
 files are moved or removed by the conversion anyway. Instead:
 
-1. Tell the developer the "What changes" part of every migration file from the repo
+1. Tell the developer the "What changes" part of every migration file from the repository
    version up to `0.6.0`, in version order. They describe how the workflow behaves
    now.
 2. Follow [convert-legacy.md](convert-legacy.md). The workspace is created from the
@@ -41,7 +41,7 @@ The folder `migrations/` of this skill (`SKILL.md` gives its full path) holds on
 per plugin version that needs more than new template text: `<version>.md`, for
 example `0.5.0.md`. `README.md` in that folder describes the format.
 
-1. List the files whose version is higher than the repo version, and not higher than
+1. List the files whose version is higher than the recorded version, and not higher than
    the plugin version. Compare versions as numbers, part by part (`0.10.0` is higher
    than `0.9.0`).
 2. Apply them from the lowest version to the highest, one after another. Do not skip

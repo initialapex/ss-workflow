@@ -205,7 +205,7 @@ Nothing of the workspace is pushed when the project push fails, because of the o
    say what still has to be pushed, per repository.
 3. Leave the root checkout on `develop`, with every project at its gitlink.
 
-## Pre-1.0 sync without a release branch
+## Pre-1.0 merge without a release branch
 
 Before a project's v1.0.0, the root `AGENTS.md` allows merging its develop branch
 straight into its main branch. Offer this only when the project's current version is

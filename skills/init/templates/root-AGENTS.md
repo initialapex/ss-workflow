@@ -66,9 +66,10 @@ workspace that was not converted.
 - Request files (`reqs/`) use `reqs-language`; developer docs (`docs/`) use `docs-language`.
 - Write terms out in full instead of abbreviating them, in every request file, doc,
   agent file, commit message, report, and answer to the developer: "Layer 1", not
-  "L1"; "configuration", not "cfg". Keep the abbreviations that are standard in the
-  field (API, UI, JSON, CI) and names that are spelled that way in code, commands, or
-  ids (`REQ-0012`, `E3`). When an abbreviation that is not standard has to appear,
+  "L1"; "configuration", not "cfg"; "repository", not "repo". Keep the abbreviations
+  that are standard in the field (API, UI, JSON, CI, SHA, and the words "spec" and
+  "docs", which name parts of this workflow) and names that are spelled that way in
+  code, commands, or ids (`REQ-0012`, `E3`). When an abbreviation that is not standard has to appear,
   because the developer, a document, or the code uses it, write the full term at its
   first use with the abbreviation in parentheses, and keep using the full term after
   that.
@@ -235,7 +236,7 @@ Where each kind of project tag goes (see "Versioning" for the format):
 
 | Version | Project tag on | Workspace tag on |
 |---------|----------------|------------------|
-| Final `vX.Y.Z` | The merge commit on the project's `main-branch` (release, hotfix, or pre-1.0 sync) | The merge commit on the workspace `main-branch` |
+| Final `vX.Y.Z` | The merge commit on the project's `main-branch` (release, hotfix, or pre-1.0 merge) | The merge commit on the workspace `main-branch` |
 | Alpha `vX.Y.Z-alphaR`, beta `vX.Y.Z-betaR` | The tip of the project's `develop-branch` | The commit on `develop` that records that tip as the gitlink |
 | Release candidate `vX.Y.Z-rcR` | The tip of `release/vX.Y.Z` | None |
 
