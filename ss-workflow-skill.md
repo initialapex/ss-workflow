@@ -70,8 +70,9 @@ SSDisp-workspace/
 
 `git worktree remove` 拒絕移除含 submodule 的 worktree；worktree 自己 clone 的 submodule 在移除時會遺失未 push 的 commit。所以實作用的 worktree 是兩層:
 
-- workspace worktree: `.claude/worktrees/<branch>` (request 檔與 gitlink)
-- 每個 request 的專案: `git -C <root>/src/<P> worktree add --no-track -b <branch> <wt>/src/<P> <source develop-ref>`，commit 存在 root checkout 共用的 `.git/modules/src/<P>`，worktree 移除後仍在
+- workspace worktree: `.claude/worktrees/<branch>` (request 檔與 gitlink)；request branch 從 draft 起就存在，所以不加 `-b`，只有 hotfix 與 0.8.0 以前的 `ready` request 要新建 branch
+- 每個 request 的專案: 開始時新建 branch `git -C <root>/projects/<P> worktree add --no-track -b <branch> <wt>/projects/<P> <source develop-ref>`；重建 worktree 時 branch 已存在，不加 `-b`、不改名；commit 存在 root checkout 共用的 `.git/modules/projects/<P>`，worktree 移除後仍在
+- `<develop-ref>`: workspace 有 remote 且 local `develop` 沒有自己的 commit 時是 `origin/develop`，否則是 `develop`；專案的 `<source develop-ref>` 用同樣的規則
 - request 以外的專案: `--detach` 在 gitlink 的 commit (build 可能參照相鄰的專案)；專案內的巢狀 submodule 用 `submodule update --init --recursive`
 - 移除: 先移除內層的各專案 worktree，`git -C <wt> restore projects/<P>` 補回空資料夾 (否則 workspace 視為刪除了 gitlink)，最後移除 workspace worktree；不使用 `--force`
 
@@ -264,7 +265,7 @@ ss-workflow/
   - 根目錄一次只能做一件事 (規格討論 / review / merge / release)；skill 切換根目錄的 branch 前，先確認它在 develop 且沒有未 commit 的變更 (含各專案)，完成後切回 develop 並 `git submodule update`
 
 - 檔名: `REQ-<4 位流水號>-<yyyyMMdd>-<slug>.md`，e.g. `REQ-0012-20260907-gui-button.md`
-  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`feat/REQ-0012-…`，以及 0.8.0 以前的 `req/REQ-0012-…`)
+  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`feat/REQ-0012-…`，以及 0.8.0 以前的 `req/REQ-0012-…`)，以及已開工的 hotfix branch (`hotfix/<P>-v1.0.1` 名稱沒有編號，要讀它上面的 request 檔)
 - 未完成的 request 放在 `reqs/`；完成 (`done`) 後由 `/ss-workflow:merge` 以 `git mv` 移到 `reqs/done/`
 - YAML frontmatter 為狀態的唯一來源:
 

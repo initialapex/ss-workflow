@@ -217,7 +217,7 @@ Decide the names first:
 |------|-------|
 | Workspace branch | The request branch, which exists since the draft (`<type>/REQ-<id>-<slug>`). For `type: hotfix`: a new branch `hotfix/<name>-v<version>`, with the version from the request's spec. For a `ready` request on `develop` from before ss-workflow 0.8.0: a new branch `<type>/REQ-<id>-<slug>`. |
 | Project branch | `<type>/<slug>`, for example `feat/gui-button`, the same in each project of the request, with no request id. For `type: hotfix`: `hotfix/v<version>`. None for `projects: []`. Step 1 checks that the name is free. |
-| Workspace base | Only for a new workspace branch: the workspace main branch for a hotfix (`origin/<main branch>` with a remote), `<develop-ref>` otherwise. |
+| Workspace base | Where the workspace branch starts: the workspace main branch for a hotfix (`origin/<main-branch>` with a remote), `<develop-ref>` otherwise. A new workspace branch is created from it. For the request branch that exists since the draft, it is only used in diffs (`<workspace base>...HEAD`), which start where the branch left `develop`. |
 | Project base | `<project develop-ref>`, the latest develop branch of the project (not the gitlink). For `type: hotfix`: the project's main branch (`origin/<main-branch>` with a remote). |
 | Worktree path | `<root checkout>/.claude/worktrees/<workspace branch with "/" replaced by "-">`, with each project at its `path` inside it |
 
@@ -337,7 +337,10 @@ request is an anomaly: see [references/anomalies.md](references/anomalies.md).
 2. If a remote exists, run `git pull --ff-only` on the workspace branch, and on each
    project branch of the request whose project has a remote.
 3. Check that each project of the request has its worktree at `<path>`, on its
-   project branch. Create a missing one as in Step 5.4.
+   project branch. Create a missing one as "Recreate the worktrees" in Step 5
+   describes: its project branch exists already, so do not create a branch, and do
+   not rename it. The names of the table at the top of Step 5 (`<workspace base>`,
+   `<project base>`) hold in this step too, from the request's `type`.
 4. Act on the status:
 
 | Status | Action |
