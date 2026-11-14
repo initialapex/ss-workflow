@@ -182,13 +182,25 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
     develop-ref>` shows how far `develop`'s gitlink is behind. Offer a commit
     `chore(workspace): update <name> to <short sha>` on `develop`; the developer
     decides.
+- `<develop-ref>` stands for the latest `develop`: `origin/develop` when the workspace
+  has a remote and the local `develop` has no commits of its own, `develop`
+  otherwise. `<project develop-ref>` is the same for a project, with its
+  `develop-branch` (`origin/<develop-branch>` when the submodule has no local branch
+  of that name).
 - Worktrees of a request:
-  - The workspace worktree: `git worktree add --no-track -b <branch>
-    .claude/worktrees/<branch with "/" replaced by "-"> <develop-ref>`.
-  - Each project of the request, inside it:
-    `git -C <root>/<path> worktree add --no-track -b <project branch>
-    <worktree>/<path> <project develop-ref>`. Its commits are stored in the root
-    checkout's `.git/modules/<path>`, so they survive the removal of the worktree.
+  - The workspace worktree, on the request branch, which exists since the draft:
+    `git worktree add .claude/worktrees/<branch with "/" replaced by "-"> <branch>`.
+    Only a branch that does not exist yet (a hotfix, or a `ready` request from before
+    ss-workflow 0.8.0) is created with it: `git worktree add --no-track -b <branch>
+    <worktree> <base>`, where the base is the workspace main branch for a hotfix,
+    and `<develop-ref>` otherwise.
+  - Each project of the request, inside it, on a new project branch when the request
+    starts: `git -C <root>/<path> worktree add --no-track -b <project branch>
+    <worktree>/<path> <project develop-ref>` (the project's main branch for a
+    hotfix). When the project branch exists already (the worktree is recreated),
+    without `-b`: `git -C <root>/<path> worktree add <worktree>/<path> <project
+    branch>`. Its commits are stored in the root checkout's `.git/modules/<path>`, so
+    they survive the removal of the worktree.
   - Every other project: `git -C <root>/<path> worktree add --detach
     <worktree>/<path> <gitlink>`, because a build may refer to a neighboring project.
     Nested submodules of a project: `git -C <worktree>/<path> submodule update --init

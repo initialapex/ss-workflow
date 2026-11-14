@@ -76,7 +76,7 @@ Input: `$ARGUMENTS`
 
 | `$ARGUMENTS` | Action |
 |--------------|--------|
-| A `REQ-xxxx` id | Find its request branch (a local or remote branch whose name contains `REQ-xxxx-`), or a `req/REQ-xxxx-…` branch from before ss-workflow 0.8.0. Read the status in its request file. `draft`: check it out, pull it, and resume at Step 5. `ready`: say so, and ask what the developer wants to change; to change it, check out the branch, set `status: draft`, and continue at Step 5, so that it is approved again. Any later status: the spec is approved and the work has started; point to `/ss-workflow:check-req` (`in-progress`) or `/ss-workflow:review` (`review`). A `ready` request in `reqs/` on `develop` without a branch (from before 0.8.0) is changed on a new request branch with the same id. |
+| A `REQ-xxxx` id | Find its request branch (a local or remote branch whose name contains `REQ-xxxx-`), the `hotfix/<name>-v<version>` branch whose file in `reqs/` has that id (a started hotfix), or a `req/REQ-xxxx-…` branch from before ss-workflow 0.8.0. Read the status in its request file. `draft`: check it out, pull it, and resume at Step 5. `ready`: say so, and ask what the developer wants to change; to change it, check out the branch, set `status: draft`, and continue at Step 5, so that it is approved again. Any later status: the spec is approved and the work has started; point to `/ss-workflow:check-req` (`in-progress`) or `/ss-workflow:review` (`review`). A `ready` request in `reqs/` on `develop` without a branch (from before 0.8.0) is changed on a new request branch with the same id. |
 | A path to a `.md` / text file | Read it. Its full content becomes `## Original`, verbatim. |
 | Free text | That text becomes `## Original`, verbatim. |
 | Empty | List the open drafts: the request branches, local and remote, whose request file says `draft` (and `req/*` branches from before 0.8.0), each with its title. Ask whether to continue one of them or to create a new one. For a new one, ask the developer to describe what they need. Their answer becomes `## Original`. |
@@ -88,7 +88,8 @@ Then check the following:
   resulting requests one after another: finish this skill for the first one, then
   start again for the next one with its part of the original text.
 - **Duplicates**: compare with the titles and specs of the requests on the request
-  branches (any status), the requests in `reqs/` on `develop` from before 0.8.0, and
+  branches (any status) and on the `hotfix/<name>-v<version>` branches of started
+  hotfixes, the requests in `reqs/` on `develop` from before 0.8.0, and
   the titles in `reqs/done/`. If one overlaps, show it and ask whether to extend that
   request (only if it is still a draft, or `ready` and not started), create a
   follow-up, or continue.
@@ -98,7 +99,11 @@ Then check the following:
 1. **id**: the highest id in use, plus 1. Use `REQ-0001` when none is in use. An id is
    in use when:
    - a file in `reqs/` or `reqs/done/` on `develop` has it, or
-   - a branch name contains it: `git branch -a --list "*REQ-*"`.
+   - a branch name contains it: `git branch -a --list "*REQ-*"`, or
+   - a started hotfix carries it: the branch `hotfix/<name>-v<version>` has no id in
+     its name, so read the request file on each `hotfix/*` branch whose name has no
+     `REQ-` (`git branch -a --list "hotfix/*"`, then `git ls-tree --name-only
+     <branch> reqs/`).
 2. **type**: infer it from the content (`feat`, `fix`, `docs`, `refactor`, `perf`,
    `test`, `chore`). Use `hotfix` only when the problem affects a released version and
    cannot wait for the next release. Confirm `hotfix` with the developer.
