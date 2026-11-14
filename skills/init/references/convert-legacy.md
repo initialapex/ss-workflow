@@ -12,7 +12,7 @@ guide converts the old repository:
   repository as its first project.
 
 Run it from the root checkout of the old repository, when `references/upgrade.md`
-finds a repo version below `0.6.0`. It works for every older version: the old
+finds a recorded version below `0.6.0`. It works for every older version: the old
 settings are read where they exist, and the questionnaire asks for the rest.
 
 The old layout cannot be kept with this plugin version. If the developer declines the
@@ -256,7 +256,7 @@ Already done when: `develop` has no `reqs/` folder and no ss-workflow `AGENTS.md
      Then build `<name>` in the workspace with its `build-command`, which section 3
      left to this point.
 4. Copy the docs that move, each to its new path from the table of section 4:
-   `git -C <old repo> show <base>:<old path> > <new path>` in the workspace (create
+   `git -C <old repository> show <base>:<old path> > <new path>` in the workspace (create
    the folder first). Then commit `docs: move the docs from <name>`, with the table
    of old and new paths in the body. Fix the links between the moved files, and the
    links to them in the README files.
@@ -268,7 +268,7 @@ Already done when: the workspace folder is a git repository with `projects/<name
 
 In the workspace, on `develop`:
 
-1. Copy the request files of `<base>`: `git -C <old repo> archive <base> reqs | tar -x`.
+1. Copy the request files of `<base>`: `git -C <old repository> archive <base> reqs | tar -x`.
    Then restore the workspace's own `reqs/AGENTS.md` and `reqs/CLAUDE.md` (the copy
    overwrote them).
 2. The files in `reqs/done/` stay byte for byte as they are.
@@ -286,7 +286,7 @@ In the workspace, on `develop`:
    - `git checkout -b <type>/REQ-<id>-<slug> develop` in the workspace, with the
      `type` of its request file: drafts live on their request branch now.
    - Write its request file from the old branch
-     (`git -C <old repo> show req/REQ-<id>-<slug>:reqs/<file>`), with
+     (`git -C <old repository> show req/REQ-<id>-<slug>:reqs/<file>`), with
      `projects: [<name>]` added after `type:`, and `project-branch:` after `branch:`.
      Nothing else changes.
    - Commit `docs(reqs): move draft REQ-<id> from <name>` with `Refs: REQ-<id>`, push

@@ -200,9 +200,9 @@ Your original text is kept unchanged in its `## Original` section.
   no fact that its spec relies on is still to trace, and the Review passes only when
   the facts that needed a test were tested, or you accepted them untested.
 - Terms are written out in full. Request files, docs, commit messages, and answers say
-  "Layer 1", not "L1". Standard abbreviations (API, UI, JSON) and names from the code
-  or ids (`REQ-0012`) stay as they are; any other abbreviation is spelled out at its
-  first use.
+  "Layer 1", not "L1", and "repository", not "repo". Standard abbreviations (API, UI,
+  JSON, SHA, spec, docs) and names from the code or ids (`REQ-0012`) stay as they are;
+  any other abbreviation is spelled out at its first use.
 - Results are reported as they are. Every check is recorded as `passed`, `failed`,
   `did not run`, or `not configured`, and the implementation summary lists what is not
   done. A check that did not run is never recorded as passed.

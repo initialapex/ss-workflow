@@ -133,7 +133,7 @@ implementation is not finished.
 | `$ARGUMENTS` is a workspace branch name | That branch |
 | `$ARGUMENTS` names a project's `release/v…` branch, or the root checkout's project is on one | That release |
 | The root checkout is on a request or `hotfix/*` branch | That branch |
-| The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 sync" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
+| The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 merge without a release branch" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
 | The root checkout is on a request branch whose file says `draft` (a spec discussion), on a `req/*` branch from before ss-workflow 0.8.0, or on the main branch | Explain what the root checkout is busy with, and stop. |
 
 6. If the root checkout is on another branch than the target and than `develop`, it is
