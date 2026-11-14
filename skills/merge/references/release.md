@@ -181,13 +181,13 @@ Nothing of the workspace is pushed when the project push fails, because of the o
   from `<main-branch>` into `<develop-branch>`, and undo the local back-merge and the
   workspace's commits of this run. Continue the workspace after that merge request is
   merged, from "Merge the workspace".
-- **The workspace** refused: delete the local workspace tag, undo the unpublished
-  merge commit, and with a remote platform open a merge request from `develop` into
-  the main branch; without one, stop and say what has to be merged on the remote.
-  After a remote merge, the gitlinks have to be set on the main branch as in step 2
-  of "Merge the workspace": a merge request cannot do that, so the next run of this
-  skill adds a commit `chore(release): point <main branch> to the released projects`
-  on a short-lived branch and merges it the same way.
+- **The workspace** refused: the project is already published. Delete the local
+  workspace tag, and undo the workspace's commits of this run, as "Before the first
+  tag: note the starting point" in package.md says. The workspace has no merge
+  request path: its main branch is always merged locally, because its gitlinks are
+  set with `update-index`. Stop, and say which workspace branches refused the push,
+  and that someone who may push to them has to allow it. The next run of this skill
+  continues with "Merge the workspace".
 
 ## Finish
 

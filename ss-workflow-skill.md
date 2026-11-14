@@ -590,6 +590,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 各專案依自己的 `remote-platform` / `merge-method` / `push-policy` (沒有覆寫時用 workspace 的)
   - 發 merge-request 需要 branch 已在 remote 上；不能 push 時做完 Prepare 就停止，告知 developer 要 push 哪個 branch
   - remote 拒絕 push 到受保護的 develop / master 時不繞過: 還原尚未發佈的 local merge commit，有平台改發 merge-request，沒有平台就停止並告知 developer 需要在 remote 上 merge 什麼 (request 為 merge pending)
+  - 例外: release 與 hotfix 的 workspace 一律 local merge (不論 `merge-method`)，因為 workspace master / develop 的 gitlink 要在 merge commit 內用 `update-index` 設定，merge-request 做不到；workspace 被拒時刪掉本次的 workspace tag 與 commit 並停止，告知要由有權限的人放行，下一次執行從 workspace 的 merge 接續
   - 刪除 remote branch 只在允許 push 時進行，否則在回報中列出
   - draft 與 `ready` 的 request 不由此 skill 處理 (規格討論或實作尚未完成)
   - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
@@ -599,7 +600,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 根目錄有未 commit 的變更 (含各專案)，或正忙著別的事 (在 draft 的 request branch 或其他 request branch 上) 時停止
   - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
   - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow:merge` 收尾 (刪除 branch)
-  - 放棄 request: 透過一個短暫的 `drop/REQ-<id>` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
+  - 放棄 request: 已核准的 request (`ready`、`in-progress`、`review`) 都可以放棄，是「只處理 `review`」的例外；`in-progress` 的 worktree 先確認沒有未 commit 的變更再移除；透過一個短暫的 `drop/REQ-<id>` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
 
 - request
   - 所有 reqs 都在 develop 開分支出去，完成後 merge 回 develop (兩層都是)
@@ -636,6 +637,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - hotfix (各專案)
   - 專案: `hotfix/v1.0.1` 從專案 main 開，完成後 merge 到專案 main，打 `v1.0.1`，從 tag build 並打包，再把專案 main merge 回專案 develop (有開著的 release branch 時詢問是否也把 main merge 進去)；只有正式版
   - workspace: `hotfix/<P>-v1.0.1` 從 workspace master 開，完成後 merge 回 workspace master (gitlink = 專案 main 的 hotfix merge commit，打 `<P>/v1.0.1`) 與 workspace develop (gitlink = 專案 develop)
+    - merge 回 workspace develop 時，**其他**專案的 gitlink 要保留 develop 原本的值: hotfix branch 從 workspace master 開，帶的是各專案 main 的 gitlink；不處理的話，develop 自 release 後沒動過的專案會被靜默改回 main 的舊 commit，動過的則出現 submodule 衝突
   - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 開始)，Verify / Review / merge 一樣在根目錄
   - merge 回專案 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
   - version-source 為 `git-tag` 或 `none` 時不 commit 版號，tag 就是版本
