@@ -136,9 +136,9 @@ merged back into its develop branch (locally at least), and the project tag exis
    The project's gitlink on the main branch is now the hotfix release; the other
    projects keep their releases. Check it: `git rev-parse <main branch>:<path>` equals
    `git -C <path> rev-parse v<version>^{commit}`.
-3. `develop`. Do not let git commit this merge by itself: the gitlink has to point to
-   the project's develop branch, and an old copy of the request file (from before
-   0.8.0) has to go, in the same commit:
+3. `develop`. Do not let git commit this merge by itself: every gitlink has to be set,
+   and an old copy of the request file (from before 0.8.0) has to go, in the same
+   commit:
 
    ```bash
    git checkout develop
@@ -146,13 +146,23 @@ merged back into its develop branch (locally at least), and the project tag exis
    git merge --no-ff --no-commit hotfix/<name>-v<version>
    git rm reqs/<file>                      # only if develop has an old copy that says "ready"
    git update-index --cacheinfo 160000,<sha of the project's local develop branch>,<path>
+   # for every other project in projects, keep the gitlink that develop had before the merge:
+   git update-index --cacheinfo 160000,<sha from git rev-parse HEAD:<other path>>,<other path>
    git commit -m "Merge hotfix/<name>-v<version> into develop" -m "Hotfix <name> v<version>" -m "Refs: REQ-0012"
    git submodule update
    ```
 
+   The other projects need the second `update-index`: the hotfix branch starts from
+   the workspace main branch, whose gitlinks are the projects' main branches. Without
+   it, git takes the main branch's gitlink for every project that `develop` did not
+   move since that release, which sets it back to an older commit without a
+   conflict, and reports a submodule conflict for every project that `develop`
+   moved. During the merge, `HEAD` is still `develop`'s commit from before the merge.
+
    After this commit, `develop` has the request only in `reqs/done/`, with
-   `status: done`, and the project's gitlink is its develop branch, which contains the
-   hotfix.
+   `status: done`, the project's gitlink is its develop branch, which contains the
+   hotfix, and every other gitlink is the same as before the merge. Check it:
+   `git diff HEAD^1 HEAD --submodule=short` lists the hotfix project only.
 
    A conflict in a workspace file, usually a doc that `develop` changed since the
    release, is resolved before the commit: keep `develop`'s text and add the hotfix's
@@ -172,11 +182,27 @@ merged back into its develop branch (locally at least), and the project tag exis
 The platform release is a final release, with the package as its asset.
 
 If the remote refuses a push because a branch is protected, do not work around it.
-Undo the run in both repositories, as "Before the first tag" in package.md says, and
-continue with "With a merge request" for that repository, or stop without a remote
-platform and say what has to be merged on the remote. A refused project develop
-branch alone is handled as in the release guide: push the main branch and the tag,
-and open a merge request from `<main-branch>` into `<develop-branch>`.
+Nothing of the workspace is pushed when the project push fails, because of the order.
+
+- **The project's main branch** refused: with a remote platform, ask whether to
+  continue with "With a merge request" of "Merge the project". Then undo the run in
+  both repositories, as "Before the first tag: note the starting point" in package.md
+  says, so that the tag is created on the commit that the remote produces. Without a
+  platform, stop, and tell the developer what has to be pushed by someone who is
+  allowed to.
+- **The project's develop branch** refused: push the main branch and the tag alone
+  (`git -C <path> push --atomic origin <main-branch> v<version>`), open a merge request
+  from `<main-branch>` into `<develop-branch>`, and undo the local back-merge and the
+  workspace's commits of this run. Continue the workspace after that merge request is
+  merged, from "Merge the workspace".
+- **The workspace** refused: the project is already published. Delete the local
+  workspace tag, and undo the workspace's commits of this run (the close commit and
+  both merge commits), as "Before the first tag: note the starting point" in
+  package.md says. The workspace has no merge request path: its main branch and
+  `develop` are always merged locally, because their gitlinks are set with
+  `update-index`. Stop, and say which workspace branches refused the push, and that
+  someone who may push to them has to allow it. The next run of this skill continues
+  with "Merge the workspace".
 
 ## Finish
 
