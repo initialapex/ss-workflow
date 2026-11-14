@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.12.0" src="https://img.shields.io/badge/version-0.12.0-blue">
+  <img alt="Version 0.12.1" src="https://img.shields.io/badge/version-0.12.1-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.12.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.12.1，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -143,6 +143,7 @@ flowchart LR
 - Review 期間你可以手動修改程式碼。`/ss-workflow:review` 會列出所有未 commit 的變更（包含新增的檔案），問你每一項是什麼：屬於這個 request（commit）、產生的檔案（加入 `.gitignore`）或不要的（捨棄）。Verify 只有在乾淨的工作目錄上跑才算數。
 - Code review 是可選的。`/ss-workflow:review` 在 Verify 通過後會問你要不要跑，並在每個專案用 Claude Code 的 `/code-review` 只檢查這個 request 的變更 (`origin/develop...<request branch>`)。同一次 review 期間之後也可以再要求。結果記錄在 request 的 `## Notes`。
 - 事證，不推測。對程式碼或系統行為、問題原因的每個描述都要有你能檢查的事證，否則標明是推測、待 trace、待測試或你口述的。既有流程與 bug 的根因都要逐條 trace。規格依賴的事實還有待 trace 的，request 就不能核准；需要測試的事實要測過，或由你接受不測，Review 才能通過。
+- 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」。業界通用的縮寫（API、UI、JSON）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
 
