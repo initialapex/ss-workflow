@@ -130,5 +130,5 @@ The root checkout must be on `develop` and clean.
 
 If the project has a TODO list, an issue export, or a backlog file, ask whether to turn
 those items into requests. Do not create request files during init: requests are
-created with `/ss-workflow:new-req`, one at a time, each on its own `req/` branch. Give
+created with `/ss-workflow:new-req`, one at a time, each on its own request branch. Give
 the developer the list of items you found, so they can start with the first one.
