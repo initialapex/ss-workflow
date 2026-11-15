@@ -48,7 +48,9 @@ anything.
    (`docs/<name>/`, at least `spec.md`). Read `docs/overview.md` too.
 3. For each project, run `setup-command` if the worktree needs it. Then try
    `build-command` once before you change anything, to know the baseline. If the code
-   does not compile before your changes, tell the developer before you continue.
+   does not compile before your changes, tell the developer, and ask whether to
+   continue on that baseline or to stop. Record the answer in `## Q&A` (stage
+   `implementation`).
 4. If `## Spec` has no "Architecture" part, or no "Detailed design" part (a request
    approved before ss-workflow 0.11.0), stop. Propose the missing part as "Spec" in
    `reqs/AGENTS.md` describes, from the code (if that file has no "Spec" section, read
@@ -74,10 +76,12 @@ anything.
 
 ## Step 2: Implement
 
-- When you resume a request here, do Step 1.5 first: the code may have changed since
-  the last session.
+- When you resume a request here, do Step 1.1 to 1.3 first (read the request and the
+  docs, and run `setup-command` in a worktree that was recreated; the baseline build
+  is not needed again), then Step 1.5: the code may have changed since the last
+  session.
 - When you resume a request here and its spec has no "Detailed design" (a request
-  started before ss-workflow 0.11.0), do Step 1.4 first. Describe the code that the
+  approved before ss-workflow 0.11.0), do Step 1.4 first. Describe the code that the
   request has already changed as it is, and settle the rest; the developer confirms
   both.
 - Work through the acceptance criteria. Stay inside the request's scope. If you find
@@ -154,8 +158,13 @@ anything.
    its main branch), merge it into the project branch
    (`git merge origin/<develop-branch>`, or `git merge <develop-branch>` without a
    remote), resolve the conflicts, and try the build again. Do the same for the
-   workspace branch with `develop` (for a hotfix: the workspace main branch). Do not
-   rebase: the branches may be pushed.
+   workspace branch with `develop` (for a hotfix: the workspace main branch). A
+   gitlink conflict there is resolved with the project branch's tip (`git
+   update-index --cacheinfo 160000,<sha>,<path>`) for a project of the request; for
+   every other project, the merge takes `develop`'s gitlink. Then put each other
+   project's worktree at its new gitlink (`git -C <path> checkout --detach <sha from
+   git rev-parse HEAD:<path>>`), so that the workspace worktree is clean again. Do
+   not rebase: the branches may be pushed.
 3. Read your own diff in each project (`git -C <path> diff <project base>...HEAD`) for
    leftover debug code, unrelated changes, and missing files. Because nothing was
    run, also read it once more for logic errors, as a reviewer would. Read the
@@ -182,7 +191,7 @@ a new request.
    - Not in the detailed design: <mechanical consequences of listed changes, per project and file; or "none">
    - Evidence: re-checked <ids> at <project>@<sha>; added <ids>; changed <ids, with the new status>; left for Verify and Review: <the `to test` and `developer-stated` ids>; or "not applicable (no ## Evidence)"
    - Ran in the worktree: <each command that ran, with its project and `passed` or `failed (<reason>)`; "nothing" if none ran>
-   - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `could not run (<reason>)`>
+   - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `did not run (<reason>)`>
    - Not done: <acceptance criteria or parts of the spec that are not implemented, with the reason; or "none">
    - Verify: <commands, test projects, and scripts to run in the root checkout, per project>
    - Review by hand: <what the developer needs to look at or try, and how to start it>

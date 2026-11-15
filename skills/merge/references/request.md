@@ -41,8 +41,9 @@ workspace".
 4. **Up to date**, in each project that is not merged yet: if its `develop-branch` has
    commits that the project branch does not have (`git -C <path> log
    HEAD..origin/<develop-branch> --oneline`, or the local branch without a remote),
-   merge it into the project branch, and resolve the conflicts there. Do the same for
-   the workspace branch with `develop`. A gitlink conflict in the workspace is
+   merge it into the project branch (`-m "Merge <develop-branch> into <project
+   branch>"`), and resolve the conflicts there. Do the same for the workspace branch
+   with `develop` (`-m "Merge develop into <branch>"`). A gitlink conflict in the workspace is
    resolved with the project branch's tip (`git update-index --cacheinfo
    160000,<sha>,<path>`). A conflict in a workspace file (two requests changed the
    same spec in `docs/`, or the same section of an agent file) is resolved like a
@@ -53,8 +54,8 @@ workspace".
    request that depends on it. They must pass. If they fail, stop: tell the developer,
    and point to `/ss-workflow:review`. The root checkout stays on the request branches
    for that. Record the run in `## Notes` as `### Verify before merge (yyyy-MM-dd)`,
-   one block per project, one line per command, with `passed`, `failed (<reason>)`, or
-   `not configured`. If step 4 merged nothing into the projects, do not run them, and
+   one block per project, one line per command, with `passed`, `failed (<reason>)`,
+   `did not run (<reason>)`, or `not configured`. If step 4 merged nothing into the projects, do not run them, and
    do not record a result that you did not produce.
 6. Push the updated project branches, then the workspace branch.
 

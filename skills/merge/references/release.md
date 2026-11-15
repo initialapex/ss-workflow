@@ -44,7 +44,11 @@ candidate.
    repository. If one exists, stop and report it.
 5. Run the project's `build-command` and `test-command`, plus `verify-command` if it is
    set, in its folder. They must pass. A command that is empty is skipped: say so in
-   the summary of the next step.
+   the summary of the next step. If one fails, put the project back at its gitlink
+   (`git submodule update <path>`) and stop: a small fix goes onto the release branch
+   (then `/ss-workflow:release <name>` for the next release candidate), a larger one
+   through a request into the develop branch, which the release branch then takes in
+   (Step B2 of the release skill).
 6. Show the developer what will be released: the project and the version, the release
    candidates of this version (`git -C <path> tag -l "v<version>-rc*"`), the number
    of project commits (`git -C <path> log <main-branch>..HEAD --oneline`), the
@@ -173,9 +177,9 @@ Nothing of the workspace is pushed when the project push fails, because of the o
 
 - **The project's main branch** refused: with a remote platform, ask whether to
   continue with "With a merge request". Then undo the run in both repositories, as
-  "Before the first tag" in package.md says, so that the tag is created on the commit
-  that the remote produces. Without a platform, stop, and tell the developer what has
-  to be pushed by someone who is allowed to.
+  "Before the first tag: note the starting point" in package.md says, so that the
+  tag is created on the commit that the remote produces. Without a platform, stop,
+  and tell the developer what has to be pushed by someone who is allowed to.
 - **The project's develop branch** refused: push the main branch and the tag alone
   (`git -C <path> push --atomic origin <main-branch> v<version>`), open a merge request
   from `<main-branch>` into `<develop-branch>`, and undo the local back-merge and the
@@ -224,13 +228,15 @@ below `1.0.0` and the developer asks for it. The current version is the value in
    ```bash
    git -C <path> checkout <main-branch>
    git -C <path> pull --ff-only                      # with a remote
-   git -C <path> merge --no-ff <develop-branch> -m "Merge <develop-branch> into <main-branch>"
+   git -C <path> merge --no-ff <develop-branch> -m "Merge <develop-branch> into <main-branch>" -m "Release v<version>"
    git -C <path> tag -a v<version> -m "Release v<version>"     # only if the developer wants the tag
    ```
 
 4. With a tag: "Build the tagged version" and "Make the package" in package.md.
 5. Merge the main branch back: `git -C <path> checkout <develop-branch>`, then `git -C
-   <path> merge --no-ff <main-branch> -m "Merge <main-branch> into <develop-branch>"`.
+   <path> merge --no-ff <main-branch> -m "Merge <main-branch> into <develop-branch>"
+   -m "Release v<version>"` (without a tag: `-m "Pre-1.0 merge"` as the body in both
+   merges).
 6. The workspace follows as in "Merge the workspace", with the workspace tag
    `<name>/v<version>` only if the project got a tag. Then "Publish", with the
    project's `<main-branch>`, `<develop-branch>`, and the tag if there is one.

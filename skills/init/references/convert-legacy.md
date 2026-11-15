@@ -295,7 +295,7 @@ In the workspace, on `develop`:
    and the draft branches. New requests continue after the highest one.
 
 Already done when: the workspace's `develop` has the files of `<base>`'s `reqs/`, and
-a `req/` branch exists for each old draft.
+a request branch `<type>/REQ-<id>-<slug>` exists in the workspace for each old draft.
 
 ## 7. The workspace main branch and the version tag
 
@@ -307,6 +307,11 @@ a `req/` branch exists for each old draft.
   asks first.
 
 Already done when: the tag exists.
+
+Then, with the workspace's root checkout on `develop` and its pushes done, start the
+requests of Step 9b of `SKILL.md` for what the developer chose in Round 3 (the
+conversion to `git-tag`, the package script), one after another. Already done when
+each of them has a request branch.
 
 ## 8. Clean up the old repository
 

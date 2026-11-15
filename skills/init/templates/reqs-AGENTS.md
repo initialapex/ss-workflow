@@ -59,7 +59,7 @@ created: 2026-09-07
 
 ## Notes
 
-<!-- Assumptions, cold read, implementation summary, behavior changes, verify results, design check, and review feedback, each with a date. -->
+<!-- Assumptions, cold read, implementation summary, behavior changes, verify results, design check, code review, and review feedback, each with a date. -->
 ```
 
 | Field | Values |
@@ -116,7 +116,7 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes that a developer or a user sees or uses: behavior, UI, commands and their options, file formats, the public API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. |
+| Scope | The concrete changes that a developer or a user sees or uses: behavior, UI, commands and their options, file formats, the public API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. For `type: hotfix`, the first line is `Hotfix: <name> v<released version> → v<hotfix version>`. |
 | Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Never left out. |
 | Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the member, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
@@ -160,7 +160,7 @@ usually works is not evidence.
 
 | Kind | How it is written |
 |------|-------------------|
-| Code | `<project>@<short sha>:<path>:<line>`, or a range `:<from>-<to>`, with the code lines that the statement stands on, quoted. The commit is the one that was read: in a spec discussion the project's `origin/<develop-branch>`, during the implementation the project branch. A workspace file is `workspace@<short sha>:<path>:<line>`. |
+| Code | `<project>@<short sha>:<path>:<line>`, or a range `:<from>-<to>`, with the code lines that the statement stands on, quoted. The commit is the one that was read: in a spec discussion the project's `<project develop-ref>` (see "Workspace and projects" in the root `AGENTS.md`), during the implementation the project branch. A workspace file is `workspace@<short sha>:<path>:<line>`. |
 | Command output | The command, where it ran (project and commit), and the lines of its output that matter, quoted |
 | Log or measurement | Its source (file, device, tool), when it was taken, and the values with their units |
 | Test result | The project, the test name, the commit, and `passed` or `failed`, from a run whose output was seen |
@@ -312,8 +312,10 @@ Decision: "Scope" lists the menu entry only. The toolbar is in "Out of scope".
 summary, the Verify result, the design check, the code review, and the Review.
 
 - Every result lists each check with exactly one of these: `passed`, `failed` (with
-  the reason), `did not run` (with the reason), or `not configured`. A check that did
-  not run is never written as passed. A part of the spec that is not implemented is
+  the reason), `did not run` (with the reason), `not configured`, or `not applicable`
+  (with the reason: the check does not exist for this request, for example the build
+  of a request that changes workspace files only). A check that did not run is never
+  written as passed. A part of the spec that is not implemented is
   listed as not done.
 - Changes to workspace files (docs, READMEs, agent files) are not built, tested, or
   code-reviewed. The developer reads each of them in the Review, and the Review
@@ -341,10 +343,10 @@ summary, the Verify result, the design check, the code review, and the Review.
 | Status | Meaning | Where the work happens | The file with this status is on | Set by |
 |--------|---------|------------------------|---------------------------------|--------|
 | `draft` | The spec is under discussion | Root checkout, on the request branch | The workspace request branch | `/ss-workflow:new-req` |
-| `ready` | The developer approved the spec, and chose to start it later | (nothing) | The workspace request branch | `/ss-workflow:new-req` |
-| `in-progress` | Started; being implemented | A worktree of the workspace with a worktree of each project inside, on the request branches | The workspace request branch | `/ss-workflow:check-req` |
-| `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | The workspace request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it |
-| `done` | Closed; the file is in `reqs/done/` | Root checkout | The workspace request branch, as its last commit before the merge | `/ss-workflow:merge` |
+| `ready` | The developer approved the spec, and chose to start it later | (nothing) | The workspace request branch | `/ss-workflow:new-req`; `/ss-workflow:check-req` when an `in-progress` request goes back to wait |
+| `in-progress` | Started; being implemented | A worktree of the workspace with a worktree of each project inside, on the request branches | The workspace request branch | `/ss-workflow:check-req`; `/ss-workflow:review` when it sends the request back for rework |
+| `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | The workspace request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it, and sets it again when it reopens a request that was `done` |
+| `done` | Closed; the file is in `reqs/done/` | Root checkout | The workspace request branch, in the close commit of the merge (or on a `drop/REQ-<id>` branch for a dropped request) | `/ss-workflow:merge` |
 
 Terms:
 

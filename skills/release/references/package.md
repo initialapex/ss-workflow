@@ -28,8 +28,11 @@ Undo only with the developer's agreement, and say what it removes.
 1. Check out the tag in the project: `git -C <path> checkout --detach v<version>`.
    `git -C <path> status --porcelain` must be empty.
 2. With `version-source: git-tag`, check that the build sees the tag: `git -C <path>
-   describe --tags --exact-match HEAD` prints `v<version>` (another tag on the same
-   commit is a problem: report it).
+   tag --points-at HEAD "v*"` lists `v<version>`, and no other version tag on this
+   commit is higher. A lower one is expected when a release candidate sits on the
+   commit of an earlier prerelease ("Where each kind goes" in the release skill's
+   `references/version.md`); the version generator takes the highest. A higher one
+   is a problem: report it.
 3. Run the project's `setup-command` if it is set, then its `build-command`, in its
    folder. If `build-command` is empty, say that the build is not configured, and ask
    the developer to build this checkout themselves and to say when it is done.

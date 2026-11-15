@@ -17,7 +17,8 @@ Input: `$ARGUMENTS`
 
 ## Ground rules
 
-- Read the root `AGENTS.md` ("Workflow settings", "Working agreement") and
+- Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
+  projects", "Branching model", "Remote and pushing", "Versioning") and
   `reqs/AGENTS.md` first. `reqs/AGENTS.md` is the source of truth for the file name,
   the frontmatter, the parts of the spec, and the lifecycle. If it differs from this
   skill, follow it. If it has no "Spec" section (a workspace that is not upgraded to
@@ -35,15 +36,17 @@ Input: `$ARGUMENTS`
   the variables. Never present an `inferred`, `to trace`, `to test`, or
   `developer-stated` statement to the developer as a fact: say which it is.
 - This skill runs in the root checkout of the workspace, not in a worktree.
-- Until the approval, the request branch changes only its own request file. Nothing
+- Until the approval, the request branch changes only its own request file, apart
+  from the deletion of a source file that the developer agreed to (Step 4.3). Nothing
   is committed in the project repositories.
 - One request per request branch.
 - Never edit the `## Original` section after it is written.
 - A request is approved only after the developer explicitly approves the spec.
-- Commit the request file three times at most: when the draft is created (this
-  reserves the id), when the developer pauses the draft, and when the developer
-  approves it. Between those, the discussion only changes the file in the working
-  tree.
+- Commit the request file only at these points: when the draft is created (this
+  reserves the id), each time the developer pauses the draft, when a `ready` request
+  goes back to `draft` to be changed, and when the developer approves it. Between
+  those, the discussion only changes the file in the working tree, and so does a
+  rename of the branch (Step 5 or Step 8), which needs no commit.
 - Every question that you ask the developer about the request, and its answer, goes
   into `## Q&A`, as "Questions and answers" in `reqs/AGENTS.md` describes.
 - **Pushing**: follow "Remote and pushing" in the root `AGENTS.md`. Where this skill
@@ -70,7 +73,7 @@ Input: `$ARGUMENTS`
 |----------------|--------|
 | `develop` | Check that `git status --porcelain` shows no changes. If it does, stop and report them: for a project (` M projects/<name>`), `git -C projects/<name> status --porcelain` and `git -C projects/<name> branch --show-current` tell what it is. A project on a `release/*` branch means that a release is open. With a remote, run `git pull --ff-only` and `git submodule update`. Continue with Step 2. |
 | A request branch whose request file says `draft`, or a `req/REQ-…` branch from before ss-workflow 0.8.0 | A spec discussion is open here. If `$ARGUMENTS` is empty or names this request, resume it at Step 5. Otherwise, ask whether to pause this draft first (commit it, push it, and switch to `develop`). |
-| Any other branch | The root checkout is busy: a request or hotfix branch in another status means a review. Say which one, and stop. |
+| Any other branch | The root checkout is busy. A request or hotfix branch whose file says `review` or `done` means a review or a merge: say which one, and stop. One whose file says `ready` or `in-progress` is an anomaly: say which one, point to `/ss-workflow:check-req`, which repairs it, and stop. |
 
 ## Step 2: Decide what to do with the input
 
@@ -164,19 +167,21 @@ Before you ask the developer anything, read what the request touches:
   touches or uses.
 - The relevant source files, enough to know what exists today. The root checkout has
   each project at the commit that `develop` records, which may be behind the
-  project's develop branch. Read the latest one without checking anything out:
-  `git -C projects/<name> fetch`, then `git -C projects/<name> show
-  origin/<develop-branch>:<file>` (or `git -C projects/<name> grep <pattern>
-  origin/<develop-branch>`).
+  project's develop branch. Read the latest one without checking anything out: with
+  a remote, `git -C projects/<name> fetch` first; then `git -C projects/<name> show
+  <project develop-ref>:<file>` (or `git -C projects/<name> grep <pattern> <project
+  develop-ref>`). `<project develop-ref>` is defined in "Workspace and projects" of
+  the root `AGENTS.md`: `origin/<develop-branch>` when the local branch has no
+  commits of its own, and the local `<develop-branch>` otherwise, or without a remote.
 - Related requests in `reqs/` and `reqs/done/`
 
 Do not ask the developer questions that the repository already answers.
 
 Record what you find as entries in `## Evidence` while you read, not afterwards from
 memory. A `file:line` reference names the commit that you read:
-`git -C projects/<name> rev-parse --short origin/<develop-branch>`. Get the line
+`git -C projects/<name> rev-parse --short <project develop-ref>`. Get the line
 numbers from the same commit, for example with `git -C projects/<name> grep -n
-<pattern> origin/<develop-branch>`, or by numbering the output of `git show`. What you
+<pattern> <project develop-ref>`, or by numbering the output of `git show`. What you
 did not read yet is `to trace`, not a guess.
 
 When you continue a draft, read its `## Q&A` first, and start with the entries that
@@ -227,10 +232,13 @@ verify" names the Review for every criterion. Managed blocks, `ss-workflow-versi
 "Workspace and projects" in the root `AGENTS.md`): point to an ss-workflow upgrade or
 `/ss-workflow:init --add` instead.
 
-For `type: hotfix`, `projects` names exactly one project. Also state the affected
-released version of that project and the hotfix version: the next patch version
-after the highest final version tag that the project's main branch contains (`git -C
-projects/<name> tag -l "v*" --merged origin/<main-branch>`, without prerelease tags,
+For `type: hotfix`, `projects` names exactly one project. Also state, as the first
+line of the spec's "Scope" part, the affected released version of that project and
+the hotfix version: `Hotfix: <name> v<released version> → v<hotfix version>`.
+`/ss-workflow:check-req` reads the hotfix version from that line. The hotfix version
+is the next patch version after the highest final version tag that the project's
+main branch contains (`git -C projects/<name> tag -l "v*" --merged
+origin/<main-branch>`, or the local `<main-branch>` without a remote, without prerelease tags,
 compared as versions), in the form that "Versioning" in the root `AGENTS.md`
 describes. The main branch can contain alpha and beta tags through the develop
 branch, so the nearest tag (`git describe`) is not always the released version.

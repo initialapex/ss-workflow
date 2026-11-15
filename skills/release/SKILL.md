@@ -208,7 +208,7 @@ delete the workspace tag, move the gitlink commit to a short-lived branch
 that branch, and open a merge request where `remote-platform` allows one. Once it is
 merged, tag the merge commit with `<name>/v<version>` and push the tag (ask first).
 
-Then `git submodule update <path>`, and report (Step 10).
+Then `git submodule update <path>`, and report (Step 4).
 
 ## Part B: The release branch
 
@@ -282,16 +282,18 @@ An open hotfix of the project must be merged before the release: point to
 Follow "Setting the version" in [references/version.md](references/version.md), for
 the version of this run (a release candidate or the final version).
 
-With `version-source: git-tag` or `none`, no file carries the version; only the docs
-and the changelog of a final version may change. If something had to change, commit
-in the project and push:
+When `version-source` is a file, the version source and the other places that carry
+the version change; with `git-tag` or `none`, no file carries the version, and only
+the docs and the changelog of a final version may change. If something had to
+change, commit everything in the project, on the release branch, and push:
 
 ```
 chore(release): bump version to <version>
 ```
 
 or, for the docs and the changelog alone, `docs: update the docs for v<version>`. If
-nothing had to change, say that the version numbers already match.
+nothing had to change, say that the version numbers already match. `git -C <path>
+status --porcelain` is empty afterwards: the tag is created on this commit.
 
 ### Step B5: Verify
 
@@ -330,7 +332,7 @@ For an `rc` version:
 5. Put the project back at its gitlink: `git submodule update <path>`. The release
    branch stays open.
 
-Then report (Step 10), with the way forward: test the release candidate; run
+Then report (Step 4), with the way forward: test the release candidate; run
 `/ss-workflow:release <name>` again for a small fix and the next release candidate,
 or for the final version.
 
@@ -348,7 +350,7 @@ branch with the workspace tag, publishes everything after one more question (wit
 `push-policy: never` it shows the push commands instead), and deletes the release
 branch.
 
-## Step 10: Report
+## Step 4: Report
 
 After the last step (or after the merge skill finishes), add to the report, in
 `discussion-language`:

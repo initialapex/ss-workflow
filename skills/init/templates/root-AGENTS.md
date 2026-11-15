@@ -258,7 +258,8 @@ Where each kind of project tag goes (see "Versioning" for the format):
   through the spec discussion, the implementation, and the review. Nothing reaches
   `develop` before the merge.
 - A project branch is named like any branch of that project: the type and the
-  request's slug, `<type>/<slug>`, with no request id. The name must be new in each
+  request's slug, `<type>/<slug>`, with no request id (`hotfix/v<version>` for a
+  hotfix). The name must be new in each
   project of the request, locally and on its remote, because other developers create
   branches there from their own workspaces. If it is taken, the developer picks
   another short, descriptive kebab-case name (for example `feat/gui-button-color`).
@@ -278,10 +279,15 @@ Where each kind of project tag goes (see "Versioning" for the format):
   resolves gitlink conflicts. So the workspace `main-branch` is the set of the latest
   released projects, with the request records of that time.
 - Before a project's v1.0.0 is released, its `develop-branch` may be merged straight
-  into its `main-branch` and tagged `v0.x.y`, which allows fast iteration. Then
-  `main-branch` is merged back into `develop-branch`, and the workspace `main-branch`
-  follows as for a release.
-- `develop` is the integration branch; most changes land here through request branches.
+  into its `main-branch` and tagged `v0.x.y`, which allows fast iteration (the
+  "pre-1.0 merge"). Then `main-branch` is merged back into `develop-branch`, and the
+  workspace `main-branch` follows as for a release.
+- `develop` is the integration branch. Changes land here through merges of request
+  branches. Only these are committed on `develop` directly: the update of a gitlink
+  that is behind ("Workspace and projects"), the gitlink of an alpha or beta version
+  that `/ss-workflow:release` records, the release merge's update of the released
+  project's gitlink and of the version in the workspace docs, and the commits of
+  `/ss-workflow:init` (a new project, an upgrade).
 - Never force-push a long-lived branch. Never rewrite published history.
 - Before any merge, run `git fetch` in that repository if it has a remote, and check
   whether the branch was already merged there: `git merge-base --is-ancestor`, and
@@ -302,7 +308,9 @@ project, has a remote when its `git remote` lists `origin`. `remote-platform` an
 a different question: whether merge requests can be opened (`github`, `gitlab`). It
 is `none` for every other remote, and when there is none. A project uses its own
 `remote-platform`, `merge-method`, and `push-policy` when its entry in `projects` sets
-them, and the workspace values otherwise.
+them, and the workspace values otherwise. `remote-cli` is the command line tool of
+`remote-platform`: `gh` for `github`, `glab` for `gitlab`, `none` otherwise. A project
+that sets its own `remote-platform` uses that platform's tool.
 
 - **Without a remote**, every step that fetches, pulls, or pushes is skipped in that
   repository, and everything else works as described: the local `develop` stands for

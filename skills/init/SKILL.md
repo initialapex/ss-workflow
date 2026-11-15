@@ -145,8 +145,11 @@ Generate in this order. Each group becomes one commit (Step 7):
 1. **Ignore file**: `.gitignore` from `templates/gitignore.template`. Keep an existing
    one, and add the ss-workflow block.
 2. **Projects**: add each project as a submodule, as
-   [references/add-project.md](references/add-project.md) says. The gitlinks on
-   `{{MAIN_BRANCH}}` point to each project's main branch.
+   [references/add-project.md](references/add-project.md) says. In **New** mode the
+   commits go on `{{MAIN_BRANCH}}` (Step 7), so its gitlinks point to each project's
+   main branch. In an existing repository the commits go on `develop`, and
+   `{{MAIN_BRANCH}}` keeps what it had: it gets the workspace files and the gitlinks
+   of the released projects with the first release merge of `/ss-workflow:merge`.
 3. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`, with
    one entry in `projects` and one section in `projects/AGENTS.md` per project.
 4. **Folders**: `reqs/done/.gitkeep`.
@@ -201,6 +204,8 @@ developer can run them, and do not handwrite the JSON.
 
 ## Step 9: Remote
 
+- If the developer gave a remote URL for the workspace in the questionnaire, run
+  `git remote add origin <url>` first.
 - If the workspace has a remote and `{{PUSH_POLICY}}` is not `never`, ask whether to
   push `{{MAIN_BRANCH}}` and `develop` (`git push -u origin <branch>`). With `never`,
   show the two commands for the developer to run.

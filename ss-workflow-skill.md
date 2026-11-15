@@ -66,6 +66,7 @@ SSDisp-workspace/
 - workspace request branch 上記錄結果的 commit (交付 review、review 結果、close) 一併 stage 該 request 各專案的 gitlink；workspace 因此記錄「review 的是哪個 source commit」
 - workspace develop 的 gitlink 指向各 source repo 的 develop；master 的 gitlink 指向各 source repo 的 main (= 最新 release)
 - source repo 的 develop 被 workspace 以外的人更新 (別的團隊直接 commit) 時，gitlink 會落後: check-req 總覽與 merge 時以 `git -C projects/<P> rev-list --count <gitlink>..<source develop-ref>` 偵測，提議一個 `chore(workspace): update <P> to <sha>` 的 commit，由 developer 決定
+- 直接 commit 在 workspace develop 上的只有: 落後 gitlink 的更新、alpha / beta 記錄的 gitlink、release merge 的 gitlink 與 docs 版號更新、init 的 commit (加入專案、升級)；其他一律經過 request branch merge 進來
 
 ### worktree 的結構
 
@@ -215,10 +216,11 @@ ss-workflow/
 
 - 語言設定 (見「環境設定」)，包含 reqs / docs 使用的語言
 - workspace 的主分支名稱: `master` 或 `main`
-- remote 平台: GitHub (`gh`) / GitLab (`glab`) / 無 (workspace 的預設值，各專案可覆寫)
+- remote 平台: GitHub (`gh`) / GitLab (`glab`) / 無 (workspace 的預設值，各專案可覆寫)；`remote-cli` 跟著平台 (覆寫平台的專案用該平台的工具)
 - 每個專案: 專案類型與 toolchain (見「專案形式」)、main / develop branch 名稱、主要專案檔、setup / build / test 指令、版本號來源 (檔案、`git-tag` 或 `none`)、package 指令與 package 檔案 (release 從 tag build 後壓成 zip 上傳，可留空)、工具注意事項、專案規則，以及需要時覆寫的 remote 設定
 - merge 方式 (`merge-method`): 每次詢問 / local merge / 發 merge-request
 - push 方式 (`push-policy`): `auto` (預設) / `ask` / `never`，見「Remote 與 push」
+- 確認之前不加 submodule: 用 URL 加入的專案從 workspace 外的暫存 shallow clone 讀取 (讀完刪除)；確認後的 build 指令在 Step 6 加入 submodule 之後，於 `projects/<P>` 試跑一次
 
 問答結果記錄在 root `AGENTS.md` 的 Workflow settings，另有選填的欄位，init 不詢問，由 developer 需要時自行填入:
 
@@ -506,6 +508,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `projects/<P>`
   - 不主動接手別的 `in-progress` request (可能有其他 session 正在實作)，需 developer 同意
   - `in-progress` 但沒有 worktree (被 review 退回，或 worktree 遺失): developer 同意後重建兩層的 worktree 繼續實作
+  - `in-progress` 退回 `ready` (暫緩): 移除 worktree；專案 branch 有 commit 時全部保留並保留 `project-branch`，下次開工直接接續使用 (不當成別人的 branch 改名)；都沒有 commit 時刪除並清空 `project-branch`
   - 根目錄停在 `in-progress` / `ready` 的 request branch 上 (退回重做或開始被中斷後沒切回 develop，或手動 checkout): git 不允許為根目錄所在的 branch 建立 worktree (兩層都一樣)，所以先確認根目錄沒有未 commit 的變更，developer 同意後把根目錄切回 develop，再重建 worktree
 - 在 request worktree 上執行: 表示要再啟動實作
   - `in-progress`: 找出上次停在哪裡 (含 `## Notes` 內的 review feedback)，繼續實作
@@ -563,7 +566,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
      - 還在 review: 保留根目錄在 request branch 上，之後再下一次 `/ss-workflow:review` 接續
 - 原則
   - 失敗或跳過的檢查不會記成通過；Review 是否通過只由 developer 決定
-  - 每一項檢查只記為 `passed` / `failed (原因)` / `did not run (原因)` / `not configured` 其中之一；這次 review 實際跑過並看到通過才算 `passed`，不沿用 implementation summary 或先前的結果
+  - 每一項檢查只記為 `passed` / `failed (原因)` / `did not run (原因)` / `not configured` / `not applicable (原因，這個 request 沒有這項檢查，e.g. 只改 workspace 檔案的 request 沒有 build)` 其中之一；這次 review 實際跑過並看到通過才算 `passed`，不沿用 implementation summary 或先前的結果
   - 環境造成的失敗一樣記為 `failed` 或 `did not run` 並註明原因；developer 決定接受時，問題與回答寫入 `## Q&A` (階段 `review`)
   - 開始前先看 implementation summary 的 Not done，有沒做完的部分先告知 developer
   - request 動到 agent 行為檔時，`### Behavior changes` 必須涵蓋每個檔；缺的由 review 依 diff 補寫，每一項都列入 Review 由 developer 確認
@@ -645,7 +648,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 開始)，Verify / Review / merge 一樣在根目錄
   - merge 回專案 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
   - version-source 為 `git-tag` 或 `none` 時不 commit 版號，tag 就是版本
-  - hotfix 版號: 專案 main 所包含的最高正式版 tag 的 PATCH + 1 (main 會透過 develop 包含 alpha / beta tag，所以不用 `git describe`)
+  - hotfix 版號: 專案 main 所包含的最高正式版 tag 的 PATCH + 1 (main 會透過 develop 包含 alpha / beta tag，所以不用 `git describe`)；寫在 spec「Scope」的第一行 `Hotfix: <P> v1.0.0 → v1.0.1`，check-req 從這一行讀 hotfix 版號
   - 發佈方式與 release 相同 (全部本地步驟成功後才 push 與上傳 package)
   - request 檔在 workspace hotfix branch 上關閉 (開始時已從 draft branch 複製過來)；merge 回 workspace develop 時用 `--no-commit`，在同一個 merge commit 內 (0.8.0 以前開始的 hotfix 才有) 刪除 develop 上仍為 `ready` 的舊副本，並把 gitlink 設為專案 develop
 
