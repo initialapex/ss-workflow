@@ -12,7 +12,7 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 |--------|--------|
 | Recorded version = plugin version | Report "up to date", then run the health check (section 5). |
 | Recorded version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
-| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
+| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update <marketplace-name>`, where `<marketplace-name>` is the part after `@` in the installed plugin id, such as `scott-skills` in `ss-workflow@scott-skills`; `/plugin` lists it), then stop. |
 
 An upgrade has three parts, in this order: the migrations (section 2), the managed
 blocks (section 3), and the checks and the version (section 4). Do all of them before
