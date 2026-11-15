@@ -9,7 +9,8 @@
 - AGENTS 相關給 AI 看的文件使用英文
 - 以上為預設，在初始化問答時，讓 developer 選擇
 - 盡量不用縮寫 (寫入 root `AGENTS.md` 的 Working agreement，不是初始化問答的選項): request 檔、docs、agent 檔、commit message、報告與回覆都寫出全名，e.g. 寫「Layer 1」不寫「L1」
-  - 可以保留: 業界通用的縮寫 (API、UI、JSON、CI)，以及程式碼、指令、編號裡本來就這樣寫的名稱 (`REQ-0012`、`E3`)
+  - 可以保留: 業界通用的縮寫 (API、UI、JSON、CI、SHA，以及工作流本身的用詞 spec、docs)，以及程式碼、指令、編號裡本來就這樣寫的名稱 (`REQ-0012`、`E3`)
+  - `repo` 不算通用縮寫，一律寫 repository
   - 非通用的縮寫非出現不可時 (developer、文件或程式碼這樣用)，第一次出現寫全名並在括號附縮寫，之後仍以全名為主
 
 ## Workspace 架構
@@ -70,8 +71,9 @@ SSDisp-workspace/
 
 `git worktree remove` 拒絕移除含 submodule 的 worktree；worktree 自己 clone 的 submodule 在移除時會遺失未 push 的 commit。所以實作用的 worktree 是兩層:
 
-- workspace worktree: `.claude/worktrees/<branch>` (request 檔與 gitlink)
-- 每個 request 的專案: `git -C <root>/src/<P> worktree add --no-track -b <branch> <wt>/src/<P> <source develop-ref>`，commit 存在 root checkout 共用的 `.git/modules/src/<P>`，worktree 移除後仍在
+- workspace worktree: `.claude/worktrees/<branch>` (request 檔與 gitlink)；request branch 從 draft 起就存在，所以不加 `-b`，只有 hotfix 與 0.8.0 以前的 `ready` request 要新建 branch
+- 每個 request 的專案: 開始時新建 branch `git -C <root>/projects/<P> worktree add --no-track -b <branch> <wt>/projects/<P> <source develop-ref>`；重建 worktree 時 branch 已存在，不加 `-b`、不改名；commit 存在 root checkout 共用的 `.git/modules/projects/<P>`，worktree 移除後仍在
+- `<develop-ref>`: workspace 有 remote 且 local `develop` 沒有自己的 commit 時是 `origin/develop`，否則是 `develop`；專案的 `<source develop-ref>` 用同樣的規則
 - request 以外的專案: `--detach` 在 gitlink 的 commit (build 可能參照相鄰的專案)；專案內的巢狀 submodule 用 `submodule update --init --recursive`
 - 移除: 先移除內層的各專案 worktree，`git -C <wt> restore projects/<P>` 補回空資料夾 (否則 workspace 視為刪除了 gitlink)，最後移除 workspace worktree；不使用 `--force`
 
@@ -163,7 +165,7 @@ ss-workflow/
   - 需要 migration 檔的版本: 新增 / 改名 / 移除 Workflow settings 的欄位或可用的值、改變 request 檔格式、新增 / 搬動 / 移除產生的檔案或需要修改 managed 區段以外的文字、skill 改名、工作流行為有 developer 必須事先知道的改變
   - 只改 managed 區段內規則文字的版本不需要
   - 檔案內容: 「What changes」(行為差異，改之前 / 改之後，升級時先講給 developer 聽)、「Steps」(改哪個檔、改什麼、維持舊行為的值、是否需要 developer 回答、如何判斷已經做過)、「Check」
-  - 升級順序: 從 repo 記錄的版本到 plugin 版本，依版本由低到高逐一套用 migration → 重新 render managed 區段 → 寫入新的 `ss-workflow-version` → 給 developer 看 diff 後才 commit
+  - 升級順序: 從 repo 記錄的版本到 plugin 版本，依版本由低到高逐一套用 migration 的 Steps → 重新 render managed 區段 → 依版本跑每個 migration 的 Check (Check 可能檢查 managed 區段的文字，所以排在重新 render 之後；有一項失敗就停止，不寫入新版本) → 寫入新的 `ss-workflow-version` → 給 developer 看 diff 後才 commit
   - 預設值一律選「維持舊版行為」的那個；行為要不要改由 developer 決定
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
@@ -178,9 +180,9 @@ ss-workflow/
 | 模式 | 條件 | 做什麼 |
 |------|------|--------|
 | New workspace | 空目錄 (或只有暫存檔) | 建立 workspace repo；帶入的 URL / 路徑加入為專案；沒有帶入時 workspace 先是空的 |
-| Add project | 已是 workspace，帶 `--add` | 加入一個或多個專案 (第二、第三個專案也一樣) |
+| Add project | 已是 workspace，帶了專案 (URL / 路徑，或 `--add`)，沒有 `--upgrade` | workspace 版本低於 plugin 版本時先升級 (含 commit) 再加入；加入一個或多個專案 (第二、第三個專案也一樣) |
 | 在既有專案內執行 | 目錄是有程式碼、但不是 workspace 的 git repo | 提議在旁邊建立 `../<Name>-workspace`，把這個 repo 加入為專案；原 repo 不動 |
-| Upgrade | root `AGENTS.md` 有 `ss-workflow-version:` | 依「發佈方式」升級；版本低於 0.6.0 時為「轉換 0.5.0 以下的 repo」 |
+| Upgrade | root `AGENTS.md` 有 `ss-workflow-version:`，沒有帶專案，或帶了 `--upgrade` | 依「發佈方式」升級；版本低於 0.6.0 時為「轉換 0.5.0 以下的 repo」；`--upgrade` 表示只升級，同時帶的專案不加入 |
 
 - 建立 workspace repo 時建立 `master` (或 `main`，問答決定) 與 `develop`，並完成第一個 commit
 - 全新的專案 (還沒有任何 source code): developer 先建好一個空的 repo (remote 或 local)，再用 URL 或路徑加入
@@ -227,6 +229,8 @@ ss-workflow/
 
 0.5.0 以下的架構是單一 repo (程式碼在 `src/`、`tests/`、`samples/`，request 在同一個 repo)。升級到 0.6.0 必須轉換，developer 拒絕時升級停止:
 
+- 轉換以目前的範本建立 workspace，記錄的是 plugin 版本；之後不再套用任何 migration (連 0.6.0 以上的也不套用)，因為它們要達成的結果轉換時已經直接建立。轉換前先把到 plugin 版本為止每個 migration 的「What changes」講給 developer 聽
+
 - 舊 repo 變成 source repo: 保留 remote、全部歷史與既有的版本 tag，不改寫歷史
 - 前提 (不符合時停止並列出清單，請 developer 先完成或放棄): 沒有 `in-progress` / `review` / merge pending 的 request、沒有 `release/*` / `hotfix/*` branch、沒有 worktree；draft (`req/` branch) 與 `ready` 的 request 會帶到 workspace
 - source repo 回到 toolchain 原本的結構，轉換後 `projects/<name>/` 底下就是 toolchain 預設的樣子，不再包一層 `src/`
@@ -264,7 +268,7 @@ ss-workflow/
   - 根目錄一次只能做一件事 (規格討論 / review / merge / release)；skill 切換根目錄的 branch 前，先確認它在 develop 且沒有未 commit 的變更 (含各專案)，完成後切回 develop 並 `git submodule update`
 
 - 檔名: `REQ-<4 位流水號>-<yyyyMMdd>-<slug>.md`，e.g. `REQ-0012-20260907-gui-button.md`
-  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`feat/REQ-0012-…`，以及 0.8.0 以前的 `req/REQ-0012-…`)
+  - 流水號取「使用中的最大號 + 1」；使用中 = workspace develop 上 `reqs/` 與 `reqs/done/` 的檔案，以及 workspace local / remote 上名稱含該編號的 branch (`feat/REQ-0012-…`，以及 0.8.0 以前的 `req/REQ-0012-…`)，以及已開工的 hotfix branch (`hotfix/<P>-v1.0.1` 名稱沒有編號，要讀它上面的 request 檔)
 - 未完成的 request 放在 `reqs/`；完成 (`done`) 後由 `/ss-workflow:merge` 以 `git mv` 移到 `reqs/done/`
 - YAML frontmatter 為狀態的唯一來源:
 
@@ -590,6 +594,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 各專案依自己的 `remote-platform` / `merge-method` / `push-policy` (沒有覆寫時用 workspace 的)
   - 發 merge-request 需要 branch 已在 remote 上；不能 push 時做完 Prepare 就停止，告知 developer 要 push 哪個 branch
   - remote 拒絕 push 到受保護的 develop / master 時不繞過: 還原尚未發佈的 local merge commit，有平台改發 merge-request，沒有平台就停止並告知 developer 需要在 remote 上 merge 什麼 (request 為 merge pending)
+  - 例外: release 與 hotfix 的 workspace 一律 local merge (不論 `merge-method`)，因為 workspace master / develop 的 gitlink 要在 merge commit 內用 `update-index` 設定，merge-request 做不到；workspace 被拒時刪掉本次的 workspace tag 與 commit 並停止，告知要由有權限的人放行，下一次執行從 workspace 的 merge 接續
   - 刪除 remote branch 只在允許 push 時進行，否則在回報中列出
   - draft 與 `ready` 的 request 不由此 skill 處理 (規格討論或實作尚未完成)
   - merge 方式由 Workflow settings 的 `merge-method` 決定: `local` (local merge 後 push) / `remote` (發 merge-request) / `ask` (每次詢問，預設)
@@ -599,7 +604,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 根目錄有未 commit 的變更 (含各專案)，或正忙著別的事 (在 draft 的 request branch 或其他 request branch 上) 時停止
   - remote 上的 merge-request 狀態: 已合併 → 直接收尾；開啟中 → 詢問要等待或改用 local merge；已關閉 → 詢問
   - 選擇發 merge-request 時，skill 發完就把根目錄切回 develop 並停止；remote 合併後 developer 再下一次 `/ss-workflow:merge` 收尾 (刪除 branch)
-  - 放棄 request: 透過一個短暫的 `drop/REQ-<id>` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
+  - 放棄 request: 已核准的 request (`ready`、`in-progress`、`review`) 都可以放棄，是「只處理 `review`」的例外；`in-progress` 的 worktree 先確認沒有未 commit 的變更再移除；透過一個短暫的 `drop/REQ-<id>` branch 把 request 標為 `done` 並註明原因，merge 回 workspace develop；各專案 branch 有未合併的 commit，需另外確認才刪除
 
 - request
   - 所有 reqs 都在 develop 開分支出去，完成後 merge 回 develop (兩層都是)
@@ -615,7 +620,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 發 merge-request 的情況下，專案已合併但 workspace 還沒 = 「merge pending」；remote review 要求修改時，下 `/ss-workflow:review REQ-xxxx` 重新開啟並繼續 review
 
 - 版本 tag 的位置 (專案)
-  - 正式版 `v1.2.3`: 只在專案 main (release / hotfix / pre-1.0 sync 的 merge commit)
+  - 正式版 `v1.2.3`: 只在專案 main (release / hotfix / pre-1.0 merge 的 merge commit)
   - Alpha / Beta `v1.2.3-alpha4` / `v1.2.3-beta4`: 只在專案 develop 的最新 commit；不開 release branch、不 merge；workspace 在記錄該 commit 的 develop commit 打 `<P>/v1.2.3-beta4`。只有 `version-source` 為 `git-tag` 或 `none` 的專案可以打 (develop 上不能有改版號的 commit)
   - Release candidate `v1.2.3-rc4`: 只在 `release/v1.2.3`；workspace 不打 tag (workspace develop 記錄的是專案 develop，不是 release branch)
   - 不接受其他版本 tag 格式
@@ -636,6 +641,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - hotfix (各專案)
   - 專案: `hotfix/v1.0.1` 從專案 main 開，完成後 merge 到專案 main，打 `v1.0.1`，從 tag build 並打包，再把專案 main merge 回專案 develop (有開著的 release branch 時詢問是否也把 main merge 進去)；只有正式版
   - workspace: `hotfix/<P>-v1.0.1` 從 workspace master 開，完成後 merge 回 workspace master (gitlink = 專案 main 的 hotfix merge commit，打 `<P>/v1.0.1`) 與 workspace develop (gitlink = 專案 develop)
+    - merge 回 workspace develop 時，**其他**專案的 gitlink 要保留 develop 原本的值: hotfix branch 從 workspace master 開，帶的是各專案 main 的 gitlink；不處理的話，develop 自 release 後沒動過的專案會被靜默改回 main 的舊 commit，動過的則出現 submodule 衝突
   - 開 worktree 實作 (由 `type: hotfix` 的 request 經 `/ss-workflow:check-req` 開始)，Verify / Review / merge 一樣在根目錄
   - merge 回專案 develop 時 version-source 衝突，保留較高的版本 (通常是 develop 的)
   - version-source 為 `git-tag` 或 `none` 時不 commit 版號，tag 就是版本
@@ -646,7 +652,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
 - master (兩層都持續存在)
   - 專案 main: 主要是在有新版要釋出時，才會有新的 commit
   - workspace master: 任一專案 release 或 hotfix 時更新，內容 = 各專案最新 release 的組合，加上當時的 request 紀錄
-  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，再把專案 main merge 回 develop，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 sync 處理，僅在 developer 要求時執行)
+  - 例外: 專案 v1.0.0 釋出之前為快速疊代期，允許專案 develop 直接 merge 到專案 main，並建立 `v0.x.y` tag，再把專案 main merge 回 develop，workspace master 一併更新 (由 `/ss-workflow:merge` 的 pre-1.0 merge 處理，僅在 developer 要求時執行)
 
 - develop (兩層都持續存在)
   - 主要是開發 branch，所有變動大部分都會在這邊

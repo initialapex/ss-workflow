@@ -16,6 +16,10 @@ project on its project branch.
 - A request with `projects: []` has no project worktree to commit in. Everything it
   changes is a workspace file, and nothing builds it: skip the build steps below, and
   record "build: not applicable (workspace files only)".
+- `<workspace base>` and `<project base>` are the names of the table at the top of
+  Step 5 in `SKILL.md`: the workspace main branch and the project's main branch for a
+  hotfix, `<develop-ref>` and `<project develop-ref>` otherwise. A resumed request
+  uses them too.
 
 **What may run in a worktree:** a project's `setup-command`, if the worktree needs
 preparation, and its `build-command`, to compile. Both run in the project folder.

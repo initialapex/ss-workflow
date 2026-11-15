@@ -14,7 +14,8 @@ written in the `reqs-language` from root `AGENTS.md`.
   - **id**: the highest id in use, plus 1. An id is in use when a file in `reqs/` or
     `reqs/done/` on `develop` has it, or when a local or remote branch name of the
     workspace contains it (`feat/REQ-0012-…`, or `req/REQ-0012-…` from before
-    ss-workflow 0.8.0).
+    ss-workflow 0.8.0), or when the request file on a `hotfix/<name>-v<version>`
+    branch has it (a started hotfix, whose branch name has no id).
   - **date**: the creation date.
   - **slug**: short, lowercase, kebab-case, in English. It names the change, not the
     request, because the project branch takes it too (`feat/gui-button`).

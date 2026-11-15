@@ -4,27 +4,28 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 
 ## 1. Compare versions
 
-- Repo version: the `ss-workflow-version:` value in root `AGENTS.md`.
+- Recorded version: the `ss-workflow-version:` value in root `AGENTS.md`.
 - Plugin version: `version` in the plugin's `.claude-plugin/plugin.json`. `SKILL.md`
   gives the full path of that file at its top.
 
 | Result | Action |
 |--------|--------|
-| Repo version = plugin version | Report "up to date", then run the health check (section 5). |
-| Repo version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
-| Repo version > plugin version | The installed plugin is older than the repo. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
+| Recorded version = plugin version | Report "up to date", then run the health check (section 5). |
+| Recorded version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
+| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
 
 An upgrade has three parts, in this order: the migrations (section 2), the managed
-blocks (section 3), and the version (section 4). Do all of them before you commit.
+blocks (section 3), and the checks and the version (section 4). Do all of them before
+you commit.
 
-**A repo version below `0.6.0`** is the single-repository layout, and the upgrade is
+**A recorded version below `0.6.0`** is the single-repository layout, and the upgrade is
 the conversion into a workspace. Do not run sections 2 to 4 in the old repository:
 the current templates are workspace templates, and the old repository's workflow
 files are moved or removed by the conversion anyway. Instead:
 
-1. Tell the developer the "What changes" part of every migration file from the repo
-   version up to `0.6.0`, in version order. They describe how the workflow behaves
-   now.
+1. Tell the developer the "What changes" part of every migration file from the recorded
+   version up to the plugin version, in version order. They describe how the
+   workflow behaves now.
 2. Follow [convert-legacy.md](convert-legacy.md). The workspace is created from the
    current templates and records the plugin version. What the earlier migrations
    would have carried over is handled there: the conversion's questionnaire asks for
@@ -32,8 +33,11 @@ files are moved or removed by the conversion anyway. Instead:
    that the developer wrote move to the workspace (replace old skill names in them,
    see `0.4.0.md`), and the request files get their new sections from the skills that
    next write them (see `0.5.0.md`).
-3. If the plugin is newer than `0.6.0`, the later migrations run in the new workspace
-   afterwards: run `/ss-workflow:init` there.
+3. Apply no migration file after the conversion, not even those above `0.6.0`. Their
+   steps change a workspace that an older version created, and the conversion
+   already creates the workspace that they lead to: the current templates, every
+   setting from the questionnaire, and the current layout. Because the workspace
+   records the plugin version, `/ss-workflow:init` in it reports "up to date".
 
 ## 2. Apply the migrations
 
@@ -41,7 +45,7 @@ The folder `migrations/` of this skill (`SKILL.md` gives its full path) holds on
 per plugin version that needs more than new template text: `<version>.md`, for
 example `0.5.0.md`. `README.md` in that folder describes the format.
 
-1. List the files whose version is higher than the repo version, and not higher than
+1. List the files whose version is higher than the recorded version, and not higher than
    the plugin version. Compare versions as numbers, part by part (`0.10.0` is higher
    than `0.9.0`).
 2. Apply them from the lowest version to the highest, one after another. Do not skip
@@ -53,7 +57,8 @@ example `0.5.0.md`. `README.md` in that folder describes the format.
    - Follow its "Steps". A step that changes text outside the managed blocks, or asks
      a question, needs the developer's answer. A step that the repository already
      fulfills is skipped: say so.
-   - Run its "Check" part.
+   - Do not run its "Check" part yet. A check may look at managed blocks, which
+     section 3 re-renders after all the migrations; section 4 runs the checks.
 4. A version without a migration file needs nothing beyond section 3.
 
 Whatever the migration files say, also compare the keys of the "Workflow settings"
@@ -84,8 +89,11 @@ For each generated file listed in [layout.md](layout.md):
 5. If a file from `layout.md` is missing entirely, create it. This happens when a new
    version introduces a new file.
 
-## 4. Record the version and commit
+## 4. Run the checks, record the version, and commit
 
+- Run the "Check" part of every migration applied in section 2, in version order,
+  now that the managed blocks are re-rendered. Report each check as passed or failed.
+  If one fails, stop as the end of this section says.
 - Set `ss-workflow-version:` to the plugin version.
 - Show the developer the diff of all changes, and get approval before committing.
   Nothing outside the managed blocks changes without it.

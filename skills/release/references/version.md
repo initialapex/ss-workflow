@@ -24,7 +24,7 @@ this way, and not as text: as text, `alpha10` would sort before `alpha2`.
 |------|-----------|--------------|
 | `alpha`, `beta` | The tip of the project's develop branch | `version-source` is `git-tag` or `none`, and the project has no open `release/*` branch |
 | `rc` | The tip of `release/vX.Y.Z`, for that `X.Y.Z` | The release branch exists |
-| Final | The merge commit of the release (or hotfix, or pre-1.0 sync) on the project's main branch | Always |
+| Final | The merge commit of the release (or hotfix, or pre-1.0 merge) on the project's main branch | Always |
 
 A release candidate tagged before the release branch has a commit of its own (with
 `git-tag` or `none` there is no version commit) sits on a commit that the develop

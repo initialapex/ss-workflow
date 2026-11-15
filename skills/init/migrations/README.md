@@ -46,7 +46,9 @@ be safe to run a second time: say how to tell that it is already done.>
 
 ## Check
 
-<What must hold afterwards, as commands or as facts that can be looked up.>
+<What must hold afterwards, as commands or as facts that can be looked up. The
+upgrade runs the checks after it has re-rendered the managed blocks, so a check may
+name the text of a managed block.>
 ```
 
 Rules for the steps:

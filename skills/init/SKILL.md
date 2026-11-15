@@ -13,8 +13,9 @@ layout, and is added as a git submodule at `projects/<name>`. Work step by step,
 developer before every change that is hard to undo, and never lose existing content
 or git history.
 
-Input: `$ARGUMENTS`: `--upgrade`, and the projects to add, as remote URLs or local
-paths of git repositories (each one plain or after `--add`).
+Input: `$ARGUMENTS`: `--upgrade` (upgrade only, add no project), and the projects to
+add, as remote URLs or local paths of git repositories (each one plain or after
+`--add`).
 
 Plugin version (the version this run installs): read `version` from
 `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`.
@@ -68,7 +69,7 @@ Supporting files (read them when the step that needs them comes up):
 
 Collect the following without changing anything:
 
-1. Directory contents: run `git ls-files` if this is a repo, otherwise list the
+1. Directory contents: run `git ls-files` if this is a repository, otherwise list the
    directory, leaving out build output and dependency folders.
 2. Git state:
    - `git rev-parse --is-inside-work-tree`
@@ -88,8 +89,8 @@ Pick the mode:
 
 | Mode | Condition | Continue with |
 |------|-----------|---------------|
-| **Upgrade** | Root `AGENTS.md` has `ss-workflow-version:` | [references/upgrade.md](references/upgrade.md), then stop. A version below `0.6.0` is the single-repository layout: the upgrade is the conversion in [references/convert-legacy.md](references/convert-legacy.md). |
-| **Add project** | The directory is already a workspace (root `AGENTS.md` has `projects:`), and `$ARGUMENTS` names projects | [references/add-project.md](references/add-project.md) for each project, then Step 10 |
+| **Upgrade** | Root `AGENTS.md` has `ss-workflow-version:`, and `$ARGUMENTS` names no project, or has `--upgrade` | [references/upgrade.md](references/upgrade.md), then stop. A version below `0.6.0` is the single-repository layout: the upgrade is the conversion in [references/convert-legacy.md](references/convert-legacy.md). `--upgrade` means an upgrade only: when `$ARGUMENTS` also names projects, say that they are not added, and that `/ss-workflow:init` with them adds them afterwards. |
+| **Add project** | Root `AGENTS.md` has `ss-workflow-version:`, and `$ARGUMENTS` names projects without `--upgrade` | When the recorded version is lower than the plugin version, upgrade first, through its commit ([references/upgrade.md](references/upgrade.md)), because a project is added with the current templates; if the upgrade stops, stop too. A version below `0.6.0` is converted instead, and the projects are added in the new workspace afterwards. Then [references/add-project.md](references/add-project.md) for each project, then Step 10 |
 | **Inside a project** | The directory is a git repository with code, but not a workspace | Propose a workspace next to it, `../<name>-workspace`, with this repository as its first project. The repository itself does not change. If the developer agrees, continue in that new directory as **New**, with this repository's path in the project list. |
 | **New** | Empty directory, or only scratch files | Step 2 |
 
@@ -130,8 +131,8 @@ changes, adjust the plan and show it again.
 
 Use `{{MAIN_BRANCH}}` (`master` or `main`) from the questionnaire.
 
-- **No repo**: run `git init -b {{MAIN_BRANCH}}`.
-- **Existing empty repo**:
+- **No repository**: run `git init -b {{MAIN_BRANCH}}`.
+- **Existing empty repository**:
   - If the main branch is missing but the other name (`master` / `main`) exists, ask
     whether to use the existing one instead. Never rename a branch without approval.
   - If `develop` exists, check it out.
@@ -174,7 +175,7 @@ Branch placement:
 - **New**: commit on `{{MAIN_BRANCH}}`, then run `git branch develop` and
   `git checkout develop`. Both long-lived branches now start from the same initial
   history.
-- **Existing repo without `develop`**: create `develop` from `{{MAIN_BRANCH}}` first,
+- **Existing repository without `develop`**: create `develop` from `{{MAIN_BRANCH}}` first,
   then commit on `develop`.
 - **Existing `develop`**: commit on `develop`.
 

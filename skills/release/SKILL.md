@@ -102,8 +102,16 @@ Supporting files:
 8. Check that there is something to release: `git -C <path> log <last tag>..<the
    commit to release> --oneline`, where the commit is the project's develop-ref, or
    the release branch, and the last tag is the newest version tag that is an ancestor
-   of it (without a tag: all commits). If it is empty, say that the project has
-   nothing new since that tag, and stop.
+   of it (without a tag: all commits). If it is empty:
+   - When the last tag is a final version, say that the project has nothing new
+     since that tag, and stop.
+   - When the last tag is a prerelease (`alpha`, `beta`, or `rc`), its commits are
+     tagged but not released. Continue, but only toward a release of those commits:
+     on the release branch, the final version (a release candidate that the
+     developer reports as good, as "Recommending the version" in
+     [references/version.md](references/version.md) says); on the develop branch,
+     opening the release branch. Step 3 then offers no other prerelease of the same
+     commit.
 
 ## Step 2: Show what the release contains
 

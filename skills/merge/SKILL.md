@@ -42,7 +42,9 @@ implementation is not finished.
   every project at its gitlink (`git submodule update`).
 - A request or a hotfix must have the effective status `review`, or must already be
   closed on its workspace branch by an earlier run of this skill (merge pending). If
-  it is `in-progress`, stop and point to `/ss-workflow:check-req`.
+  it is `in-progress`, stop and point to `/ss-workflow:check-req`. The exception is
+  "Closing a dropped request" below, which closes an approved request that is
+  `ready`, `in-progress`, or `review`.
 - If the request's `## Notes` has no passed Review, or no Verify result, say so. Say
   it too when the last Verify has a check that is `failed` or `did not run`, when a
   `### Behavior changes` item was not confirmed in the Review, or when `## Q&A` has a
@@ -116,9 +118,11 @@ implementation is not finished.
 2. If this is a linked worktree or a project folder, stop. Explain that merges run in
    the root checkout of the workspace.
 3. `git status --porcelain` must be empty. If it shows a project (` M <path>`), check
-   `git -C <path> status --porcelain` and its branch: a project on the request branch
-   of the target is expected (a review left it there), anything else is reported, and
-   the skill stops.
+   `git -C <path> status --porcelain` and its branch. Expected, when that status is
+   empty: a project on the project branch of a request (a review left it there), or on
+   a `release/v…` branch (`/ss-workflow:release` leaves it there between release
+   candidates). Step 6 checks that it belongs to the target. Anything else is
+   reported, and the skill stops.
 4. If the workspace has a remote, run `git fetch --prune --tags`. For each project with
    a remote, run `git -C <path> fetch --prune --tags`.
 5. Find the target:
@@ -129,11 +133,13 @@ implementation is not finished.
 | `$ARGUMENTS` is a workspace branch name | That branch |
 | `$ARGUMENTS` names a project's `release/v…` branch, or the root checkout's project is on one | That release |
 | The root checkout is on a request or `hotfix/*` branch | That branch |
-| The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 sync" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
+| The root checkout is on `develop`, without arguments | List the candidates and ask: requests with the effective status `review` (say for each whether its Review passed), requests whose merge is pending on a remote, open `release/*` branches in the projects, and open `hotfix/*` branches. If the developer asks to bring a project's develop branch to its main branch without a release branch, see "Pre-1.0 merge without a release branch" in [references/release.md](references/release.md). If there are no candidates, say so and stop. |
 | The root checkout is on a request branch whose file says `draft` (a spec discussion), on a `req/*` branch from before ss-workflow 0.8.0, or on the main branch | Explain what the root checkout is busy with, and stop. |
 
 6. If the root checkout is on another branch than the target and than `develop`, it is
-   busy with something else. Say what, and stop.
+   busy with something else. Say what, and stop. The same holds for a project that
+   step 3 found on a branch: it must be the target's project branch or the target's
+   release branch.
 7. Tell the developer what you are about to merge, and into what, in each repository,
    before you start.
 
@@ -175,6 +181,11 @@ For each repository of the target, read its `merge-method`:
 | `local` | Merge locally, then push. |
 | `remote` | Open a merge request on the remote. If that repository's `remote-platform` is `none`, there is nothing to open it with: say so, and merge locally. |
 | `ask`, or missing | If `remote-platform` is not `none`, ask the developer with AskUserQuestion: "Merge locally and push" or "Open a merge request on the remote". If there is no remote platform, merge locally. Ask once per repository. |
+
+For a release or a hotfix, the workspace is always merged locally, whatever its
+`merge-method`: its main branch and `develop` get their gitlinks with `git
+update-index` in the merge commit, which a merge request cannot do. The method of
+each project still applies.
 
 A merge request needs the branch on the remote, with all its commits. If the branch
 is not pushed and you may not push it (`push-policy: never`, or the developer
@@ -244,7 +255,14 @@ draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
 
 1. Confirm it. Name the branches and the number of commits that will be abandoned, in
    the workspace (`git log develop..<branch> --oneline`) and in each project
-   (`git -C <path> log <project develop-ref>..<project branch> --oneline`).
+   (`git -C <path> log <project develop-ref>..<project branch> --oneline`). For a
+   hotfix, count from the main branches instead: `git log <main branch>..<branch>
+   --oneline`, and `git -C <path> log <main-branch>..hotfix/v<version> --oneline`.
+   If the request is `in-progress`, its worktrees may still exist (`git worktree
+   list`). Check that they have no uncommitted changes, and show the developer any
+   that they have; then remove them as Step 4 of
+   `${CLAUDE_PLUGIN_ROOT}/skills/check-req/references/implement.md` describes, so that
+   their branches can be deleted in step 3.
 2. Record the closed request on `develop` through a short-lived branch, so that
    `develop` is only changed by a merge, and the request's other changes (code, docs)
    stay out:

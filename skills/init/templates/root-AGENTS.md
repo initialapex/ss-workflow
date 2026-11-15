@@ -66,9 +66,10 @@ workspace that was not converted.
 - Request files (`reqs/`) use `reqs-language`; developer docs (`docs/`) use `docs-language`.
 - Write terms out in full instead of abbreviating them, in every request file, doc,
   agent file, commit message, report, and answer to the developer: "Layer 1", not
-  "L1"; "configuration", not "cfg". Keep the abbreviations that are standard in the
-  field (API, UI, JSON, CI) and names that are spelled that way in code, commands, or
-  ids (`REQ-0012`, `E3`). When an abbreviation that is not standard has to appear,
+  "L1"; "configuration", not "cfg"; "repository", not "repo". Keep the abbreviations
+  that are standard in the field (API, UI, JSON, CI, SHA, and the words "spec" and
+  "docs", which name parts of this workflow) and names that are spelled that way in
+  code, commands, or ids (`REQ-0012`, `E3`). When an abbreviation that is not standard has to appear,
   because the developer, a document, or the code uses it, write the full term at its
   first use with the abbreviation in parentheses, and keep using the full term after
   that.
@@ -182,13 +183,25 @@ repository, layout, branches, and versions, and is a git submodule at its `path`
     develop-ref>` shows how far `develop`'s gitlink is behind. Offer a commit
     `chore(workspace): update <name> to <short sha>` on `develop`; the developer
     decides.
+- `<develop-ref>` stands for the latest `develop`: `origin/develop` when the workspace
+  has a remote and the local `develop` has no commits of its own, `develop`
+  otherwise. `<project develop-ref>` is the same for a project, with its
+  `develop-branch` (`origin/<develop-branch>` when the submodule has no local branch
+  of that name).
 - Worktrees of a request:
-  - The workspace worktree: `git worktree add --no-track -b <branch>
-    .claude/worktrees/<branch with "/" replaced by "-"> <develop-ref>`.
-  - Each project of the request, inside it:
-    `git -C <root>/<path> worktree add --no-track -b <project branch>
-    <worktree>/<path> <project develop-ref>`. Its commits are stored in the root
-    checkout's `.git/modules/<path>`, so they survive the removal of the worktree.
+  - The workspace worktree, on the request branch, which exists since the draft:
+    `git worktree add .claude/worktrees/<branch with "/" replaced by "-"> <branch>`.
+    Only a branch that does not exist yet (a hotfix, or a `ready` request from before
+    ss-workflow 0.8.0) is created with it: `git worktree add --no-track -b <branch>
+    <worktree> <base>`, where the base is the workspace main branch for a hotfix,
+    and `<develop-ref>` otherwise.
+  - Each project of the request, inside it, on a new project branch when the request
+    starts: `git -C <root>/<path> worktree add --no-track -b <project branch>
+    <worktree>/<path> <project develop-ref>` (the project's main branch for a
+    hotfix). When the project branch exists already (the worktree is recreated),
+    without `-b`: `git -C <root>/<path> worktree add <worktree>/<path> <project
+    branch>`. Its commits are stored in the root checkout's `.git/modules/<path>`, so
+    they survive the removal of the worktree.
   - Every other project: `git -C <root>/<path> worktree add --detach
     <worktree>/<path> <gitlink>`, because a build may refer to a neighboring project.
     Nested submodules of a project: `git -C <worktree>/<path> submodule update --init
@@ -223,7 +236,7 @@ Where each kind of project tag goes (see "Versioning" for the format):
 
 | Version | Project tag on | Workspace tag on |
 |---------|----------------|------------------|
-| Final `vX.Y.Z` | The merge commit on the project's `main-branch` (release, hotfix, or pre-1.0 sync) | The merge commit on the workspace `main-branch` |
+| Final `vX.Y.Z` | The merge commit on the project's `main-branch` (release, hotfix, or pre-1.0 merge) | The merge commit on the workspace `main-branch` |
 | Alpha `vX.Y.Z-alphaR`, beta `vX.Y.Z-betaR` | The tip of the project's `develop-branch` | The commit on `develop` that records that tip as the gitlink |
 | Release candidate `vX.Y.Z-rcR` | The tip of `release/vX.Y.Z` | None |
 

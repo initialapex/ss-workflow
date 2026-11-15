@@ -4,7 +4,7 @@
   {{WORKSPACE_DESCRIPTION}}
 </p>
 
-<!-- 徽章：workspace 本身沒有版本號，各專案的版本與徽章在各自的 repo。workspace 的徽章
+<!-- 徽章：workspace 本身沒有版本號，各專案的版本與徽章在各自的 repository。workspace 的徽章
      (例如授權) 確定後再加上，格式同 README.md -->
 
 <!-- 語言連結：只保留 readme-languages 列出的語言 -->
@@ -30,9 +30,9 @@
 
 ## 專案
 
-每個專案都是 `projects/` 底下的 git submodule，有自己的 repo、版本與 README。
+每個專案都是 `projects/` 底下的 git submodule，有自己的 repository、版本與 README。
 
-| 專案 | 路徑 | Repo | 規格 | 說明 |
+| 專案 | 路徑 | Repository | 規格 | 說明 |
 |------|------|------|------|------|
 {{PROJECT_ROWS}}
 
@@ -56,7 +56,7 @@ git clone --recurse-submodules <workspace URL>
 ## 參與開發
 
 > [!NOTE]
-> 本 workspace 使用 ss-workflow 流程，所有變更都從 [`reqs/`](reqs/) 的 request 開始。程式碼 commit 在各專案的 repo，workspace 記錄 request 以及它們產生了哪些專案 commit。開發在 `develop` 進行，各專案各自釋出版本。branching model 與 commit 規範請見 [AGENTS.md](AGENTS.md)。
+> 本 workspace 使用 ss-workflow 流程，所有變更都從 [`reqs/`](reqs/) 的 request 開始。程式碼 commit 在各專案的 repository，workspace 記錄 request 以及它們產生了哪些專案 commit。開發在 `develop` 進行，各專案各自釋出版本。branching model 與 commit 規範請見 [AGENTS.md](AGENTS.md)。
 
 ## 授權
 
