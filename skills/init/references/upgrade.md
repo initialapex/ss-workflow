@@ -12,11 +12,18 @@ Run this when root `AGENTS.md` contains `ss-workflow-version: <x>`.
 |--------|--------|
 | Recorded version = plugin version | Report "up to date", then run the health check (section 5). |
 | Recorded version < plugin version | Upgrade (sections 2 to 4), then run the health check. |
-| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update ss-workflow`), then stop. |
+| Recorded version > plugin version | The installed plugin is older than the repository. Tell the developer to update the plugin (`/plugin marketplace update <marketplace-name>`, where `<marketplace-name>` is the part after `@` in the installed plugin id, such as `scott-skills` in `ss-workflow@scott-skills`; `/plugin` lists it), then stop. |
 
 An upgrade has three parts, in this order: the migrations (section 2), the managed
 blocks (section 3), and the checks and the version (section 4). Do all of them before
 you commit.
+
+Before an upgrade starts, check, and stop with what was found if one fails: the root
+checkout is on `develop` (not a linked worktree), `git status --porcelain` is empty,
+and every project is at its gitlink with no changes (`git -C <path> status
+--porcelain` is empty, and `git submodule status` shows no `+` or `-`). With a remote,
+run `git pull --ff-only` on `develop` first. A single-repository layout below `0.6.0`
+is checked by the conversion instead.
 
 **A recorded version below `0.6.0`** is the single-repository layout, and the upgrade is
 the conversion into a workspace. Do not run sections 2 to 4 in the old repository:
@@ -169,4 +176,4 @@ For the state of the individual requests and their branches, point to the overvi
 `/ss-workflow:check-req`.
 
 Do not fix anything without the developer's approval. Each fix is its own commit, and
-changes to request files on `develop` go through a `req/` branch.
+changes to request files go through their request branch (`<type>/REQ-<id>-<slug>`).

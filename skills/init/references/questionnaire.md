@@ -44,9 +44,11 @@ toolchain, say that it is a proposal, and let the developer confirm or correct i
 you are not sure that a value is right for this toolchain, say so and ask. Do not
 guess a command.
 
-Read the project from its submodule folder after it is added, or from the local path:
-the files that identify a toolchain (solution, workspace, and project files, build
-files, package manifests), its README and agent files, and where the version is set.
+Read the project before the confirmation, without adding it: from the local path, or,
+for a URL, from a temporary shallow clone outside the workspace (`git clone --depth 1
+<url> <temporary folder>`), which you delete after the questionnaire. Read the files
+that identify a toolchain (solution, workspace, and project files, build files,
+package manifests), its README and agent files, and where the version is set.
 
 Any of the commands may stay empty. An empty command means that the step is skipped
 and reported as "not configured". The developer can fill it in later in root
@@ -68,8 +70,10 @@ and reported as "not configured". The developer can fill it in later in root
 | Project rules: what an agent must know to change this project correctly | `{{ENTRY_PROJECT_RULES}}` | Free text for "Project rules" in the project's section. For example: whether new source files must be added to a project file by hand, which files are generated and must not be edited, where build output goes, and naming conventions. |
 | Remote settings of this project, if they differ from the workspace's | `{{ENTRY_REMOTE_PLATFORM}}`, `{{ENTRY_MERGE_METHOD}}`, `{{ENTRY_PUSH_POLICY}}` | Empty means the workspace value. Detect the platform from the project's URL. Propose `push-policy: never` for a project from a local path without a remote (see [add-project.md](add-project.md)). Explain that other people may use the project's repository, so `ask` can fit there even when the workspace uses `auto`. |
 
-After the developer confirms the build command, try it once in the project folder, so
-that a wrong command is found now and not during the first request.
+Try the confirmed build command once, after the project is added as a submodule (Step
+6 of `SKILL.md`, or [add-project.md](add-project.md)), in `projects/<name>`, so that a
+wrong command is found now and not during the first request. Report a failure, and
+correct the command in the project's entry with the developer before the commit.
 
 Also check whether the project's `.gitignore` covers the build output. Do not change
 it: list what is missing for the report, as a candidate for a request.
@@ -90,7 +94,7 @@ it: list what is missing for the report, as a candidate for a request.
 | Remote URL of the workspace (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
 | How to merge finished branches (only when there is a remote platform) | "Ask every time" | `{{MERGE_METHOD}}` (`ask` / `local` / `remote`); `local` when there is no remote platform |
 | Who pushes to the remote (only when there is a remote, or the developer plans one) | "The agent pushes by itself" | `{{PUSH_POLICY}}` (`auto` / `ask` / `never`); `auto` when there is no remote |
-| Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, if the developer can give the marketplace source (`<owner>/<repository>` or a git URL) | `{{MARKETPLACE_SOURCE}}`; empty means skip Step 8 |
+| Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, from the marketplace source `initialapex/scott-skills`; the developer can give another source (`<owner>/<repository>` or a git URL) | `<marketplace-source>` of Step 8 (not a template placeholder); empty means skip Step 8 |
 
 These are the workspace values, and the defaults of every project that does not set
 its own in Round 3. For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and

@@ -145,8 +145,11 @@ Generate in this order. Each group becomes one commit (Step 7):
 1. **Ignore file**: `.gitignore` from `templates/gitignore.template`. Keep an existing
    one, and add the ss-workflow block.
 2. **Projects**: add each project as a submodule, as
-   [references/add-project.md](references/add-project.md) says. The gitlinks on
-   `{{MAIN_BRANCH}}` point to each project's main branch.
+   [references/add-project.md](references/add-project.md) says. In **New** mode the
+   commits go on `{{MAIN_BRANCH}}` (Step 7), so its gitlinks point to each project's
+   main branch. In an existing repository the commits go on `develop`, and
+   `{{MAIN_BRANCH}}` keeps what it had: it gets the workspace files and the gitlinks
+   of the released projects with the first release merge of `/ss-workflow:merge`.
 3. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`, with
    one entry in `projects` and one section in `projects/AGENTS.md` per project.
 4. **Folders**: `reqs/done/.gitkeep`.
@@ -186,21 +189,33 @@ commit if no gitlink changed.
 
 ## Step 8: Register the plugin for the team (optional)
 
-If the developer gave a marketplace source in the questionnaire, run these commands:
+If the developer gave a marketplace source in the questionnaire, add the marketplace:
 
 ```bash
 claude plugin marketplace add <marketplace-source> --scope project
-claude plugin install ss-workflow@ss-workflow --scope project
 ```
 
-They write `extraKnownMarketplaces` and `enabledPlugins` into `.claude/settings.json`.
-Commit it as `chore: register ss-workflow plugin for the project`.
+Then find the marketplace name: run `claude plugin marketplace list --json` and take the
+`name` of the entry whose `repo` (for `<owner>/<repository>`) or `url` (for a git URL)
+is the source. The name comes from the marketplace's own `marketplace.json`, so it can
+differ from the repository name (for example `initialapex/scott-skills` is
+`scott-skills`, `initialapex/ss-workflow` is `ss-workflow`). Install the plugin from it:
 
-If the `claude` CLI is not available from the shell, print both commands so the
-developer can run them, and do not handwrite the JSON.
+```bash
+claude plugin install ss-workflow@<marketplace-name> --scope project
+```
+
+The two commands write `extraKnownMarketplaces` and `enabledPlugins` into
+`.claude/settings.json`. Commit it as `chore: register ss-workflow plugin for the project`.
+
+If the `claude` CLI is not available from the shell, print the commands so the
+developer can run them, with `<marketplace-name>` left for the developer to read from
+`/plugin marketplace list`, and do not handwrite the JSON.
 
 ## Step 9: Remote
 
+- If the developer gave a remote URL for the workspace in the questionnaire, run
+  `git remote add origin <url>` first.
 - If the workspace has a remote and `{{PUSH_POLICY}}` is not `never`, ask whether to
   push `{{MAIN_BRANCH}}` and `develop` (`git push -u origin <branch>`). With `never`,
   show the two commands for the developer to run.

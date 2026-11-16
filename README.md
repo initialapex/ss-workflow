@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.12.3" src="https://img.shields.io/badge/version-0.12.3-blue">
+  <img alt="Version 0.12.4" src="https://img.shields.io/badge/version-0.12.4-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -50,7 +50,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.12.3, early.** The six skills are written and the plugin manifest
+> **Status: 0.12.4, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -83,16 +83,17 @@ checkout, and skills merge and release it by the same rules every time.
 
 ### Installation
 
-Add this repository as a plugin marketplace, then install the plugin. Run these inside
-a Claude Code session:
+The plugin is listed in the [scott-skills](https://github.com/initialapex/scott-skills)
+marketplace. Run these inside a Claude Code session:
 
 ```text
-/plugin marketplace add <owner>/ss-workflow
-/plugin install ss-workflow@ss-workflow
+/plugin marketplace add initialapex/scott-skills
+/plugin install ss-workflow@scott-skills
 ```
 
-Replace `<owner>/ss-workflow` with the GitHub repository, or use the full git URL for
-another host.
+This repository is also a marketplace of its own (`ss-workflow@ss-workflow`), which
+older installations use. Both give the same plugin; install it from one of them only,
+or every skill shows up twice.
 
 > [!TIP]
 > To let everyone who works in a workspace get the plugin, `/ss-workflow:init` can
@@ -368,8 +369,10 @@ The marketplace compares the `version` in `.claude-plugin/plugin.json` with the
 installed version.
 
 ```text
-/plugin marketplace update ss-workflow
+/plugin marketplace update scott-skills
 ```
+
+Use `ss-workflow` instead of `scott-skills` if you installed `ss-workflow@ss-workflow`.
 
 > [!IMPORTANT]
 > A plugin update does not change the files that init generated in your workspace.

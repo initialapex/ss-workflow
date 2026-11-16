@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.12.3" src="https://img.shields.io/badge/version-0.12.3-blue">
+  <img alt="Version 0.12.4" src="https://img.shields.io/badge/version-0.12.4-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.12.3，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.12.4，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -61,14 +61,14 @@
 
 ### 安裝
 
-把這個 repository 加為 plugin marketplace，再安裝 plugin。在 Claude Code session 裡執行：
+這個 plugin 登錄在 [scott-skills](https://github.com/initialapex/scott-skills) marketplace。在 Claude Code session 裡執行：
 
 ```text
-/plugin marketplace add <owner>/ss-workflow
-/plugin install ss-workflow@ss-workflow
+/plugin marketplace add initialapex/scott-skills
+/plugin install ss-workflow@scott-skills
 ```
 
-把 `<owner>/ss-workflow` 換成 GitHub repository；其他平台請用完整的 git URL。
+這個 repository 本身也是一個 marketplace（`ss-workflow@ss-workflow`），舊的安裝使用它。兩者提供的是同一個 plugin，只能擇一安裝，否則每個 skill 都會出現兩份。
 
 > [!TIP]
 > 想讓 workspace 的所有成員都取得這個 plugin，可以讓 `/ss-workflow:init` 把 marketplace 註冊到 workspace 的 `.claude/settings.json`。
@@ -243,8 +243,10 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 Marketplace 會拿 `.claude-plugin/plugin.json` 的 `version` 跟已安裝的版本比對。
 
 ```text
-/plugin marketplace update ss-workflow
+/plugin marketplace update scott-skills
 ```
+
+如果你安裝的是 `ss-workflow@ss-workflow`，把 `scott-skills` 換成 `ss-workflow`。
 
 > [!IMPORTANT]
 > Plugin 更新不會改動 init 在你 workspace 裡產生的檔案。更新之後，請在 workspace 裡再執行一次 `/ss-workflow:init`。它會比對 root `AGENTS.md` 記錄的 `ss-workflow-version` 和 plugin 版本，只更新標記為 `<!-- ss-workflow:managed -->` 的區段，區段以外你自己寫的內容不會被改動。

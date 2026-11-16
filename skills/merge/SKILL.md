@@ -40,7 +40,9 @@ implementation is not finished.
   switches the root checkout and its projects between the request branches, the
   develop branches, and the main branches, and leaves the workspace on `develop` with
   every project at its gitlink (`git submodule update`).
-- A request or a hotfix must have the effective status `review`, or must already be
+- A request or a hotfix must have the effective status (the `status` in its request
+  file on the workspace request branch, or on `develop` for a request from before
+  ss-workflow 0.8.0 that has no branch) `review`, or must already be
   closed on its workspace branch by an earlier run of this skill (merge pending). If
   it is `in-progress`, stop and point to `/ss-workflow:check-req`. The exception is
   "Closing a dropped request" below, which closes an approved request that is
@@ -148,11 +150,14 @@ implementation is not finished.
 Do this for each repository of the target that has a remote: each project branch,
 then the workspace branch.
 
-First check git itself: if `git merge-base --is-ancestor <branch> origin/<target>`
-succeeds (in a project: `git -C <path> merge-base --is-ancestor <project branch>
-…`), that branch is already merged
-on the remote, with or without a merge request. Its merge steps are done: the guide
-continues with the next repository, or with "Finish" when the workspace is merged.
+First check git itself: if `git merge-base --is-ancestor <branch> origin/<the branch
+it merges into>` succeeds (in a project: `git -C <path> merge-base --is-ancestor
+<project branch> …`), that branch is already merged on the remote, with or without a
+merge request. Its merge is done. For a request, the guide continues with the next
+repository, or with "Finish" when the workspace is merged. For a release or a
+hotfix, the steps that follow a remote merge in the guide still apply: step 3 of
+"With a merge request" (the tag, the build and the package, the merge back into the
+develop branch), then "Merge the workspace".
 
 A run that stopped halfway shows here: projects merged while the workspace branch is
 not. That is the normal state after a merge request in a project, or a protected
@@ -203,9 +208,9 @@ Continue with the guide for the kind (the table at the top). Each guide has a
 
 ## Step 5: Clean up (shared by all guides)
 
-Run this only after every merge is confirmed, either by
-`git merge-base --is-ancestor <branch> <target>` for every target in every
-repository, or by a merge request in the state "merged".
+Run this only after every merge is confirmed, either by `git merge-base --is-ancestor
+<branch> <the branch it merges into>` for every merge in every repository, or by a
+merge request in the state "merged".
 
 1. Switch the root checkout to `develop`, and run `git submodule update`.
 2. **Leftover worktrees**: the worktrees of a request are normally removed when its
@@ -268,7 +273,8 @@ draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
    stay out:
    - `git checkout -b drop/REQ-<id> develop`
    - Take the latest request file from the workspace request branch
-     (`git show <branch>:reqs/<file> > reqs/<file>`), so that its notes are kept. A
+     (`git checkout <branch> -- reqs/<file>`, which copies it byte for byte), so that
+     its notes are kept. A
      request from before ss-workflow 0.8.0 may have its file on `develop` already.
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.

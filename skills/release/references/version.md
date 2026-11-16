@@ -116,6 +116,12 @@ other valid version through "Other".
 | On `release/vX.Y.Z` | The next release candidate (`rc<R+1>`, or `rc1` when there is none yet), and the final `X.Y.Z`. Recommend the final version after a release candidate that the developer reports as good; otherwise the next release candidate. The `X.Y.Z` of a release branch never changes. |
 | A hotfix | The last final tag reachable from the project's main branch, PATCH + 1. Hotfixes have no prereleases. |
 
+Before a project's v1.0.0, its develop branch may also go straight into its main
+branch, without a release branch (the "pre-1.0 merge" of "Branching model" in the
+root `AGENTS.md`). This skill does not do it: when the project's current version is
+below `1.0.0`, mention it as another choice on the develop branch, and point to
+"Pre-1.0 merge without a release branch" in `/ss-workflow:merge`.
+
 ## Validation
 
 A version is valid when all of these hold:

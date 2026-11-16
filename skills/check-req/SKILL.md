@@ -33,9 +33,18 @@ Supporting files:
 - One invocation handles one request. Never implement two requests in one worktree.
 - A request is implemented only inside its own worktrees. This skill never changes
   files in the root checkout, and never switches the root checkout or its projects to
-  another branch. The one exception is a repair that the developer approves:
-  switching the root checkout back to `develop` when it holds the branch of a request
-  that is not in review (see [references/anomalies.md](references/anomalies.md)).
+  another branch. The exceptions, each only after the developer approves:
+  - switching the root checkout back to `develop` when it holds the branch of a
+    request that is not in review, and `git submodule update <path>` to put a project
+    of the root checkout back at its gitlink (see
+    [references/anomalies.md](references/anomalies.md));
+  - the commit on `develop` that updates a gitlink that is behind (Step 3), when the
+    root checkout is on `develop` and clean.
+
+  A repair that changes a request file on a request branch that no worktree holds is
+  made in a temporary worktree of that branch (`git worktree add
+  .claude/worktrees/<branch with "/" replaced by "-"> <branch>`), committed and pushed
+  there, and the worktree is removed afterwards.
 - In a worktree, write code and try to compile it. Do not run tests, scripts, or
   executables there.
 - Never force-push, and never rebase a branch that has been pushed.
@@ -105,8 +114,10 @@ Step 3.
    otherwise. Its `status` is the effective status: `draft`, `ready`, `in-progress`,
    `review`, or `done`. `done` on a branch that is not merged means "merge pending".
 2. **Requests from before ss-workflow 0.8.0**: each `req/REQ-…` branch is a draft, and
-   each file in `reqs/` on `<develop-ref>` whose id has no request branch is `ready`
-   (`git ls-tree --name-only <develop-ref> reqs/`, then `git show <develop-ref>:<path>`).
+   each file in `reqs/` on `<develop-ref>` whose id has no request branch has the
+   status that its file says, normally `ready` (`git ls-tree --name-only <develop-ref>
+   reqs/`, then `git show <develop-ref>:<path>`). Any other status there is an
+   anomaly: see [references/anomalies.md](references/anomalies.md).
    A file in `reqs/` on `<develop-ref>` whose id has a request branch is the old copy:
    the branch holds the status.
 3. **The project branches** of each request that is started: in each project of its
@@ -161,6 +172,8 @@ it: project branches start from the project's latest develop branch anyway.
     from [references/anomalies.md](references/anomalies.md) first.
   - `review`: say that the implementation is finished, and point to
     `/ss-workflow:review`.
+  - `done` (merge pending, or merged): say that the request is closed, and point to
+    `/ss-workflow:merge` for a pending merge.
   - A draft: say that it needs approval through `/ss-workflow:new-req` first.
 - No `$ARGUMENTS`: the candidates are every request that can be worked on now:
   - `ready`: start it (Step 5).
@@ -215,8 +228,8 @@ Decide the names first:
 
 | Item | Value |
 |------|-------|
-| Workspace branch | The request branch, which exists since the draft (`<type>/REQ-<id>-<slug>`). For `type: hotfix`: a new branch `hotfix/<name>-v<version>`, with the version from the request's spec. For a `ready` request on `develop` from before ss-workflow 0.8.0: a new branch `<type>/REQ-<id>-<slug>`. |
-| Project branch | `<type>/<slug>`, for example `feat/gui-button`, the same in each project of the request, with no request id. For `type: hotfix`: `hotfix/v<version>`. None for `projects: []`. Step 1 checks that the name is free. |
+| Workspace branch | The request branch, which exists since the draft (`<type>/REQ-<id>-<slug>`). For `type: hotfix`: a new branch `hotfix/<name>-v<version>`, with the hotfix version from the first line of the spec's "Scope" part (`Hotfix: <name> v<released version> → v<hotfix version>`; in a spec written before ss-workflow 0.12.4, find the version in the spec's text, and ask when it is not there). For a `ready` request on `develop` from before ss-workflow 0.8.0: a new branch `<type>/REQ-<id>-<slug>`. |
+| Project branch | `<type>/<slug>`, for example `feat/gui-button`, the same in each project of the request, with no request id. For `type: hotfix`: `hotfix/v<version>`. None for `projects: []`. A request that went back to `ready` may still name its kept project branch in `project-branch`: use that name. Step 1 below checks that the name is free. |
 | Workspace base | Where the workspace branch starts: the workspace main branch for a hotfix (`origin/<main-branch>` with a remote), `<develop-ref>` otherwise. A new workspace branch is created from it. For the request branch that exists since the draft, it is only used in diffs (`<workspace base>...HEAD`), which start where the branch left `develop`. |
 | Project base | `<project develop-ref>`, the latest develop branch of the project (not the gitlink). For `type: hotfix`: the project's main branch (`origin/<main-branch>` with a remote). |
 | Worktree path | `<root checkout>/.claude/worktrees/<workspace branch with "/" replaced by "-">`, with each project at its `path` inside it |
@@ -244,7 +257,10 @@ only.
      (`git -C <root>/<path> rev-parse --verify -q refs/heads/<project branch>`) or on
      the remote (`git -C <root>/<path> ls-remote --heads origin <project branch>`).
      A branch with that name belongs to someone else's work, not to this request.
-     Propose another short, descriptive kebab-case name after the type (for example
+     The exception is a project branch that this request kept when it went back to
+     `ready` (its `project-branch` names it, and `git -C <root>/<path> log <project
+     develop-ref>..<project branch>` shows only this request's earlier work): it is
+     reused, and step 4 creates its worktree without `-b`. Otherwise, propose another short, descriptive kebab-case name after the type (for example
      `feat/gui-button-color`), check it the same way in every project of the
      request, and ask the developer to confirm it. For a hotfix, a taken
      `hotfix/v<version>` means that the version is being fixed already: stop, and
@@ -260,8 +276,9 @@ only.
    `git branch --track <branch> origin/<branch>`.
 3. **Record the start** as a commit on the workspace branch, in the worktree:
    - For `type: hotfix`, the request file is not on the new branch yet. Copy it from
-     its draft branch first: `git show hotfix/REQ-<id>-<slug>:reqs/<file> >
-     reqs/<file>` (from `<develop-ref>` for a request from before 0.8.0).
+     its draft branch first: `git checkout hotfix/REQ-<id>-<slug> -- reqs/<file>`
+     (from `<develop-ref>` for a request from before 0.8.0). `git checkout` copies
+     the file byte for byte; a shell redirection could change its encoding.
    - Set `status: in-progress`, `branch: <workspace branch>`, and
      `project-branch: <project branch>` in the request file (add the
      `project-branch:` line after `branch:` if the file has none; leave it empty for
@@ -288,6 +305,11 @@ only.
      git -C <root>/<path> worktree add --no-track -b <project branch> <worktree path>/<path> <project base>
      git -C <worktree path>/<path> push -u origin <project branch>     # when pushing is allowed for that project
      ```
+
+     A kept project branch that step 1 reuses gets its worktree without `-b`:
+     `git -C <root>/<path> worktree add <worktree path>/<path> <project branch>`.
+     Then bring it up to date with `<project base>` as Step 3.2 of
+     [references/implement.md](references/implement.md) describes.
 
      If git says that the branch already exists, or the remote rejects the push
      because the branch appeared there in the meantime, the name was taken after

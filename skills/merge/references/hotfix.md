@@ -86,7 +86,8 @@ By the project's merge method (Step 3 of the skill).
 5. If the project has an open `release/*` branch, the release would ship without the
    fix. Ask the developer whether to merge the main branch into that release branch
    as well, the same way as in step 4 (`-m "Merge <main-branch> into
-   release/vX.Y.Z"`). Its next release candidate then contains the fix.
+   release/vX.Y.Z" -m "Hotfix v<version>"`). Its next release candidate then contains
+   the fix.
 6. Nothing is pushed yet. Continue with "Merge the workspace"; "Publish" pushes the
    project's branches and the tag together.
 
