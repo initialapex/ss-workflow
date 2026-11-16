@@ -94,7 +94,7 @@ it: list what is missing for the report, as a candidate for a request.
 | Remote URL of the workspace (only when there is no remote yet and the developer wants one) | (free text) | Run `git remote add origin <url>` in Step 9 |
 | How to merge finished branches (only when there is a remote platform) | "Ask every time" | `{{MERGE_METHOD}}` (`ask` / `local` / `remote`); `local` when there is no remote platform |
 | Who pushes to the remote (only when there is a remote, or the developer plans one) | "The agent pushes by itself" | `{{PUSH_POLICY}}` (`auto` / `ask` / `never`); `auto` when there is no remote |
-| Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, if the developer can give the marketplace source (`<owner>/<repository>` or a git URL) | `<marketplace-source>` of Step 8 (not a template placeholder); empty means skip Step 8 |
+| Register the ss-workflow plugin in `.claude/settings.json` for teammates? | Yes, from the marketplace source `initialapex/scott-skills`; the developer can give another source (`<owner>/<repository>` or a git URL) | `<marketplace-source>` of Step 8 (not a template placeholder); empty means skip Step 8 |
 
 These are the workspace values, and the defaults of every project that does not set
 its own in Round 3. For `{{REMOTE_CLI}}`, use `gh` for github, `glab` for gitlab, and

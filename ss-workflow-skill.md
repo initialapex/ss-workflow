@@ -134,7 +134,7 @@ SSDisp-workspace/
 
 ## 發佈方式 (Claude Code plugin)
 
-整套 skills 包成一個 Claude Code plugin，本 repo 同時是 plugin 本體與 marketplace:
+整套 skills 包成一個 Claude Code plugin。主要經由 `initialapex/scott-skills` marketplace 發佈 (以 URL 指向本 repo，安裝名稱 `ss-workflow@scott-skills`)；本 repo 同時保留自己的 marketplace (`ss-workflow@ss-workflow`) 給舊的安裝使用:
 
 ```
 ss-workflow/
@@ -154,7 +154,8 @@ ss-workflow/
     └── release/SKILL.md
 ```
 
-- 安裝: developer 執行 `/plugin marketplace add <ss-workflow repo>` 後安裝 plugin
+- 安裝: developer 執行 `/plugin marketplace add initialapex/scott-skills` 後安裝 `ss-workflow@scott-skills`
+- init Step 8 註冊團隊 plugin 時，安裝名稱的 marketplace 部分從 `claude plugin marketplace list --json` 依來源查出，不寫死
 - 更新比對來源: marketplace repo 上 `plugin.json` 的 `version`
   - 每次發佈新版都必須遞增 `version`，否則 Claude Code 不會視為更新
   - developer 執行 `/plugin marketplace update` 或開啟 auto-update 取得新版
