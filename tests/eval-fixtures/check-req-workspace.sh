@@ -15,10 +15,18 @@
 #   start           one ready feature with a complete spec, on SSLib
 #   resume-anomaly  an in-progress feature that a review sent back for rework; the
 #                   root checkout was left on its request branch, no worktree exists
+#   start-hotfix    a ready hotfix of SSDisp v0.1.0; SSDisp develop and the workspace
+#                   develop have moved on since the release
+#   overview-dependency
+#                   a ready fix (high) that depends on a ready feature (normal), a
+#                   ready chore (low), and an in-progress feature that was started on
+#                   another machine (its branches exist only on the remotes)
+#   start-push-never
+#                   the start scenario, with push-policy never for SSLib
 #
 # Usage:  bash tests/eval-fixtures/check-req-workspace.sh <scenario> [target folder]
 set -eu
-SCENARIO="${1:?usage: check-req-workspace.sh <overview|start|resume-anomaly> [target]}"
+SCENARIO="${1:?usage: check-req-workspace.sh <scenario> [target]}"
 TARGET="${2:-.}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TPL="$HERE/../../skills/init/templates"
@@ -66,8 +74,9 @@ seed_project SSLib
 seed_project SSDisp
 
 # ------------------------------------------------------------------ workspace files
-entry() { # name description
-  sed -e "s#{{ENTRY_NAME}}#$1#g" -e "s#{{ENTRY_MAIN_BRANCH}}#master#" -e "s#{{ENTRY_DEVELOP_BRANCH}}#develop#" \
+entry() { # name [push-policy]
+  sed -e "s#{{ENTRY_PUSH_POLICY}}#${2:-}#" \
+      -e "s#{{ENTRY_NAME}}#$1#g" -e "s#{{ENTRY_MAIN_BRANCH}}#master#" -e "s#{{ENTRY_DEVELOP_BRANCH}}#develop#" \
       -e "s#{{ENTRY_TYPE}}#Text files joined by a bash script#" -e "s#{{ENTRY_KIND}}#library#" \
       -e "s#{{ENTRY_PROJECT_FILE}}##" -e "s#{{ENTRY_VERSION_SOURCE}}#version.txt#" \
       -e "s#{{ENTRY_SETUP_COMMAND}}##" -e "s#{{ENTRY_BUILD_COMMAND}}#bash build.sh#" \
@@ -84,7 +93,8 @@ section() { # name description
 }
 
 git init -q "$W"; cd "$W"
-{ entry SSLib; entry SSDisp; } > "$T/projects.yaml"
+SSLIB_PUSH=""; [ "$SCENARIO" = start-push-never ] && SSLIB_PUSH=never
+{ entry SSLib "$SSLIB_PUSH"; entry SSDisp; } > "$T/projects.yaml"
 { section SSLib "The shared library."; section SSDisp "The display application, which uses SSLib."; } > "$T/sections.md"
 sed -e "s#{{WORKSPACE_NAME}}#demo-workspace#g" \
     -e "s#{{WORKSPACE_DESCRIPTION}}#A demo workspace with a library and a display application.#" \
@@ -384,6 +394,45 @@ resume-anomaly)
   # The review left the root checkout on the request branch, the projects on their branches.
   for p in SSLib SSDisp; do git -C "projects/$p" checkout -q feat/add-farewell 2>/dev/null \
     || git -C "projects/$p" checkout -q -b feat/add-farewell --track origin/feat/add-farewell; done
+  ;;
+# ================================================================== start-hotfix
+start-hotfix)
+  # Since the release, SSDisp develop and the workspace develop have moved on.
+  s="$T/tmp-SSDisp"; git -C projects/SSDisp worktree add -q --detach "$s" origin/develop
+  ( cd "$s"; printf 'next feature
+' > next.txt; git add -A; git commit -q -m "feat: start the next feature"; git push -q origin HEAD:develop )
+  git -C projects/SSDisp worktree remove "$s"; git -C projects/SSDisp fetch -q
+  git -C projects/SSDisp checkout -q --detach origin/develop
+  git add projects/SSDisp; git commit -q -m "chore(workspace): update the SSDisp gitlink"; git push -q
+  f6=$(draft hotfix/REQ-0006-fix-crash reqfile 0006 fix-crash hotfix SSDisp normal "Fix the crash on start" "$(simple_spec SSDisp crashfix.txt 'no crash on start' 'SSDisp v0.1.0 crashes on start.' 'Hotfix: SSDisp v0.1.0 → v0.1.1')")
+  approve "$f6" REQ-0006; git push -q -u origin hotfix/REQ-0006-fix-crash
+  git checkout -q develop; git submodule update -q
+  ;;
+# ================================================================== overview-dependency
+overview-dependency)
+  f1=$(draft feat/REQ-0001-add-greeting reqfile 0001 add-greeting feat SSLib normal "Add a greeting" "$(simple_spec SSLib greeting.txt 'Hello from SSLib' 'SSLib provides a greeting for SSDisp.')")
+  approve "$f1" REQ-0001; git push -q -u origin feat/REQ-0001-add-greeting
+  dep="$(simple_spec SSDisp title.txt 'SSDisp Viewer - Hello from SSLib' 'The window title shows the SSLib greeting.' | sed 's#^No architectural decision:.*#SSDisp needs the greeting of SSLib that REQ-0001 adds (`greeting.txt`); this request can only be built after REQ-0001. Otherwise no architectural decision: a new text file in the root of SSDisp, which the build picks up (E1).#')"
+  f2=$(draft fix/REQ-0002-fix-title reqfile 0002 fix-title fix SSDisp high "Fix the window title" "$dep")
+  approve "$f2" REQ-0002; git push -q -u origin fix/REQ-0002-fix-title
+  f7=$(draft chore/REQ-0007-tidy-readme reqfile 0007 tidy-readme chore SSLib low "Tidy the README" "$(simple_spec SSLib notes.txt 'tidy' 'The README of SSLib is untidy.')")
+  approve "$f7" REQ-0007; git push -q -u origin chore/REQ-0007-tidy-readme
+  # REQ-0003 was started on another machine: its branches exist only on the remotes.
+  f3=$(draft feat/REQ-0003-add-farewell reqfile 0003 add-farewell feat "SSLib, SSDisp" normal "Add a farewell" "$(farewell_spec)")
+  approve "$f3" REQ-0003
+  start_req "$f3" REQ-0003 feat/REQ-0003-add-farewell feat/add-farewell SSLib SSDisp
+  git push -q -u origin feat/REQ-0003-add-farewell
+  project_commit SSLib feat/add-farewell farewell-api.txt "farewell api" "feat: add the farewell text"
+  git -C projects/SSDisp push -q -u origin feat/add-farewell
+  git checkout -q develop; git submodule update -q
+  git branch -q -D feat/REQ-0003-add-farewell
+  for p in SSLib SSDisp; do git -C "projects/$p" branch -q -D feat/add-farewell; git -C "projects/$p" fetch -q; done
+  ;;
+# ================================================================== start-push-never
+start-push-never)
+  f1=$(draft feat/REQ-0001-add-greeting reqfile 0001 add-greeting feat SSLib normal "Add a greeting" "$(simple_spec SSLib greeting.txt 'Hello from SSLib' 'SSLib greets its users.')")
+  approve "$f1" REQ-0001; git push -q -u origin feat/REQ-0001-add-greeting
+  git checkout -q develop; git submodule update -q
   ;;
 *) echo "unknown scenario: $SCENARIO" >&2; exit 1 ;;
 esac
