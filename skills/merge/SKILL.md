@@ -279,7 +279,10 @@ draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.
    - Add the question and the developer's answer to `## Q&A` (stage `review`): that
-     the request is dropped, and why.
+     the request is dropped, and why. Write it as "Questions and answers" in
+     `reqs/AGENTS.md` describes (the heading `### Q<n> (yyyy-MM-dd, review)`, then the
+     lines `Q:`, `A:`, and `Decision:`), numbered after the entries that exist, so
+     that the skills that read `## Q&A` find it.
    - `git mv reqs/<file> reqs/done/<file>`, then commit `chore(reqs): drop REQ-0012`.
      The gitlinks do not change: no project code reaches `develop`.
    - Merge it into `develop` with `--no-ff`, push, and delete the `drop/REQ-<id>` branch.
