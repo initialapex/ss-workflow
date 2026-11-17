@@ -97,7 +97,8 @@ anything.
   architecture or the detailed design on your own. If they do not fit the code as you
   find it, that is an error in the spec: see the next point.
 - A mechanical consequence of a listed change is not a gap: registering a listed new
-  file with the build, a designer file that a tool generates for a listed view. Name
+  file with the build, a designer file that a tool generates for a listed view, a doc
+  that describes what a listed change changes (see the point about docs below). Name
   each one under "Not in the detailed design" in the implementation summary.
 - **Evidence, not guesses.** Before you change an existing flow that `## Evidence`
   does not trace yet, trace it step by step through the code, with the call stack and
@@ -136,6 +137,15 @@ anything.
   (`docs/<name>/spec.md` and the other files in `docs/<name>/` that describe it). When
   the way the projects work together changes, update `docs/overview.md`. List these
   updates under "What changed".
+
+  Do this also when "File changes" does not list the doc. A doc that no longer matches
+  the code misleads the next reader, and the developer expects the docs to change
+  together with the code, so bringing a doc in line with a listed change is a
+  mechanical consequence, not a gap: do not ask, and do not change `## Spec` for it.
+  Name each such doc under "Not in the detailed design", so that the design check of
+  `/ss-workflow:review` accepts it. The doc describes only what the spec settles. If
+  writing it needs a decision that the spec does not make, that decision is a gap in
+  the spec: ask as the point above describes.
 - When a project of the request uses another project of the request (a new API of
   SSLib that SSDisp calls), the projects refer to each other as their build defines
   it. Do not change how the build finds a neighbor project unless the spec says so.
