@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prints the git state of a workspace built by check-req-workspace.sh, so that the
+# Prints the git state of a workspace built by workspace.sh, so that the
 # state before and after an eval run can be compared and graded.
 #
 # Usage:  bash tests/eval-fixtures/dump-state.sh <folder that holds ws/ and remotes/>

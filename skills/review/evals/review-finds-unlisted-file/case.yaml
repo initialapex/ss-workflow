@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: review-finds-unlisted-file
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario review-deviation) holds REQ-0001 in review: SSLib's feat/add-greeting adds greeting.txt (listed in the spec) and debug.txt
+  (not listed; the implementation summary says 'Not in the detailed design: none'). The root checkout is on develop. The agent checks out the request branches,
+  runs Verify in the root checkout (bash build.sh passes; tests and verify script are not configured), records it, does the design check and reports the
+  debug.txt deviation, leaves the decision to the developer, skips the code review when the developer says so, claims no unproven criterion, and stops at the
+  manual check without choosing an outcome. The review stays open: the root checkout stays on the request branches.

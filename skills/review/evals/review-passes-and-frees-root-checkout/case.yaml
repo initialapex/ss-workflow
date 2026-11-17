@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: review-passes-and-frees-root-checkout
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario review-clean) holds REQ-0001 in review whose branches match the spec. The agent checks out the request branches, runs Verify, records
+  a design check that matches, skips the code review (developer's choice), guides the manual check, and after the developer confirms both acceptance criteria and
+  chooses 'Review passed', records '### Review' with Passed, ticks the criteria, commits with the gitlink of the project branch tip, pushes, switches the root
+  checkout back to develop with git submodule update, and points to /ss-workflow:merge REQ-0001 without merging.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds a throwaway ss-workflow workspace for the skill evals of check-req
-# (skills/check-req/evals/). It writes into the target folder:
+# Builds a throwaway ss-workflow workspace for the skill evals
+# (skills/<skill>/evals/). It writes into the target folder:
 #
 #   remotes/ws.git, remotes/SSLib.git, remotes/SSDisp.git   bare remotes
 #   ws/                                                       the root checkout
@@ -23,13 +23,35 @@
 #                   another machine (its branches exist only on the remotes)
 #   start-push-never
 #                   the start scenario, with push-policy never for SSLib
+#   merge-review    REQ-0001 (SSLib) in review, with a passed Verify and Review
+#   merge-unreviewed
+#                   REQ-0001 in review, whose Notes hold no Verify and no Review
+#   merge-drop      REQ-0003 (SSLib, SSDisp) in progress with commits and no worktree
+#   release-beta    SSLib (version-source none) has a closed request and two commits
+#                   on develop since v0.1.0, and nothing unfinished
+#   release-rc      the same, with version-source version.txt, and REQ-0002 in progress
+#   release-nothing no request, no commit since v0.1.0 (alias: bare)
+#   review-deviation, review-clean
+#                   REQ-0001 in review without a Verify or Review; the first branch also
+#                   adds a file that the spec does not list
+#   newreq-ids      closed REQ-0001, ready REQ-0003, a draft REQ-0004, and a started hotfix
+#                   REQ-0006 whose branch name carries no id
+#   init-new        two project remotes and an empty folder for the workspace
+#   upgrade-old     a workspace rendered from the templates of 0.12.3, with a closed request
 #
-# Usage:  bash tests/eval-fixtures/check-req-workspace.sh <scenario> [target folder]
+# Usage:  bash tests/eval-fixtures/workspace.sh <scenario> [target folder]
 set -eu
-SCENARIO="${1:?usage: check-req-workspace.sh <scenario> [target]}"
+SCENARIO="${1:?usage: workspace.sh <scenario> [target]}"
 TARGET="${2:-.}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TPL="$HERE/../../skills/init/templates"
+SSW_VERSION=0.12.4
+if [ "$SCENARIO" = upgrade-old ]; then
+  # A workspace of the previous release: render the templates of the commit before 0.12.4 (59f4ee1).
+  OLD_TPL="$(mktemp -d)"
+  git -C "$HERE/../.." archive 59f4ee1^ skills/init/templates | tar -x -C "$OLD_TPL"
+  TPL="$OLD_TPL/skills/init/templates"; SSW_VERSION=0.12.3
+fi
 mkdir -p "$TARGET"; cd "$TARGET"
 T="$(pwd -W 2>/dev/null || pwd)"
 [ -e "$T/ws" ] && { echo "already built: $T/ws" >&2; exit 1; }
@@ -72,13 +94,17 @@ EOF
 }
 seed_project SSLib
 seed_project SSDisp
+if [ "$SCENARIO" = init-new ]; then
+  # Only the two project remotes and an empty folder for the workspace: the starting point of /ss-workflow:init.
+  mkdir -p "$T/ws"; echo "fixture ready: $T/ws ($SCENARIO)"; exit 0
+fi
 
 # ------------------------------------------------------------------ workspace files
-entry() { # name [push-policy]
+entry() { # name [push-policy] [version-source]
   sed -e "s#{{ENTRY_PUSH_POLICY}}#${2:-}#" \
       -e "s#{{ENTRY_NAME}}#$1#g" -e "s#{{ENTRY_MAIN_BRANCH}}#master#" -e "s#{{ENTRY_DEVELOP_BRANCH}}#develop#" \
       -e "s#{{ENTRY_TYPE}}#Text files joined by a bash script#" -e "s#{{ENTRY_KIND}}#library#" \
-      -e "s#{{ENTRY_PROJECT_FILE}}##" -e "s#{{ENTRY_VERSION_SOURCE}}#version.txt#" \
+      -e "s#{{ENTRY_PROJECT_FILE}}##" -e "s#{{ENTRY_VERSION_SOURCE}}#${3:-version.txt}#" \
       -e "s#{{ENTRY_SETUP_COMMAND}}##" -e "s#{{ENTRY_BUILD_COMMAND}}#bash build.sh#" \
       -e "s#{{ENTRY_TEST_COMMAND}}##" -e "s#{{ENTRY_PACKAGE_COMMAND}}##" -e "s#{{ENTRY_PACKAGE_FILES}}##" \
       -e "s#{{ENTRY_REMOTE_PLATFORM}}##" -e "s#{{ENTRY_MERGE_METHOD}}##" -e "s#{{ENTRY_PUSH_POLICY}}##" \
@@ -94,14 +120,15 @@ section() { # name description
 
 git init -q "$W"; cd "$W"
 SSLIB_PUSH=""; [ "$SCENARIO" = start-push-never ] && SSLIB_PUSH=never
-{ entry SSLib "$SSLIB_PUSH"; entry SSDisp; } > "$T/projects.yaml"
+SSLIB_VS="version.txt"; [ "$SCENARIO" = release-beta ] && SSLIB_VS=none
+{ entry SSLib "$SSLIB_PUSH" "$SSLIB_VS"; entry SSDisp; } > "$T/projects.yaml"
 { section SSLib "The shared library."; section SSDisp "The display application, which uses SSLib."; } > "$T/sections.md"
 sed -e "s#{{WORKSPACE_NAME}}#demo-workspace#g" \
     -e "s#{{WORKSPACE_DESCRIPTION}}#A demo workspace with a library and a display application.#" \
-    -e "s#{{SS_WORKFLOW_VERSION}}#0.12.4#" -e "s#{{INIT_DATE}}#2026-10-01#" \
+    -e "s#{{SS_WORKFLOW_VERSION}}#$SSW_VERSION#" -e "s#{{INIT_DATE}}#2026-10-01#" \
     -e "s#{{DISCUSSION_LANG}}#zh-TW#" -e "s#{{README_LANGS}}#en#" -e "s#{{AGENT_DOC_LANG}}#en#" \
     -e "s#{{REQS_LANG}}#en#" -e "s#{{DOCS_LANG}}#en#" -e "s#{{MAIN_BRANCH}}#master#" \
-    -e "s#{{REMOTE_PLATFORM}}#none#" -e "s#{{REMOTE_CLI}}##" -e "s#{{MERGE_METHOD}}#local#" \
+    -e "s#{{REMOTE_PLATFORM}}#none#" -e "s#{{REMOTE_CLI}}#none#" -e "s#{{MERGE_METHOD}}#local#" \
     -e "s#{{PUSH_POLICY}}#auto#" -e "s#{{LEGACY_PROJECT}}##" \
     "$TPL/root-AGENTS.md" | awk -v f="$T/projects.yaml" '
       /\{\{PROJECTS\}\}/ { sub(/\{\{PROJECTS\}\}/, ""); print; while ((getline l < f) > 0) print l; next } { print }' > AGENTS.md
@@ -111,11 +138,20 @@ sed -e "s#{{WORKSPACE_NAME}}#demo-workspace#g" "$TPL/projects-AGENTS.md" \
 rm -f "$T/projects.yaml" "$T/sections.md"
 mkdir -p reqs/done docs/SSLib docs/SSDisp; touch reqs/done/.gitkeep
 cp "$TPL/reqs-AGENTS.md" reqs/AGENTS.md
-cp "$TPL/CLAUDE.md" CLAUDE.md
+cp "$TPL/CLAUDE.md" CLAUDE.md; cp "$TPL/CLAUDE.md" reqs/CLAUDE.md; cp "$TPL/CLAUDE.md" projects/CLAUDE.md
 printf '# Overview\n\nSSLib is a library of text files. SSDisp is an application that uses SSLib.\n' > docs/overview.md
 printf '# SSLib spec\n\nSSLib holds `app.txt` and `version.txt`. Every .txt file is part of its build output.\n' > docs/SSLib/spec.md
 printf '# SSDisp spec\n\nSSDisp holds `app.txt` and `version.txt`. Every .txt file is part of its build output.\n' > docs/SSDisp/spec.md
-printf '.claude/worktrees/\n' > .gitignore
+cp "$TPL/gitignore.template" .gitignore
+# The root READMEs of a complete workspace, with one row per project.
+ROWS="| SSLib | [\`projects/SSLib\`](projects/SSLib) | $R/SSLib.git | [\`docs/SSLib/spec.md\`](docs/SSLib/spec.md) | The shared library. |
+| SSDisp | [\`projects/SSDisp\`](projects/SSDisp) | $R/SSDisp.git | [\`docs/SSDisp/spec.md\`](docs/SSDisp/spec.md) | The display application, which uses SSLib. |"
+printf '%s\n' "$ROWS" > "$T/rows.md"
+for rd in README.md README-zh-TW.md; do
+  sed -e "s#{{WORKSPACE_NAME}}#demo-workspace#g" -e "s#{{WORKSPACE_DESCRIPTION}}#A demo workspace with a library and a display application.#" "$TPL/$rd" \
+    | awk -v f="$T/rows.md" '/\{\{PROJECT_ROWS\}\}/ { while ((getline l < f) > 0) print l; next } { print }' > "$rd"
+done
+rm -f "$T/rows.md"
 git submodule add -q "$R/SSLib.git" projects/SSLib
 git submodule add -q "$R/SSDisp.git" projects/SSDisp
 git add -A; git commit -q -m "chore: add ss-workflow workspace"
@@ -330,6 +366,37 @@ project_commit() { # project branch file line message
   git -C "projects/$p" worktree remove "$tmp"
 }
 
+sslib_develop_commit() { # file content message -> a commit on SSLib develop, pushed, gitlink recorded on develop
+  local s="$T/tmp-dev-$1"
+  git -C projects/SSLib worktree add -q --detach "$s" origin/develop
+  ( cd "$s"; printf '%s\n' "$2" > "$1"; git add -A; git commit -q -m "$3"; git push -q origin HEAD:develop )
+  git -C projects/SSLib worktree remove "$s"
+  git -C projects/SSLib fetch -q; git -C projects/SSLib checkout -q --detach origin/develop
+  git add projects/SSLib; git commit -q -m "chore(workspace): update the SSLib gitlink"; git push -q
+}
+closed_req() { # id slug type project title file line -> a closed request in reqs/done whose merge is on develop
+  local f; f=$(reqfile "$1" "$2" "$3" "$4" normal "$5" "$(simple_spec "$4" "$6" "$7" "$5.")" "
+Merged into develop (2026-11-05): $4 $(git -C projects/$4 rev-parse --short origin/develop)")
+  setfield "$f" status done
+  mkdir -p reqs/done; mv "$f" "reqs/done/${f#reqs/}"
+  git add -A; git commit -q -m "chore(reqs): close REQ-$1" -m "Refs: REQ-$1"; git push -q
+}
+review_req() { # id slug branch project-branch notes -> REQ-id in review on its branch (SSLib), root back on develop
+  local id=$1 slug=$2 b=$3 pb=$4 f
+  f=$(draft "$b" reqfile "$id" "$slug" feat SSLib normal "Add a greeting" "$(simple_spec SSLib greeting.txt 'Hello from SSLib' 'SSLib greets its users.')" "$5")
+  approve "$f" "REQ-$id"
+  start_req "$f" "REQ-$id" "$b" "$pb" SSLib
+  git push -q -u origin "$b"
+  project_commit SSLib "$pb" greeting.txt "Hello from SSLib" "feat: add a greeting text file"
+  [ "${6:-}" = extra ] && project_commit SSLib "$pb" debug.txt "debug" "feat: add a debug marker"
+  git -C projects/SSLib fetch -q
+  git update-index --cacheinfo "160000,$(git -C projects/SSLib rev-parse "origin/$pb"),projects/SSLib"
+  setfield "$f" status review
+  git add reqs; git commit -q -m "chore(reqs): mark REQ-$id for review" -m "Refs: REQ-$id"
+  git push -q
+  git checkout -q develop; git submodule update -q
+}
+
 case "$SCENARIO" in
 # ================================================================== overview
 overview)
@@ -433,6 +500,100 @@ start-push-never)
   f1=$(draft feat/REQ-0001-add-greeting reqfile 0001 add-greeting feat SSLib normal "Add a greeting" "$(simple_spec SSLib greeting.txt 'Hello from SSLib' 'SSLib greets its users.')")
   approve "$f1" REQ-0001; git push -q -u origin feat/REQ-0001-add-greeting
   git checkout -q develop; git submodule update -q
+  ;;
+# ================================================================== merge-*
+merge-review)
+  review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
+### Implementation summary (2026-11-05)
+- What changed: SSLib: added \`greeting.txt\` with the line \`Hello from SSLib\`
+- Ran in the worktree: SSLib \`bash build.sh\`: passed
+- Did not run: tests, scripts, and executables (left to Verify)
+
+### Verify (2026-11-06)
+- SSLib: \`bash build.sh\`: passed (build ok: 3 lines). Tests: not configured. Verify script: not configured.
+- Design check: the diff matches \"File changes\"; no deviation.
+
+### Review (2026-11-06)
+- Result: passed. The developer ran \`bash build.sh\` in SSLib and found the line in \`bin/out.txt\`. Both acceptance criteria are ticked."
+  ;;
+merge-unreviewed)
+  review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
+### Implementation summary (2026-11-05)
+- What changed: SSLib: added \`greeting.txt\` with the line \`Hello from SSLib\`
+- Ran in the worktree: SSLib \`bash build.sh\`: passed
+- Did not run: tests, scripts, and executables (left to Verify)"
+  ;;
+merge-drop)
+  f3=$(draft feat/REQ-0003-add-farewell reqfile 0003 add-farewell feat "SSLib, SSDisp" normal "Add a farewell" "$(farewell_spec)")
+  approve "$f3" REQ-0003
+  start_req "$f3" REQ-0003 feat/REQ-0003-add-farewell feat/add-farewell SSLib SSDisp
+  git push -q -u origin feat/REQ-0003-add-farewell
+  project_commit SSLib feat/add-farewell farewell-api.txt "farewell api" "feat: add the farewell text"
+  project_commit SSDisp feat/add-farewell farewell.txt "Goodbye from SSDisp" "feat: show a farewell"
+  git checkout -q develop; git submodule update -q
+  ;;
+# ================================================================== release-*
+release-beta|release-rc)
+  sslib_develop_commit greeting.txt "Hello from SSLib" "feat: add a greeting text file"
+  sslib_develop_commit notes.txt "notes" "fix: keep the notes file in the build output"
+  closed_req 0001 add-greeting feat SSLib "Add a greeting" greeting.txt "Hello from SSLib"
+  if [ "$SCENARIO" = release-rc ]; then
+    f2=$(draft feat/REQ-0002-log-level reqfile 0002 log-level feat SSLib normal "Add a log level" "$(simple_spec SSLib loglevel.txt 'info' 'SSLib needs a log level.')")
+    approve "$f2" REQ-0002
+    start_req "$f2" REQ-0002 feat/REQ-0002-log-level feat/log-level SSLib
+    git push -q -u origin feat/REQ-0002-log-level
+    project_commit SSLib feat/log-level loglevel.txt "info" "feat: add a log level"
+    git checkout -q develop; git submodule update -q
+  fi
+  ;;
+release-nothing|bare)
+  ;;
+# ================================================================== review-*
+review-deviation)
+  review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
+### Implementation summary (2026-11-05)
+- What changed: SSLib: added \`greeting.txt\` with the line \`Hello from SSLib\`; added \`debug.txt\`
+- Architecture and detailed design: as in the spec
+- Not in the detailed design: none
+- Ran in the worktree: SSLib \`bash build.sh\`: passed (build ok: 4 lines)
+- Did not run: tests, scripts, and executables (left to Verify)
+- Not done: none
+- Verify: SSLib \`bash build.sh\` in the root checkout
+- Review by hand: run \`bash build.sh\` in SSLib and look for the line in \`bin/out.txt\`" extra
+  ;;
+review-clean)
+  review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
+### Implementation summary (2026-11-05)
+- What changed: SSLib: added \`greeting.txt\` with the line \`Hello from SSLib\`
+- Architecture and detailed design: as in the spec
+- Not in the detailed design: none
+- Ran in the worktree: SSLib \`bash build.sh\`: passed (build ok: 3 lines)
+- Did not run: tests, scripts, and executables (left to Verify)
+- Not done: none
+- Verify: SSLib \`bash build.sh\` in the root checkout
+- Review by hand: run \`bash build.sh\` in SSLib and look for the line in \`bin/out.txt\`"
+  ;;
+# ================================================================== newreq-ids
+newreq-ids)
+  closed_req 0001 add-greeting feat SSLib "Add a greeting" greeting.txt "Hello from SSLib"
+  f3=$(draft feat/REQ-0003-add-farewell reqfile 0003 add-farewell feat "SSLib, SSDisp" normal "Add a farewell" "$(farewell_spec)")
+  approve "$f3" REQ-0003; git push -q -u origin feat/REQ-0003-add-farewell
+  draft feat/REQ-0004-dark-mode reqfile 0004 dark-mode feat SSDisp normal "Dark mode" "(under discussion)" >/dev/null
+  git push -q -u origin feat/REQ-0004-dark-mode
+  # REQ-0006 is a hotfix that was started: its branch name carries no id, only its request file does.
+  f6=$(draft hotfix/REQ-0006-fix-crash reqfile 0006 fix-crash hotfix SSDisp high "Fix the crash on start" "$(simple_spec SSDisp crashfix.txt 'no crash on start' 'SSDisp v0.1.0 crashes on start.' 'Hotfix: SSDisp v0.1.0 → v0.1.1')")
+  approve "$f6" REQ-0006
+  git checkout -q -b hotfix/SSDisp-v0.1.1 master
+  git checkout hotfix/REQ-0006-fix-crash -- "$f6"
+  setfield "$f6" status in-progress; setfield "$f6" branch hotfix/SSDisp-v0.1.1; setfield "$f6" project-branch hotfix/v0.1.1
+  git add "$f6"; git commit -q -m "chore(reqs): start REQ-0006" -m "Refs: REQ-0006"
+  git push -q -u origin hotfix/SSDisp-v0.1.1
+  git branch -q -D hotfix/REQ-0006-fix-crash
+  git checkout -q develop; git submodule update -q
+  ;;
+# ================================================================== upgrade-old
+upgrade-old)
+  closed_req 0001 add-greeting feat SSLib "Add a greeting" greeting.txt "Hello from SSLib"
   ;;
 *) echo "unknown scenario: $SCENARIO" >&2; exit 1 ;;
 esac

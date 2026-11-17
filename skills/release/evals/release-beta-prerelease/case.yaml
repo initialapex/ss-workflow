@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: release-beta-prerelease
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario release-beta) has SSLib (version-source none) with a closed REQ-0001 and two commits on develop since v0.1.0
+  (a feat and a fix), and no unfinished request. The agent recommends the target 0.2.0 (a feat since v0.1.0, below 1.0.0,
+  so MINOR), tags 0.2.0-beta1 on the tip of SSLib's develop, builds it, tags the workspace develop SSLib/v0.2.0-beta1, asks
+  before pushing the tags, pushes, puts SSLib back at its gitlink, and reports the closed request and that the project has
+  no package. When the agent asks the developer anything, the developer chooses the beta version that was asked for, and
+  agrees to push the tags.

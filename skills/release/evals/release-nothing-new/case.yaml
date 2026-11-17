@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: release-nothing-new
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario release-nothing) has SSLib at v0.1.0 with no commit on develop since the tag and no request. The agent
+  finds that there is nothing to release, says so, and stops without creating a tag or a branch. Nobody answers questions.
