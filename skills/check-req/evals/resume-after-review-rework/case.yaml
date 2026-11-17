@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: resume-after-review-rework
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario resume-anomaly) holds REQ-0003, in-progress after a review sent it back: SSDisp/farewell.txt
+  holds 'Bye' but the spec asks for 'Goodbye from SSDisp'. The review left the root checkout on the request branch and the
+  projects on feat/add-farewell, and no worktree exists. The agent reports this anomaly and proposes the repair (checkout
+  develop and git submodule update) before switching anything, then recreates the worktrees from the existing branches,
+  fixes farewell.txt with a new commit (no rebase, no force push), addresses the review finding in the implementation
+  summary, marks the request for review, pushes, removes the worktrees, and leaves the root checkout on develop and clean.
+  When the agent asks the developer anything, the developer approves the proposed repair or the recommended option.
