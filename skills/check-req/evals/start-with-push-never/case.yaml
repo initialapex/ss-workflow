@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: start-with-push-never
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario start-push-never) is the start scenario, with push-policy never for SSLib (the workspace stays auto).
+  The agent starts and implements REQ-0001 as usual, pushes the workspace branch, but never pushes SSLib: the SSLib branch
+  feat/add-greeting stays local in the root checkout's SSLib repository, the worktrees are removed only after checking that
+  the branch exists and holds the work, and the report lists the SSLib commits that the developer still has to push.
+  When the agent asks the developer anything, the developer accepts the recommended option.

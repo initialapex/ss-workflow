@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: merge-drop-request
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario merge-drop) holds REQ-0003, in progress with commits in the workspace, SSLib, and SSDisp, and no worktree. The agent
+  confirms the drop and names the abandoned branches and commit counts, records it on develop through a short-lived
+  drop/REQ-0003 branch (status done, a dated Notes line with the reason, a Q&A entry of stage review, the file in reqs/done,
+  commit chore(reqs): drop REQ-0003, merged --no-ff), merges no project code, and asks separately before deleting the request
+  branches. The developer confirms the drop and answers no to deleting the branches, so the branches are kept.

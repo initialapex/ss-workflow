@@ -354,8 +354,11 @@ When a project of the request is used by another one (SSDisp builds against SSLi
 run the dependent project's checks too: they show whether the projects fit together
 on these branches.
 
-Then go through the acceptance criteria. Tick (`- [x]`) each criterion that these
-checks actually prove. Leave the others for the Review.
+Then go through the acceptance criteria. Tick (`- [x]`) a criterion only when "How to
+verify" in the spec assigns it to Verify and its check ran and passed in this run. A
+criterion that "How to verify" assigns to the Review stays unticked, even when a
+Verify check seems to show it: the developer decides it by hand, and "Review passed"
+(Step 7) ticks it. Say in the Verify record which criteria are left for the Review.
 
 Go through the evidence entries of Step 3 that Verify checks. Each one whose check
 ran and passed becomes `verified`, with the test or command and the commit as its

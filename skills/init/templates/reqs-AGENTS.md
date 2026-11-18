@@ -101,6 +101,15 @@ names (`FrameBuffer`, `IReadOnlyList<Frame>`). Two kinds of examples may be show
 code blocks: data formats (a JSON, XML, or INI file, the byte layout of a protocol
 frame), and commands that a developer or a user types.
 
+A line or a command inside a script is code too, also when the whole change is one
+line of a build script. For a script, the spec states what can be observed: which
+file the script creates or changes, from what, in which order relative to its other
+steps, what happens when the file already exists or a step fails, and the exit status
+and the message that follow. It leaves the exact command to the implementation (see
+"Left to the implementation"). Values that are data are not code and are written out:
+the key and the value of a setting, the text of a message that a user sees, and a
+command that a user types.
+
 **Facts cite their evidence.** Every statement in the spec about what exists today
 (how the code or the system behaves, where a problem comes from, what a file or a
 device holds) ends with the ids of its entries in `## Evidence`, for example "(E3)".
@@ -127,14 +136,14 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 
 | Section | Content |
 |---------|---------|
-| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed. |
+| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed, with one exception: a doc that describes what a listed change changes is brought in line with it even when it is not listed, and the implementation summary names it under "Not in the detailed design". |
 | Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also each view that is added or changed, and the members that each of its controls binds to. |
 | Data and state | Every data item that is added or changed and that is stored, passed between components, or shown: its name, type, unit, default value, allowed range, and which component owns and changes it. The exact layout of every file, setting, message, or protocol frame that is read or written. |
 | Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which public member it calls, and on which thread or async context it runs. Say where the flow waits, what it locks, and what happens when it is cancelled. |
 | Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the exception type or the return value, the message text, what the UI shows, what is logged, and the state afterwards. |
 | Configuration and dependencies | New or changed settings with their key, type, default value, and where they are stored. New or changed dependencies with the package name, the exact version, and how the project references them. |
 | Tests | One row per automated test to add or change: the test project and file, the test class, the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
-| Left to the implementation | What the implementation decides on its own: the members that only a type itself uses, local names, how a function body is written, and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
+| Left to the implementation | What the implementation decides on its own: the members that only a type itself uses, local names, how a function body or a script is written (the exact commands, once the behavior that they must show is settled), and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
 
 For a request with `projects: []`, "File changes" lists the workspace files, and the
 sections that describe code say "None".

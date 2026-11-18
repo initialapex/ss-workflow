@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: new-req-hotfix-without-evidence
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario bare) has SSDisp released as v0.1.0 and no request. SSDisp is a project of plain text files with a build script, so nothing in it can
+  crash. The agent confirms with the developer that this is a hotfix, opens hotfix/REQ-0001-<slug> with priority high, projects [SSDisp] and the first Scope line
+  'Hotfix: SSDisp v0.1.0 → v0.1.1', records the symptom as developer-stated, asks for a log or a reproduction, does not invent a root cause (no verified cause), keeps
+  unknown answers as pending questions or accepted defaults with an Assumption, and does not approve a spec whose cited evidence does not allow it.

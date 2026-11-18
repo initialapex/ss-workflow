@@ -379,7 +379,12 @@ standard with a reader who did not take part in the discussion:
      decision open; a contradiction between parts of the spec, or between the spec and
      the code (a name, file, or member that the spec assumes and the code does not
      have); a section of 'Detailed design' that is missing; and any program code or
-     pseudo-code in the spec. Then check the evidence: open every reference of every
+     pseudo-code in the spec (a line or command of a script is code too). How a
+     function body or a script is written, including its exact commands and the exact
+     text of its comments, is left to the implementation: do not report it as a gap
+     when what can be observed is settled (which file is created or changed, from
+     what, in which order relative to the other steps, what happens when it exists or
+     a step fails, the exit status, and the message). Then check the evidence: open every reference of every
      `verified` entry in `## Evidence` at its commit, and walk its trace again step by
      step; report an entry whose quoted lines differ from the code, whose trace skips a
      step or gives a value that does not follow from the code, or whose evidence does

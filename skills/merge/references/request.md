@@ -130,6 +130,10 @@ Only when every project branch of the request is merged into its develop branch
    - Set the gitlink of each project of the request to the commit of its develop
      branch that contains the merge: `git -C <path> checkout --detach <develop-ref of
      the project>`, then `git add <path>`.
+   - Stage the request file and the gitlinks after all these edits (`git add reqs
+     <path>...`), and check `git status --porcelain`: `git mv` stages the file as it was
+     when it moved, so an edit made after it (`status: done`, the note) stays unstaged
+     and would be left out of the commit.
    - Commit and push:
 
      ```

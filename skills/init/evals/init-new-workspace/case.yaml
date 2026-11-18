@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: init-new-workspace
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The folder ws/ is empty and the two project repositories are bare repositories on disk (SSLib.git and SSDisp.git, each with master and develop). The agent picks the New mode,
+  asks the questionnaire in rounds, shows the summary of all answers and the planned tree for confirmation, then creates the workspace: git init on master, the two
+  projects as submodules, AGENTS.md and CLAUDE.md files from the templates (no placeholder left, managed blocks kept), reqs/, docs/, READMEs, several small commits,
+  develop created with the gitlinks pointing to the projects' develop branches. Init writes nothing into the projects. There is no workspace remote.

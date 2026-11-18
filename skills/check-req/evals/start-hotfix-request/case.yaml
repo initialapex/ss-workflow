@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: start-hotfix-request
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario start-hotfix) holds REQ-0006, a ready hotfix 'Hotfix: SSDisp v0.1.0 → v0.1.1' that adds
+  crashfix.txt to SSDisp. SSDisp develop and the workspace develop have commits after the release. The agent creates the
+  workspace branch hotfix/SSDisp-v0.1.1 from the workspace master, copies the request file from its draft branch, makes the
+  start commit, deletes the draft branch hotfix/REQ-0006-fix-crash locally and on the remote, creates the SSDisp branch
+  hotfix/v0.1.1 from SSDisp master (without the develop commit), bumps version.txt to 0.1.1 in its own commit, implements
+  crashfix.txt, marks the request for review with the SSDisp gitlink, pushes, removes the worktrees, and leaves the root
+  checkout on develop. When the agent asks the developer anything, the developer accepts the recommended option.

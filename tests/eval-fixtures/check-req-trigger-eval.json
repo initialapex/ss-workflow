@@ -1,0 +1,22 @@
+[
+  {"query": "ok 現在 reqs 裡面到底有哪些還沒做完的？我記得 REQ-0003 做到一半，幫我整理一下狀態然後告訴我下一個先做哪個", "should_trigger": true},
+  {"query": "Start implementing REQ-0002 please, the spec got approved yesterday and I want the worktree set up today", "should_trigger": true},
+  {"query": "我剛剛在 new-req 那邊把 REQ-0001 核准了，直接開工吧", "should_trigger": true},
+  {"query": "I'm inside .claude/worktrees/feat-REQ-0003-add-farewell right now and I forgot where I left off. pick it up and keep implementing", "should_trigger": true},
+  {"query": "昨天 session 斷掉了，REQ-0003 的 worktree 應該還在，接著做下去", "should_trigger": true},
+  {"query": "what's the state of all the requests in this workspace? something looks off with the branches of REQ-0005, the root checkout might still be on it", "should_trigger": true},
+  {"query": "review 把 REQ-0003 退回來了，說 SSDisp 的 farewell.txt 內容不對，幫我繼續改完再送回去", "should_trigger": true},
+  {"query": "我好像手動把 .claude/worktrees 底下的資料夾刪掉了，REQ-0003 還是 in-progress，幫我把 worktree 弄回來然後繼續實作", "should_trigger": true},
+  {"query": "hotfix REQ-0006 (SSDisp 0.1.0 crash) is ready, go ahead and start it", "should_trigger": true},
+  {"query": "are any requests stuck in a weird state? like a worktree whose branch is already merged, or a REQ branch with no request file. list them and fix what you can", "should_trigger": true},
+  {"query": "我想加一個功能：SSDisp 的視窗要能切換 dark mode，幫我開一個需求", "should_trigger": false},
+  {"query": "REQ-0005 實作好了，幫我在 root checkout 跑 build 和測試做驗收前檢查", "should_trigger": false},
+  {"query": "REQ-0005 驗收過了，幫我 merge 回 develop 然後結案", "should_trigger": false},
+  {"query": "幫 SSLib 出 v0.2.0，先切 release branch", "should_trigger": false},
+  {"query": "add the project https://github.com/acme/SSNet.git to this workspace as a new submodule project", "should_trigger": false},
+  {"query": "REQ-0004 dark mode 的 spec 我們上次還沒討論完，繼續討論一下要不要跟著 Windows 系統設定切換", "should_trigger": false},
+  {"query": "git worktree remove keeps saying 'working trees containing submodules cannot be moved or removed' in some other repo of mine, what does that mean in general?", "should_trigger": false},
+  {"query": "explain how the branching model of ss-workflow differs from plain git flow, I need to write it up for my team", "should_trigger": false},
+  {"query": "remote 上 REQ-0001 的 merge request 已經被 merge 了，幫我把本地跟 remote 的 branch 清乾淨", "should_trigger": false},
+  {"query": "幫我直接在 SSLib 加一個 greeting.txt 就好，這點小事不用開需求吧", "should_trigger": false}
+]

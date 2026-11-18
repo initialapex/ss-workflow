@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: overview-recommends-hotfix-first
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario overview) holds six requests: REQ-0001 ready feat normal, REQ-0002 ready fix high,
+  REQ-0003 in-progress with its worktree, REQ-0004 draft, REQ-0005 review, REQ-0006 ready hotfix low.
+  The agent shows all six with their statuses, recommends REQ-0006 first (a hotfix comes before priority),
+  orders the candidates REQ-0006, REQ-0002, REQ-0003, REQ-0001, leaves the draft and the review request out
+  of the candidates, points REQ-0005 to /ss-workflow:review, answers in Traditional Chinese (discussion-language
+  zh-TW), and then waits for the developer's choice without changing any branch, worktree, or commit.
+  Nobody answers the agent's question in this test.
