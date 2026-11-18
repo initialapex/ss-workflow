@@ -234,7 +234,7 @@ init 不會寫入專案的任何檔案。專案的測試、sample 與第三方�
 
 ## 專案形式
 
-Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用的版號產生器（見下方）。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
+Plugin 不內建任何 toolchain 的範本、指令或 script。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
 
 | 內容 | 存放位置 |
 |------|----------|
@@ -247,9 +247,9 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
 
-**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`），由每個專案檔直接 import，Visual Studio 2010（MSBuild 4.0）以後都能用，需要 Windows PowerShell 3.0 以上。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
+**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。workflow 只知道這個值的意思；讓專案做到它是對專案的修改，屬於該 toolchain 的 skill。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，可用 [scott-skills](https://github.com/initialapex/scott-skills) marketplace 的 `ss-build` plugin 裡的 `ss-build:git-version`：它附了產生器，並透過 request 把專案轉換過去。
 
-**Release 打包 script。** plugin 也附了 `New-ReleasePackage.ps1`（Windows PowerShell 3.0 以上）。由 request 複製到專案的 `tools/`，搭配 `tools/package.psd1` 列出 release build 要打包的檔案和要出貨的平台，`package-command` 執行它。它把 release build 壓成 `dist/<name>-v<version>.zip`，有多個平台時每個平台一包 `<name>-v<version>-<platform>.zip`；有未 commit 的變更時拒絕打包；沒有 workspace 也能執行。init、加入專案、升級時都會詢問是否製作，和轉換成 `git-tag` 是分開的 request。
+**Release 打包。** `package-command` 在 tag 版本 build 完成後執行。它印出 `Package: <path>` 行時，那些檔案就是 package（每個平台一個 zip），`package-files` 留空；否則 release 把 `package-files` 壓成 `<name>-v<version>.zip`。`ss-build:release-package` 提供 Windows 專案用的打包 script，讓開發者、CI 與 release 做出同一個 zip。
 
 專案不一定是程式碼。文件或分析報告的 repository 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
@@ -283,8 +283,6 @@ skills/
 └─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
-tests/git-version.sh         檢查版號產生器；實際 build SDK-style 與舊式 (MSBuild 4) C# 專案
-tests/release-package.sh     檢查 release 打包 script
 ss-workflow-skill.md         設計規格
 ```
 
@@ -308,18 +306,6 @@ bash tests/git-sequences.sh
 
 ```bash
 bash tests/migrations.sh
-```
-
-`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repository 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 SDK-style C# 專案並讀取 assembly 的版本；有 .NET Framework 的 MSBuild（MSBuild 4）時，用舊式專案再做一次，和 Visual Studio 2012 的 build 方式相同：
-
-```bash
-bash tests/git-version.sh
-```
-
-打包 script 也用同樣方式以假的 build 輸出測試：版號、zip 裡的檔案與資料夾、平台，以及會拒絕的情況：
-
-```bash
-bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

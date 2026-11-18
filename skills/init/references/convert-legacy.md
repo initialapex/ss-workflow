@@ -309,11 +309,6 @@ a request branch `<type>/REQ-<id>-<slug>` exists in the workspace for each old d
 
 Already done when: the tag exists.
 
-Then, with the workspace's root checkout on `develop` and its pushes done, start the
-requests of Step 9b of `SKILL.md` for what the developer chose in Round 3 (the
-conversion to `git-tag`, the package script), one after another. Already done when
-each of them has a request branch.
-
 ## 8. Clean up the old repository
 
 Only after the developer has checked the workspace:
