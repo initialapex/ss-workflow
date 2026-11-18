@@ -125,9 +125,9 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes that a developer or a user sees or uses: behavior, UI, commands and their options, file formats, the public API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. For `type: hotfix`, the first line is `Hotfix: <name> v<released version> → v<hotfix version>`. |
+| Scope | The concrete changes that a developer or a user sees or uses: behavior, interfaces, commands and their options, file formats, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. For `type: hotfix`, the first line is `Hotfix: <name> v<released version> → v<hotfix version>`. |
 | Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Never left out. |
-| Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the member, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
+| Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the element, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify), naming its tests from "Tests" in "Detailed design", or by hand (Review). |
 | Out of scope | What this request deliberately does not cover |
@@ -136,15 +136,15 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 
 | Section | Content |
 |---------|---------|
-| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed, with one exception: a doc that describes what a listed change changes is brought in line with it even when it is not listed, and the implementation summary names it under "Not in the detailed design". |
-| Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also the members that each control binds to (the views and the controls themselves are in "UI"). |
-| UI | For a project with `has-gui: yes` (see "UI and UX"), one table per view that is added or changed: its purpose and how the user gets there; its areas in reading order, with the margin and padding of each as a value of the project's spacing scale (or its resource key), the primary action, and the Tab order; one row per control with its label, type, the state in which it is shown or enabled, what each user action does, the validation and the message text, and its shortcut. The rows are what `manual.html` says. "None" for any other project. |
+| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (build or project files, resource files), and the docs that follow the change. A file that is not listed is not changed, with one exception: a doc that describes what a listed change changes is brought in line with it even when it is not listed, and the implementation summary names it under "Not in the detailed design". |
+| Components and interfaces | One table per component that is added, changed, or removed (a type, module, function group, script, document, or message definition: whatever the project's technology calls its units): its name, kind, location (namespace, package, or folder), the file that holds it, what it builds on or implements, and its responsibility in one sentence. Below it, one row per interface element that other parts use and that is added, changed, or removed: name, kind, the inputs in order with their names and types, the result type, and the behavior: what it does, its preconditions, and what it returns or reports on failure. Elements that only the component itself uses are not listed. The skills in `skills` of the project (see "Project skills") say which kinds of units and interface elements its technology has. (Called "Types and public members" before ss-workflow 0.13.0.) |
+| Sections from the project's skills | Every section that a skill in `skills` of the project requires in its design output (see "Project skills"), each under its own heading, in the order the skills are listed. "None" when the project lists no skill that requires one. |
 | Data and state | Every data item that is added or changed and that is stored, passed between components, or shown: its name, type, unit, default value, allowed range, and which component owns and changes it. The exact layout of every file, setting, message, or protocol frame that is read or written. |
-| Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which public member it calls, and on which thread or async context it runs. Say where the flow waits, what it locks, and what happens when it is cancelled. |
-| Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the exception type or the return value, the message text, what the UI shows, what is logged, and the state afterwards. |
+| Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which interface element it calls, and in which execution context it runs where that matters (thread, process, task, or device). Say where the flow waits, what it locks or reserves, and what happens when it is cancelled. |
+| Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the error code, exception, or return value, the message text, what the user sees, what is logged, and the state afterwards. |
 | Configuration and dependencies | New or changed settings with their key, type, default value, and where they are stored. New or changed dependencies with the package name, the exact version, and how the project references them. |
-| Tests | One row per automated test to add or change: the test project and file, the test class, the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
-| Left to the implementation | What the implementation decides on its own: the members that only a type itself uses, local names, how a function body or a script is written (the exact commands, once the behavior that they must show is settled), and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
+| Tests | One row per automated test to add or change: the test location (the project and file, and the suite or class in which the project groups its tests), the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
+| Left to the implementation | What the implementation decides on its own: the elements that only a component itself uses, local names, how a function body or a script is written (the exact commands, once the behavior that they must show is settled), and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
 
 For a request with `projects: []`, "File changes" lists the workspace files, and the
 sections that describe code say "None".
@@ -166,7 +166,7 @@ too large is slow to read, hides its most important change among small ones, and
 cannot be merged until all of it is right.
 
 **Signals that a request is too large**: its acceptance criteria fall into groups that
-can be checked on their own; its spec changes several views, modules, or projects that
+can be checked on their own; its spec changes several parts, modules, or projects that
 do not have to land together; its detailed design is too long to hold in mind at once;
 or the Review would need more than one sitting. About ten acceptance criteria, or more
 than one theme, is a reason to look again. Neither is a fixed limit.
@@ -187,53 +187,24 @@ the more expensive. A part that needs another part names it as the first line of
 recommends the next request.
 <!-- /ss-workflow:managed -->
 
-<!-- ss-workflow:managed id=reqs-ui -->
-## UI and UX
+<!-- ss-workflow:managed id=reqs-skills -->
+## Project skills
 
-This section applies to a request whose `projects` names a project with
-`has-gui: yes`. For any other request, the "UI" section of "Detailed design" says
-"None". The principles themselves belong to the skill `ss-design:ui-ux`, so that they
-are written once: "Consistent margin and padding" and "Visual guidance" in its
-`references/layout.md`, and the checks UX-L8, UX-L9, and UX-L10 in its
-`references/review-checklist.md`. Read them when the skill is installed, and use the
-skill for the design of a view. This workflow adds what a request does with them:
+This workflow does not know any technology. What is specific to a kind of project (how
+to design its code, its screens, or its documents, and how to check them) belongs in
+skills of their own. A project lists the skills that apply to it in the key `skills` of
+its entry in "Workflow settings", as `<plugin>:<skill>` separated by commas, for
+example `ss-design:ood, ss-design:ui-ux`. An empty key means that none applies. The
+stages use them like this:
 
-- **The spec decides them.** "UI" in "Detailed design" gives every margin and padding
-  as a value of the project's spacing scale (written in `docs/<name>/spec.md`, under
-  "UI conventions"), or as the key of the style or resource that holds it, never as a
-  one-off number. It names the primary action and the Tab order of each view, and the
-  state of each control.
-- **The implementation follows them.** It uses the existing styles and resources, and
-  compares each new view with a neighboring view.
-- **The Review checks them.** The UI and UX review of `/ss-workflow:review` applies
-  UX-L8 to UX-L10, and names the view, the control, and the rule for each finding.
+| Stage | What it does with the listed skills |
+|-------|-------------------------------------|
+| `/ss-workflow:new-req` | When it writes the "Detailed design" of a project, it reads each listed skill and follows its design output. A section that a skill requires is added under "Sections from the project's skills". |
+| `/ss-workflow:check-req` (implementation) | The software engineer follows the rules of each listed skill for what it builds, and keeps the documents that a skill asks for in line with the change. Such a document is listed in "File changes" like any other file. |
+| `/ss-workflow:review` | For each listed skill that has a `references/review-checklist.md`, a specialist reviewer applies the checklist to the changes of that project, and records the findings. |
 
-When `ss-design:ui-ux` is not installed, these minimum rules stand in for it: the same
-kind of element has the same margin and padding in every view, all from one spacing
-scale (based on 4 px unless the project's views use another); each view has one primary
-action that is set apart from the others; the Tab order is the reading order; every
-state can be seen, and a color is never the only cue.
-
-## Operation manual
-
-A project with `has-gui: yes` has an operation manual, `docs/<name>/manual.html`, next
-to its `spec.md`. It tells a person how to operate the program: what each view is for,
-and how each control behaves.
-
-- It is one HTML file in `docs-language`, with its style inline and nothing loaded from
-  the network, so that it opens from a file or an attachment. `/ss-workflow:init`
-  creates it from `templates/project-manual.html` when it adds the project.
-- Per view: its purpose, how the user gets there, and a table with one row per
-  control: the label, the type, the state in which it is shown or enabled, the user
-  action, what happens, and the validation or the message with its text. It also holds
-  the keyboard shortcuts and the messages.
-- It is the form of the "UI" section of "Detailed design" that a user reads: the
-  control names and their behavior are the same in both. `spec.md` keeps the stable
-  functional requirements, and the manual keeps how they are operated.
-- A request that adds, changes, or removes a view, a control, a shortcut, or a message
-  lists `docs/<name>/manual.html` under "Workspace" in "Scope" and in "File changes",
-  and the implementation updates the rows of the views that it touches. The Review
-  reads the diff of the manual.
+A listed skill that is not installed is reported, the stage goes on without it, and its
+check is recorded as `did not run` with that reason.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-evidence -->

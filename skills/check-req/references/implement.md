@@ -154,18 +154,13 @@ anything.
   `/ss-workflow:review` accepts it. The doc describes only what the spec settles. If
   writing it needs a decision that the spec does not make, that decision is a gap in
   the spec: ask as the point above describes.
-- **A project with a GUI** (`has-gui: yes`): build the views as the "UI" section of
-  "Detailed design" says, and follow "UI and UX" in `reqs/AGENTS.md`. Use the existing
-  styles and resources for every margin and padding, and never a number that is not on
-  the project's spacing scale. Put the primary action, the Tab order, and the states of
-  each control in place as written, and compare each new view with a neighboring view
-  for the same spacing. Then bring `docs/<name>/manual.html` in line with every view,
-  control, shortcut, and message that the request adds, changes, or removes: one row
-  per control, with the same names and behavior as the "UI" section. This is the
-  workspace worktree, a workspace file commit with `Refs: REQ-xxxx`. Do not run the
-  program to look at it: the visual check belongs to the UI and UX review in
-  `/ss-workflow:review`, and "Review by hand" of the implementation summary lists the
-  views for it.
+- **Project skills.** For each project of the request, follow the skills in its
+  `skills` setting ("Project skills" in `reqs/AGENTS.md`) for what you build: their
+  rules for the code, the layout, or the documents of that kind of project. Keep the
+  documents that such a skill asks for in line with the change (a workspace file
+  commit with `Refs: REQ-xxxx`). A listed skill that is not installed is noted in
+  `## Notes`. What a skill's review needs to look at by eye or by running goes to
+  "Review by hand" of the implementation summary.
 - When a project of the request uses another project of the request (a new API of
   SSLib that SSDisp calls), the projects refer to each other as their build defines
   it. Do not change how the build finds a neighbor project unless the spec says so.

@@ -21,8 +21,7 @@ workspace/
 │   └── done/.gitkeep
 ├─ docs/
 │   ├── overview.md           ← docs-overview.md
-│   ├── <name>/spec.md        ← project-spec.md          (one per project, written when the project is added)
-│   └── <name>/manual.html    ← project-manual.html      (one per project with has-gui: yes, written when the project is added)
+│   └── <name>/spec.md        ← project-spec.md          (one per project, written when the project is added)
 └─ projects/
     ├── AGENTS.md             ← projects-AGENTS.md            ({{PROJECT_SECTIONS}}: projects-AGENTS-project.md per project)
     ├── CLAUDE.md             ← CLAUDE.md

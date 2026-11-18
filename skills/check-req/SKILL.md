@@ -249,14 +249,12 @@ checking anything out (`git show <branch>:reqs/<file>`), and check:
 
 1. **Complete**: every part of "Spec" in `reqs/AGENTS.md` is there, "Detailed design"
    has the sections that the request needs (a section without content says "None"; a
-   missing "UI" section is a finding only for a project with `has-gui: yes`, and a
    spec approved before ss-workflow 0.13.0 is not faulted for a section that did not
-   exist then), there is no program code, no word that leaves a decision open, and
-   `## Q&A` has no pending entry. A project with `has-gui: yes` has its "UI" section,
-   with the margin and padding as values of the spacing scale, a primary action for
-   each view, and a row for each control. Judge substance, not form: a gap that no
-   implementer could build differently, such as a one-line omission, is noted as a
-   remark under "Result" and does not stop the start.
+   exist then), the sections that the project's skills require are there ("Project
+   skills" in `reqs/AGENTS.md`), there is no program code, no word that leaves a
+   decision open, and `## Q&A` has no pending entry. Judge substance, not form: a gap
+   that no implementer could build differently, such as a one-line omission, is noted
+   as a remark under "Result" and does not stop the start.
 2. **Small enough**: compare the spec with "Request size" in `reqs/AGENTS.md`. A spec
    that mixes a must-fix with wishes, mixes types, or mixes cheap and expensive
    changes, or whose signals say that the Review would need more than one sitting, is

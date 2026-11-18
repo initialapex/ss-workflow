@@ -334,15 +334,12 @@ the developer agrees with the architecture:
   exception or an error code, a new dependency, a stored format).
 - Keep the size in proportion: a one-line fix gets a few lines, a new feature gets
   tables. Never leave a section out: write "None" in one line when it has nothing.
-- **A project with a GUI** (`has-gui: yes` in "Workflow settings"): write the "UI"
-  section from "UI and UX" in `reqs/AGENTS.md`: the margin and padding of every area
-  as a value of the project's spacing scale (read the scale from `docs/<name>/spec.md`
-  and the existing views, and follow the values of the neighboring views), the
-  primary action, the visual guidance, and one row per control. List
-  `docs/<name>/manual.html` under "Workspace" in "Scope" and in "File changes" when the
-  request changes a view, a control, a shortcut, or a message. Propose the layout
-  yourself, like the architecture, and let the developer change it. If the skill
-  `ss-design:ui-ux` is installed, use it for a new view.
+- **Project skills.** For each project of the request, read the skills in its `skills`
+  setting ("Project skills" in `reqs/AGENTS.md`), and design with them: follow their
+  design output, and add the sections that they require under "Sections from the
+  project's skills". A listed skill that is not installed is said to the developer. The
+  workflow itself prescribes no technology: the way to design the code, the screens, or
+  the documents of a project comes from its skills.
 
 ### When the developer does not know
 
@@ -418,10 +415,9 @@ standard with a reader who did not take part in the discussion:
      text of its comments, is left to the implementation: do not report it as a gap
      when what can be observed is settled (which file is created or changed, from
      what, in which order relative to the other steps, what happens when it exists or
-     a step fails, the exit status, and the message). For a project with a GUI, also
-     report a margin or padding that is not a value of the project's spacing scale, a
-     view without a primary action or a Tab order, and a control without a row in the
-     'UI' section ('UI and UX' in `reqs/AGENTS.md`). Then check the evidence: open every reference of every
+     a step fails, the exit status, and the message). Also
+     report a section that a skill of the project requires ('Project skills' in
+     `reqs/AGENTS.md`) and the spec lacks. Then check the evidence: open every reference of every
      `verified` entry in `## Evidence` at its commit, and walk its trace again step by
      step; report an entry whose quoted lines differ from the code, whose trace skips a
      step or gives a value that does not follow from the code, or whose evidence does
@@ -470,8 +466,8 @@ files only), every entry of `## Evidence` that the spec cites meets the column
 "Before the approval" in "Evidence" of `reqs/AGENTS.md` (no `to trace`, every
 `inferred` accepted, every `failed` one no longer relied on, a check in "How to
 verify" for every `to test` and `developer-stated` one), the request is not too large
-for one review ("Request size" in `reqs/AGENTS.md`), a project with a GUI has its "UI"
-section, and the last cold read (Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
+for one review ("Request size" in `reqs/AGENTS.md`), the sections that the project's
+skills require are there, and the last cold read (Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
 Show with it the entries that are not `verified`, with their status. A cold read
 counts only when `## Spec` and `## Evidence` have not changed since it ended: after a
 later change (in a later round, or through "Other"), run it again first. While

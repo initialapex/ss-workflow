@@ -33,11 +33,12 @@ You review as two people, and you say which one speaks:
   evidence, run Verify, and offer the code review. You judge whether what was built is
   what was agreed, and you list every deviation, even a harmless one, because the
   developer decides what is accepted.
-- **UI and UX reviewer** (only when a project of the request has `has-gui: yes`): you
-  judge the views against "UI and UX" in `reqs/AGENTS.md` (consistent margin and
-  padding, visual guidance) and the operation manual. You compare each view with its
-  neighbors, not with your taste, and you name the view, the control, and the rule
-  for each finding.
+- **Specialist reviewers**: one for each skill in the `skills` setting of a project of
+  the request that has a `references/review-checklist.md` ("Project skills" in
+  `reqs/AGENTS.md`). Each one applies its skill's checklist to that project's changes,
+  and names the location, the rule, and the finding. The role comes from the skill: the
+  checklist of a UI design skill makes you its UI and UX reviewer. You compare with
+  the project's own conventions and with the checklist, not with your taste.
 
 Neither of you decides that the Review passed, and neither fixes more than a small
 change here: only the developer decides, and a larger fix is rework.
@@ -258,7 +259,7 @@ Read the request file on this branch:
   what is not done, what to look at by hand), the assumptions, the behavior changes,
   earlier Verify results, and earlier review feedback
 
-Then check five things that the implementation owes (the fifth only for a GUI project):
+Then check five things that the implementation owes (the fifth only for a project that lists skills):
 
 1. **Not done**: if the implementation summary lists criteria or parts of the spec as
    not done, tell the developer now, before anything runs. Ask whether to continue
@@ -284,11 +285,12 @@ Then check five things that the implementation owes (the fifth only for a GUI pr
      and a changed file that is not listed, are deviations, unless the implementation
      summary names it under "Not in the detailed design" as a mechanical consequence
      of a listed change.
-   - **Types and public members**: each listed type with its name, kind, location,
-     base type, and interfaces; each listed public member with its name, kind,
-     parameters (names, types, order), and return or property type, and the behavior
-     that the row describes. A public member that the changes add and the spec does
-     not list is a deviation.
+   - **Components and interfaces** (called "Types and public members" in a spec
+     written before ss-workflow 0.13.0): each listed component with its name, kind,
+     location, and what it builds on or implements; each listed interface element
+     with its name, kind, inputs (names, types, order), and result type, and the
+     behavior that the row describes. An interface element that the changes add and
+     the spec does not list is a deviation.
    - **Data and state**, **Configuration and dependencies**: the names, types, default
      values, ranges, layouts, keys, packages, and versions.
    - **Flows**, **Errors and edge cases**: the order of the steps, the thread or async
@@ -305,7 +307,7 @@ Then check five things that the implementation owes (the fifth only for a GUI pr
    ### Design check (yyyy-MM-dd)
    - SSDisp
      - File changes: matches
-     - Types and public members: 1 deviation: `FrameView.Refresh()` is public, not listed
+     - Components and interfaces: 1 deviation: `FrameView.Refresh()` is public, not listed
      - Data and state: matches
      - Flows: matches
      - Errors and edge cases: 1 deviation: an empty file raises `IOException`, the spec says `InvalidDataException`
@@ -325,36 +327,21 @@ Then check five things that the implementation owes (the fifth only for a GUI pr
    that the spec relies on something wrong: show it to the developer now, like a
    deviation. A request without `## Evidence` (approved before ss-workflow 0.12.0)
    has nothing to list here.
-5. **UI and UX check** (you are the UI and UX reviewer; for each project of the
-   request with `has-gui: yes`; any other request records `- Not applicable: no GUI
-   project`). Read the changed views, styles, and resources, and the diff of
-   `docs/<name>/manual.html`. Running the program is not part of this step: what
-   needs the eye goes to the Review (Step 6). For each view that the request adds or
-   changes, check against "UI and UX" in `reqs/AGENTS.md` (its checks are UX-L8 to
-   UX-L10 of the skill `ss-design:ui-ux`; read them from there when it is installed)
-   and the "UI" section of the
-   spec:
-   - **Margin and padding**: every value is on the project's spacing scale (or is the
-     listed style or resource), and equals what a neighboring view uses for the same
-     kind of element (window margin, label to control, control to control, group to
-     group, button padding, the dialog button row). Name each value that is off the
-     scale or differs from its neighbor.
-   - **Visual guidance**: the view has one primary action, and it is set apart from the
-     others; a destructive action is not primary; the Tab order and the first focus
-     are as the spec says; each state of the spec (disabled, empty, in progress,
-     error) is built, and an error does not rely on a color alone.
-   - **Operation manual**: each control of the view has its row in `manual.html`, with
-     the same name and behavior as the "UI" section and the code, and no row
-     describes a control that is gone.
-
-   Record it in `## Notes`, and commit it with the next commit of the request file:
+5. **Skill checks** (you are the specialist reviewer of each skill in the `skills`
+   setting of a project of the request that has a `references/review-checklist.md`;
+   a request without such a skill records `- Not applicable: no skill with a review
+   checklist`). Read the changed files of that project, and apply the checklist of each
+   skill to them, together with the sections that the skill required in "Detailed
+   design" ("Sections from the project's skills"). Running the program is not part of
+   this step: what needs the eye or a run goes to the Review (Step 6). A listed skill
+   that is not installed is recorded as `did not run (skill not installed)`. Record it
+   in `## Notes`, and commit it with the next commit of the request file:
 
    ```markdown
-   ### UI and UX review (yyyy-MM-dd)
-   - SSDisp, view `SettingsDialog`
-     - Margin and padding: 1 finding: the button row uses 10 px, the neighboring dialogs use 12 px (scale: 4, 8, 12, 16, 24)
-     - Visual guidance: matches
-     - Operation manual: 1 finding: the control "Reset" has no row in `manual.html`
+   ### Skill review (yyyy-MM-dd)
+   - SSDisp, `<plugin>:<skill>`
+     - Findings: 2: <location> [<checklist id>] <what is wrong>
+     - Sections from the skill in the detailed design: matches
    - Decisions: <each finding: fixed in <project> <commit> / accepted in Q<n> / open>
    ```
 
@@ -541,13 +528,10 @@ Guide the developer through the manual check:
      it": record the question and the answer in `## Q&A` (stage `review`), and update
      "Detailed design" so that it describes the code. Write the decision into the
      "Decisions" line of the design check.
-   - every view that the request adds or changes in a GUI project, and every finding
-     of the UI and UX check (Step 3.5): say how to open the view, and what to look at:
-     the spacing against a neighboring view, where the eye goes first (the primary
-     action), the order of Tab, and each state. Show the diff of `manual.html`, and
-     ask whether the manual tells a user what the view does. Decide each finding like
-     a deviation of the design check: "Fix it" (small: here; large: "Rework needed")
-     or "Accept it" (a `## Q&A` entry, and update the spec and the manual to match).
+   - every finding of the skill checks (Step 3.5), and what such a skill asks to see
+     or run: say how to look at it, and what to expect. Decide each finding like a
+     deviation of the design check: "Fix it" (small: here; large: "Rework needed") or
+     "Accept it" (a `## Q&A` entry, and update the spec to match).
    - every `Assumption` in `## Notes`: ask whether it still holds
    - every evidence entry that the spec cites and that is still `to test` or
      `developer-stated`: say how to check it, and update the entry with the result
@@ -571,7 +555,7 @@ Ask the developer with AskUserQuestion:
 
 | Option | Action |
 |--------|--------|
-| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If a commit after the design check (Step 3) changed code that "Detailed design" covers, check those sections again and update its record. No deviation of the design check and no finding of the UI and UX check may be left open: the developer decides each one first (Step 6). No evidence entry that the spec cites may be left `to trace`, `failed`, or, unless the developer accepted it untested in `## Q&A`, `to test` or `developer-stated`. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, the evidence entries that the Review verified or that the developer accepted untested, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. If one does not, a project commit came after the Verify that the result names: say so, run Verify again (Step 4) on the tips, and record the result again with the gitlinks of the tips. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
+| Review passed | First check that the last recorded Verify counts: it ran on a clean working tree, and no project branch of the request has a commit after the project commit that it checked. If it does not count, run Verify again (Step 4) before you record anything. If a commit after the design check (Step 3) changed code that "Detailed design" covers, check those sections again and update its record. No deviation of the design check and no finding of the skill checks may be left open: the developer decides each one first (Step 6). No evidence entry that the spec cites may be left `to trace`, `failed`, or, unless the developer accepted it untested in `## Q&A`, `to test` or `developer-stated`. If that Verify has a check that is `failed` or `did not run`, or the developer did not confirm a behavior change, say so once more and ask whether the Review passes anyway: record the question and the answer in `## Q&A`. Then tick the remaining acceptance criteria that the developer confirmed, and only those. Add `### Review (yyyy-MM-dd)` with `Passed`, the behavior changes and the workspace files that the developer confirmed, the evidence entries that the Review verified or that the developer accepted untested, what was accepted although it failed or did not run, and any remarks to `## Notes`. Commit `docs(reqs): record review result of REQ-0012` with the gitlinks, and push. Check that the gitlinks of this commit equal the tips of the project branches. If one does not, a project commit came after the Verify that the result names: say so, run Verify again (Step 4) on the tips, and record the result again with the gitlinks of the tips. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`). Tell the developer that `/ss-workflow:merge REQ-0012` closes the request. Do not merge on your own. |
 | Small changes | Collect the findings, and add them to `## Notes` under `### Review (yyyy-MM-dd)`. Fix them here on the project branches, with normal commits in the projects, and push. Run Verify again (Step 4), then return to Step 6 for the points that changed. |
 | Rework needed | Add the findings to `## Notes` under `### Review (yyyy-MM-dd)`, as a clear list of what has to change. Untick the criteria that are no longer met. Set `status: in-progress`. Commit `chore(reqs): reopen REQ-0012 after review` with the gitlinks, and push. Switch the root checkout back to `develop` (`git checkout develop`, then `git submodule update`), so that the project branches are free for the worktrees. Tell the developer that `/ss-workflow:check-req REQ-0012` continues the implementation in a worktree. |
 | Still reviewing | Commit and push the notes written so far, with the gitlinks. Leave the root checkout and its projects on the request branches, so the developer can keep trying things. Changes that the developer keeps uncommitted stay as they are: name them in the report. Say that the root checkout stays busy until the review is continued with `/ss-workflow:review`, or paused by switching back to `develop`. |
@@ -595,8 +579,7 @@ Tell the developer, in `discussion-language`:
   it up as "passed" while one check is in the second or third group.
 - The acceptance criteria that are still not ticked
 - The design check: the deviations from "Detailed design", and the decision on each
-- The UI and UX review, for a GUI project: the findings per view (margin and padding,
-  visual guidance, operation manual), and the decision on each
+- The skill checks, per project and skill: the findings, and the decision on each
 - The evidence: the entries that Verify and Review verified or disproved, and those
   accepted untested
 - The code review: its findings and what was done with each, or that it was skipped

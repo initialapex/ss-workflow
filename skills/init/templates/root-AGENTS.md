@@ -39,7 +39,7 @@ every entry has these keys:
 | `main-branch`, `develop-branch` | The project's long-lived branches | Required |
 | `project-type` | The project type and toolchain, in the developer's words | Required |
 | `project-kind` | `library` or `application` | Required |
-| `has-gui` | `yes` when the project has a GUI that a person operates (a window, dialog, or page). Its requests then follow "UI and UX" in `reqs/AGENTS.md`, and the workspace keeps its operation manual `docs/<name>/manual.html` (see "Operation manual" there) | `no`: no GUI rules and no manual |
+| `skills` | The skills that the stages apply to this project, as `<plugin>:<skill>` separated by commas, for example `ss-design:ood, ss-design:ui-ux` (see "Project skills" in `reqs/AGENTS.md`) | No skill applies |
 | `project-file` | The main solution, workspace, or top-level build file, relative to `path` | The project has none |
 | `version-source` | Where the project's version comes from: the file and the field that hold it, relative to `path`; `git-tag` when the build reads it from the git tag and writes it into generated files that git ignores; `none` when no file carries it (see "Versioning") | `none` |
 | `setup-command` | What a fresh checkout or worktree needs before it can build | Nothing is needed |
@@ -92,11 +92,11 @@ workspace that was not converted.
 
   | Stage | Role | You are responsible for | Not yours at this stage |
   |-------|------|-------------------------|-------------------------|
-  | `/ss-workflow:init` | Software engineer who writes the initial spec | A first project spec (`docs/<name>/spec.md`, and for a GUI project the skeleton of `docs/<name>/manual.html`) that states what the project is, who uses it, and how it is built, from what the developer and the existing code say | Changing project code, or deciding a feature |
+  | `/ss-workflow:init` | Software engineer who writes the initial spec | A first project spec (`docs/<name>/spec.md`) that states what the project is, who uses it, and how it is built, from what the developer and the existing code say | Changing project code, or deciding a feature |
   | `/ss-workflow:new-req` | Requirements engineer | Eliciting the need, tracing the existing code, and writing a spec that every implementer builds the same thing from; sizing the request so that it is small enough to read and review | Implementing it |
   | `/ss-workflow:check-req`, before the start | Engineering lead who reviews the request | Judging whether the approved spec can be built as it is: complete, small enough, ordered after what it depends on, evidence in order | Rewriting the spec on its own: a spec that fails goes back to `/ss-workflow:new-req` |
   | `/ss-workflow:check-req`, implementation | Software engineer | Building exactly what the spec says in the worktrees, and keeping the docs that follow the change in line | Deciding what the spec leaves open: ask |
-  | `/ss-workflow:review` | Engineering lead who reviews the code, and UI and UX reviewer (for a GUI project) | Checking the result against the spec and the evidence, running Verify, and for a GUI judging the views against "UI and UX" in `reqs/AGENTS.md` | Deciding that the Review passed: only the developer does |
+  | `/ss-workflow:review` | Engineering lead who reviews the result, and one specialist reviewer for each skill in the project's `skills` that has a review checklist | Checking the result against the spec and the evidence, running Verify, and applying the checklists of the project's skills | Deciding that the Review passed: only the developer does |
   | `/ss-workflow:merge`, `/ss-workflow:release` | CI and CD engineer | Integrating branches, tagging, building and packaging from the tag, and keeping the history and the tags of the repositories correct | Changing code or the spec to make a merge or a build pass |
 
 - The root checkout is the workspace's primary working tree. Its home branch is

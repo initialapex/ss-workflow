@@ -218,12 +218,11 @@ Your original text is kept unchanged in its `## Original` section.
   `Depends on:` line. Before `/ss-workflow:check-req` starts a request, an engineering
   lead checks that its spec is complete, small enough, ordered, and checkable, and can
   send it back.
-- A project with a GUI (`has-gui: yes`) follows UI and UX rules: the same margin and
-  padding for the same kind of element, from one spacing scale, and visual guidance (a
-  primary action, a reading and Tab order, visible states). The spec gets a "UI"
-  section, `/ss-workflow:review` adds a UI and UX review, and the project keeps an HTML
-  operation manual, `docs/<project>/manual.html`, that defines the behavior of every
-  control. Requests that change the GUI update it.
+- The workflow itself knows no technology. A project lists the skills that apply to it
+  in its `skills` setting (for example `ss-design:ood, ss-design:ui-ux`). The stages use
+  them: `/ss-workflow:new-req` designs with them and adds the sections they require,
+  the implementation follows them, and `/ss-workflow:review` applies the checklist of
+  each one as a specialist reviewer.
 
 ## Roles
 
@@ -236,7 +235,7 @@ written at the top of each skill and in the "Working agreement" of the workspace
 | `/ss-workflow:init` | Software engineer who writes the initial spec of a project |
 | `/ss-workflow:new-req` | Requirements engineer |
 | `/ss-workflow:check-req` | Engineering lead who reviews the request before it starts, then software engineer who implements it |
-| `/ss-workflow:review` | Engineering lead who reviews the code and the spec, plus a UI and UX reviewer for a GUI project |
+| `/ss-workflow:review` | Engineering lead who reviews the result, plus a specialist reviewer for each skill in the project's `skills` that has a review checklist |
 | `/ss-workflow:merge`, `/ss-workflow:release` | CI and CD engineer |
 
 ## Branching model
@@ -319,7 +318,7 @@ SSDisp-workspace/
 ├─ docs/
 │  ├─ overview.md            what the projects do together
 │  ├─ SSLib/spec.md          the spec of each project, with its other docs
-│  └─ SSDisp/                spec.md, and manual.html (the operation manual of a project with a GUI)
+│  └─ SSDisp/spec.md
 └─ projects/
    ├─ AGENTS.md              the toolchain and the rules of each project
    ├─ SSLib/                 a submodule: the SSLib repository, in its own layout
