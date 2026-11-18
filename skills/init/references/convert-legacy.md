@@ -26,10 +26,9 @@ stopped halfway can be continued.
 Show "What changes" of `migrations/0.6.0.md`, then this plan, in `discussion-language`:
 
 1. Check that no work is in progress.
-2. Restore the layout of the toolchain in the old repository (for Visual Studio: the
-   solution at the root, every project folder next to it, and no `src/`, `tests/`,
-   or `samples/` left), and remove the workflow files from it (commits on its
-   `develop`).
+2. Restore the layout of the toolchain in the old repository (the layout that the
+   toolchain creates for a new project, with no `src/`, `tests/`, or `samples/`
+   wrapper left), and remove the workflow files from it (commits on its `develop`).
 3. Create the workspace, add the old repository as its project, and move the requests,
    the drafts, and the docs there.
 
@@ -76,50 +75,55 @@ they do not stay as wrappers around the projects.
 
 Propose a move table.
 
-**A Visual Studio solution** (a `.sln` or `.slnx` file) has a fixed target, the layout
-that Visual Studio creates:
+**Find the target layout.** It is the layout that the project's toolchain creates for a
+new project. The workflow does not know any toolchain: the target comes from the
+project's skills (the `skills` key of its settings, when one of them describes the
+toolchain), from the toolchain's own documentation or templates, and from the other
+projects of the same toolchain in the workspace. When you cannot tell what the
+toolchain expects, ask. If the old layout already fits the toolchain, nothing moves.
 
-- The solution file sits at the root of the project repository.
-- Every project of the solution (the folder of each `.csproj`, `.vcxproj`, `.vbproj`,
-  `.fsproj`, or other project file) sits directly at the root, next to the solution:
-  the source projects from `src/`, the test projects from `tests/`, and the sample
-  projects from `samples/`.
-- `src/`, `tests/`, and `samples/` are gone afterwards. The layout already fits only
-  when the solution is at the root and no project folder is inside one of them.
-- Files in `src/` that are neither the solution nor a project folder, such as
-  `Directory.Build.props`, `Directory.Packages.props`, `NuGet.config`, `global.json`,
-  or `.editorconfig`, move to the root as well: the tools find them by walking up
-  from the project folders, so they stay above every project.
-- If a moved folder has the name of a file or folder that already exists at the root
+Whatever the toolchain, these rules hold:
+
+- The main project file (the `project-file` of the project's entry) sits where the
+  toolchain puts it, normally the root of the project repository, and every project of
+  the build sits where the main file expects it, normally next to it: the source
+  projects from `src/`, the test projects from `tests/`, and the sample projects from
+  `samples/`.
+- `src/`, `tests/`, and `samples/` are gone afterwards, unless the toolchain itself
+  uses one of them. The layout already fits only when no project folder is inside one
+  of them.
+- Files in `src/` that are not a project but that tools find by walking up from the
+  project folders (shared build settings, package configuration, editor configuration)
+  move up as well and stay above every project, normally at the root.
+- If a moved folder has the name of a file or folder that already exists at the target
   (for example `docs`), ask for another name.
+
+For a toolchain whose projects sit next to the main project file at the root, the
+table looks like this:
 
 | Current path | New path | Reason |
 |--------------|----------|--------|
-| `src/SSDisp.sln` | `SSDisp.sln` | The solution sits at the root of its repository |
-| `src/SSDisp/` | `SSDisp/` | Source project, next to the solution |
-| `tests/SSDisp.Test/` | `SSDisp.Test/` | Test project, next to the solution |
-| `samples/SSDisp.Sample/` | `SSDisp.Sample/` | Sample project, next to the solution |
+| `src/<main project file>` | `<main project file>` | The main project file sits at the root of its repository |
+| `src/SSDisp/` | `SSDisp/` | Source project, next to the main project file |
+| `tests/SSDisp.Test/` | `SSDisp.Test/` | Test project, next to the main project file |
+| `samples/SSDisp.Sample/` | `SSDisp.Sample/` | Sample project, next to the main project file |
 | `external/` | `external/` | Third-party files: the developer's choice, see below |
 
 The result in the workspace:
 
 ```text
 projects/SSDisp/
-├─ SSDisp.sln
+├─ <main project file>
 ├─ SSDisp/
 ├─ SSDisp.Test/
 ├─ SSDisp.Sample/
 └─ external/
 ```
 
-**Other toolchains** (Keil, CMake, a custom layout) follow their own conventions:
-propose the table from them, and ask when you cannot tell what the toolchain expects.
-If the old layout already fits the toolchain, nothing moves.
-
 **Test and sample projects** are kept by default, at the place that the toolchain
-gives them (for Visual Studio, next to the solution). Ask about each project in
+gives them. Ask about each project in
 `tests/` and `samples/` separately: keep it, or delete it. A deleted project stays in
-the history, and its entry is removed from the solution or the build files.
+the history, and its entry is removed from the main project file or the build files.
 
 **Third-party folders** (`external/`, `lib/`, `vendor/`, or any folder of files that
 the repository commits and that is not a project of the build) are the developer's
@@ -128,7 +132,7 @@ choice. Ask about each one with AskUserQuestion:
 | Choice | What happens |
 |--------|--------------|
 | Keep it in the project repository (default) | It stays in the project repository, at the root (`external/`). If it was inside `src/`, `tests/`, or `samples/`, it moves to the root with the projects. |
-| Move it to the workspace's `projects/` | It becomes a project of its own: a new repository that keeps the folder's history, added to the workspace as the submodule `projects/<folder>` next to this project (section 5). It is removed from this project, and the paths to it leave the project repository: from `SSDisp/SSDisp.csproj`, `..\external\x.dll` becomes `..\..\external\x.dll`. This project then builds only next to it, in the workspace or in a checkout with the same neighbor. Say so. |
+| Move it to the workspace's `projects/` | It becomes a project of its own: a new repository that keeps the folder's history, added to the workspace as the submodule `projects/<folder>` next to this project (section 5). It is removed from this project, and the paths to it leave the project repository: from a file of `SSDisp/`, `..\external\x.dll` becomes `..\..\external\x.dll`. This project then builds only next to it, in the workspace or in a checkout with the same neighbor. Say so. |
 | Remove it | `git rm -r`. It stays in the history. The references to it are removed too; if the build still needs its files (from a package manager, for example), say how the build gets them. |
 | Other | The developer says where it goes. Propose the rows of the table and the path fixes for it. |
 
@@ -153,23 +157,20 @@ Apply it on `develop`:
 - Use `git mv` for every move, so git records each one as a rename, and `git rm -r`
   for every deletion and for each folder that moved to the workspace's `projects/`.
   `git mv` does not create a missing target folder: create it first.
-- Fix every path that the moves break: the references inside project, solution,
-  workspace, and build files, the paths between projects, and the paths in CI files
-  and scripts. Paths inside a project file are usually relative to that file, so
-  moving the file changes all of them. For Visual Studio:
-  - In the solution, project paths are relative to the solution:
-    `..\tests\SSDisp.Test\SSDisp.Test.csproj` becomes
-    `SSDisp.Test\SSDisp.Test.csproj`, and `SSDisp\SSDisp.csproj` stays.
-  - In a project file, a `ProjectReference` from `tests/SSDisp.Test/` to
-    `..\..\src\SSDisp\SSDisp.csproj` becomes `..\SSDisp\SSDisp.csproj`, and a path
-    from `src/SSDisp/` to `..\..\external\` becomes `..\external\`.
-  - Check `$(SolutionDir)` and `$(MSBuildThisFileDirectory)` paths, and the
-    `Directory.Build.props` that every project imports.
+- Fix every path that the moves break: the references inside project, workspace, and
+  build files, the paths between projects, and the paths in CI files and scripts.
+  Paths inside a project file are usually relative to that file, so moving the file
+  changes all of them, and a list of projects in the main project file is relative to
+  that file. Follow the toolchain's rules for each kind of path. For example, a
+  reference from `tests/SSDisp.Test/` to `..\..\src\SSDisp\` becomes `..\SSDisp\`,
+  and a path from `src/SSDisp/` to `..\..\external\` becomes `..\external\`. Check
+  also the files that every project imports.
 - Files that a tool finds by walking up from the project folder (shared build
   settings, package configuration, editor configuration) have to stay where every
   project still finds them, normally the repository root.
 - Rewrite the commands of the old "Workflow settings" for the new paths. They now run
-  in the project folder: `msbuild src/SSDisp.sln` becomes `msbuild SSDisp.sln`.
+  in the project folder: a command that names `src/<main project file>` loses the
+  `src/`.
 - Verify with the rewritten build command that the project still builds. If tests
   exist, verify that the test command passes too. If the build fails for reasons
   unrelated to the moves (it also failed before them), report it, and ask how to
