@@ -192,42 +192,27 @@ recommends the next request.
 
 This section applies to a request whose `projects` names a project with
 `has-gui: yes`. For any other request, the "UI" section of "Detailed design" says
-"None". The spec decides the points below, the implementation builds them, and the UI
-and UX review of `/ss-workflow:review` checks them. If the skill `ss-design:ui-ux` is
-installed, use it for the design of a view (direction, flows, layout, forms,
-accessibility).
+"None". The principles themselves belong to the skill `ss-design:ui-ux`, so that they
+are written once: "Consistent margin and padding" and "Visual guidance" in its
+`references/layout.md`, and the checks UX-L8, UX-L9, and UX-L10 in its
+`references/review-checklist.md`. Read them when the skill is installed, and use the
+skill for the design of a view. This workflow adds what a request does with them:
 
-**Consistent margin and padding.**
+- **The spec decides them.** "UI" in "Detailed design" gives every margin and padding
+  as a value of the project's spacing scale (written in `docs/<name>/spec.md`, under
+  "UI conventions"), or as the key of the style or resource that holds it, never as a
+  one-off number. It names the primary action and the Tab order of each view, and the
+  state of each control.
+- **The implementation follows them.** It uses the existing styles and resources, and
+  compares each new view with a neighboring view.
+- **The Review checks them.** The UI and UX review of `/ss-workflow:review` applies
+  UX-L8 to UX-L10, and names the view, the control, and the rule for each finding.
 
-- A project has one spacing scale, based on 4 px (for example 4, 8, 12, 16, 24, 32), or
-  the scale that its existing views already use. It is written in `docs/<name>/spec.md`
-  (or in the project's resource file that the spec names). The spec gives every margin
-  and padding as a value of that scale, or as the key of the style or resource that
-  holds it. No value is off the scale. A new value is added to the scale first.
-- The same kind of element has the same margin and padding in every view: the margin
-  of a window or dialog, the space between a label and its control, between controls
-  of a group, between groups, the padding inside a button, and the row of dialog
-  buttons. Reuse the style or resource that exists. Compare a new view with a view
-  next to it: where they differ, one of them is wrong.
-- The space inside a group is smaller than the space between groups, so that spacing
-  shows the groups before lines or boxes do. Labels and controls of a form share
-  edges, and controls of the same kind have the same size.
-
-**Visual guidance.**
-
-- One primary action per view. It looks different from the secondary actions (filled
-  or accented, against plain), and it is where the eye ends after the task. A
-  destructive action is never the primary one, and is set apart and confirmed.
-- The reading order follows the task: from the top left to the action, with related
-  controls next to each other and grouped under a heading. The Tab order is the reading
-  order, and the first focus is on the first field to fill in, or on the primary action.
-- The hierarchy is made with size, weight, color, and space, in as few levels as the
-  view needs (title, section heading, body, hint).
-- Every state can be seen: enabled and disabled, selected, focused, in progress,
-  empty, and error. An error appears next to its cause and says what to do. A color is
-  never the only cue: an icon or a text goes with it.
-- The user is told the next step: an empty list says how to fill it, and the result of
-  an action is visible after it.
+When `ss-design:ui-ux` is not installed, these minimum rules stand in for it: the same
+kind of element has the same margin and padding in every view, all from one spacing
+scale (based on 4 px unless the project's views use another); each view has one primary
+action that is set apart from the others; the Tab order is the reading order; every
+state can be seen, and a color is never the only cue.
 
 ## Operation manual
 

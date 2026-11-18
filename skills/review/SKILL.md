@@ -330,7 +330,9 @@ Then check five things that the implementation owes (the fifth only for a GUI pr
    project`). Read the changed views, styles, and resources, and the diff of
    `docs/<name>/manual.html`. Running the program is not part of this step: what
    needs the eye goes to the Review (Step 6). For each view that the request adds or
-   changes, check against "UI and UX" in `reqs/AGENTS.md` and the "UI" section of the
+   changes, check against "UI and UX" in `reqs/AGENTS.md` (its checks are UX-L8 to
+   UX-L10 of the skill `ss-design:ui-ux`; read them from there when it is installed)
+   and the "UI" section of the
    spec:
    - **Margin and padding**: every value is on the project's spacing scale (or is the
      listed style or resource), and equals what a neighboring view uses for the same
