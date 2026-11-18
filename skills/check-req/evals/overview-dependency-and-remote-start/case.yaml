@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: overview-dependency-and-remote-start
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario overview-dependency) holds REQ-0001 ready feat normal (SSLib greeting), REQ-0002 ready fix high
+  whose Architecture says it needs REQ-0001 first, REQ-0007 ready chore low, and REQ-0003 in-progress, started on another
+  machine (its workspace and project branches exist only on the remotes). The agent shows all four, recommends REQ-0001 first
+  because REQ-0002 depends on it (rule 2 beats priority), orders the candidates REQ-0001, REQ-0002, REQ-0007, leaves REQ-0003
+  out of the candidates because someone else may be working on it, answers in Traditional Chinese, and waits for the
+  developer's choice without changing anything. Nobody answers the agent's question in this test.

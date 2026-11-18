@@ -39,13 +39,14 @@ every entry has these keys:
 | `main-branch`, `develop-branch` | The project's long-lived branches | Required |
 | `project-type` | The project type and toolchain, in the developer's words | Required |
 | `project-kind` | `library` or `application` | Required |
+| `skills` | The skills that the stages apply to this project, as `<plugin>:<skill>` separated by commas, for example `ss-design:ood, ss-design:ui-ux` (see "Project skills" in `reqs/AGENTS.md`) | No skill applies |
 | `project-file` | The main solution, workspace, or top-level build file, relative to `path` | The project has none |
 | `version-source` | Where the project's version comes from: the file and the field that hold it, relative to `path`; `git-tag` when the build reads it from the git tag and writes it into generated files that git ignores; `none` when no file carries it (see "Versioning") | `none` |
 | `setup-command` | What a fresh checkout or worktree needs before it can build | Nothing is needed |
 | `build-command` | Compiles the project from a shell | The step is skipped and reported as "not configured" |
 | `test-command` | Runs the automated tests | The step is skipped and reported as "not configured" |
 | `verify-command` | An extra verification script that `/ss-workflow:review` runs after the build and the tests | No extra script |
-| `package-command` | Runs after the build of a tagged version and prepares the release package, for example an installer or a publish step. When it prints `Package: <path>` lines, as the package script `tools/New-ReleasePackage.ps1` does, those files are the packages and `package-files` stays empty | The build output is the package |
+| `package-command` | Runs after the build of a tagged version and prepares the release package, for example an installer or a publish step. When it prints `Package: <path>` lines, as a package script of the project does, those files are the packages and `package-files` stays empty | The build output is the package |
 | `package-files` | The files of the release package, as glob patterns relative to `path`, separated by commas, for example `bin/Release/*.exe, bin/Release/*.dll`. A release zips them into `<name>-v<version>.zip`. | No package is made or uploaded, unless `package-command` names it |
 | `remote-platform`, `merge-method`, `push-policy` | Overrides for this project's repository | The workspace value |
 
@@ -84,6 +85,19 @@ workspace that was not converted.
   | Implementation | A worktree of the workspace, with a worktree of each project of the request inside it | `/ss-workflow:check-req` |
   | Verify (build, tests, scripts) and Review (the developer's manual check) | Root checkout, on the request branch in the workspace and in each project | `/ss-workflow:review` |
   | Merge and release | Root checkout | `/ss-workflow:merge`, `/ss-workflow:release` |
+
+- **Roles.** Each stage has one role. When a skill starts, take its role, and keep to
+  it: the role says whose point of view the work is done from, and what is not yours
+  to decide at that stage.
+
+  | Stage | Role | You are responsible for | Not yours at this stage |
+  |-------|------|-------------------------|-------------------------|
+  | `/ss-workflow:init` | Software engineer who writes the initial spec | A first project spec (`docs/<name>/spec.md`) that states what the project is, who uses it, and how it is built, from what the developer and the existing code say | Changing project code, or deciding a feature |
+  | `/ss-workflow:new-req` | Requirements engineer | Eliciting the need, tracing the existing code, and writing a spec that every implementer builds the same thing from; sizing the request so that it is small enough to read and review | Implementing it |
+  | `/ss-workflow:check-req`, before the start | Engineering lead who reviews the request | Judging whether the approved spec can be built as it is: complete, small enough, ordered after what it depends on, evidence in order | Rewriting the spec on its own: a spec that fails goes back to `/ss-workflow:new-req` |
+  | `/ss-workflow:check-req`, implementation | Software engineer | Building exactly what the spec says in the worktrees, and keeping the docs that follow the change in line | Deciding what the spec leaves open: ask |
+  | `/ss-workflow:review` | Engineering lead who reviews the result, and one specialist reviewer for each skill in the project's `skills` that has a review checklist | Checking the result against the spec and the evidence, running Verify, and applying the checklists of the project's skills | Deciding that the Review passed: only the developer does |
+  | `/ss-workflow:merge`, `/ss-workflow:release` | CI and CD engineer | Integrating branches, tagging, building and packaging from the tag, and keeping the history and the tags of the repositories correct | Changing code or the spec to make a merge or a build pass |
 
 - The root checkout is the workspace's primary working tree. Its home branch is
   `develop`, with each project checked out at the commit that `develop` records. A
@@ -417,9 +431,8 @@ project, the body is one line in English that describes the change, and there is
     release never commits a version number: it tags, and then builds.
   - `none`: no file carries the version; it only exists as the git tag.
 - A version is built and packaged from its tag: the release creates the tag, builds
-  the tagged commit, and runs `package-command`, before anything is pushed. A project
-  with the package script lists the files of its package in `tools/package.psd1`
-  and gets one zip per platform listed there.
+  the tagged commit, and runs `package-command`, before anything is pushed. A
+  `package-command` that prints `Package: <path>` lines gives one zip per platform.
 - Only `/ss-workflow:release` and hotfix branches change a version.
 - The workspace itself has no version.
 <!-- /ss-workflow:managed -->

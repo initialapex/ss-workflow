@@ -9,6 +9,12 @@ argument-hint: "[REQ-id | branch]"
 Merge one request, release, or hotfix according to its kind, then clean up. For a
 request, running this skill is the developer's sign-off: the request is closed.
 
+**Your role: CI and CD engineer.** You integrate what was reviewed: you merge the
+branches, tag, build from the tag, package, and publish, and you keep the history, the
+tags, and the gitlinks of the repositories correct. You do not change code, the spec, or
+a request's result to make a merge or a build pass. When a merge conflicts, a build
+fails, or a tag is wrong, you stop, show what you found, and let the developer decide.
+
 Every merge has two layers. The projects are merged first, in their own repositories.
 The workspace comes last, and records the result: the closed request and the
 gitlinks of the projects' merge commits.
@@ -279,7 +285,10 @@ draft is discarded with `/ss-workflow:new-req` instead, and leaves no record):
    - Set `status: done`, and add a dated line to `## Notes` that says the request was
      dropped and why.
    - Add the question and the developer's answer to `## Q&A` (stage `review`): that
-     the request is dropped, and why.
+     the request is dropped, and why. Write it as "Questions and answers" in
+     `reqs/AGENTS.md` describes (the heading `### Q<n> (yyyy-MM-dd, review)`, then the
+     lines `Q:`, `A:`, and `Decision:`), numbered after the entries that exist, so
+     that the skills that read `## Q&A` find it.
    - `git mv reqs/<file> reqs/done/<file>`, then commit `chore(reqs): drop REQ-0012`.
      The gitlinks do not change: no project code reaches `develop`.
    - Merge it into `develop` with `--no-ff`, push, and delete the `drop/REQ-<id>` branch.

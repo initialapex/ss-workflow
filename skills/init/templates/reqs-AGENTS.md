@@ -101,6 +101,15 @@ names (`FrameBuffer`, `IReadOnlyList<Frame>`). Two kinds of examples may be show
 code blocks: data formats (a JSON, XML, or INI file, the byte layout of a protocol
 frame), and commands that a developer or a user types.
 
+A line or a command inside a script is code too, also when the whole change is one
+line of a build script. For a script, the spec states what can be observed: which
+file the script creates or changes, from what, in which order relative to its other
+steps, what happens when the file already exists or a step fails, and the exit status
+and the message that follow. It leaves the exact command to the implementation (see
+"Left to the implementation"). Values that are data are not code and are written out:
+the key and the value of a setting, the text of a message that a user sees, and a
+command that a user types.
+
 **Facts cite their evidence.** Every statement in the spec about what exists today
 (how the code or the system behaves, where a problem comes from, what a file or a
 device holds) ends with the ids of its entries in `## Evidence`, for example "(E3)".
@@ -116,9 +125,9 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 | Part | Content |
 |------|---------|
 | Goal | The problem to solve or the outcome wanted, in one or two sentences |
-| Scope | The concrete changes that a developer or a user sees or uses: behavior, UI, commands and their options, file formats, the public API, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. For `type: hotfix`, the first line is `Hotfix: <name> v<released version> → v<hotfix version>`. |
+| Scope | The concrete changes that a developer or a user sees or uses: behavior, interfaces, commands and their options, file formats, and data. When the request changes more than one project, list the changes per project. List the changes to workspace files (docs, READMEs, agent files outside their managed blocks) under their own heading "Workspace", including the docs that have to follow the change, such as `docs/<name>/spec.md`. For `type: hotfix`, the first line is `Hotfix: <name> v<released version> → v<hotfix version>`. |
 | Architecture | How the change is built into the software: the modules, classes, or components that are added or changed, what each one is responsible for, how they call each other, how data flows between them, the important data structures and stored state, and new dependencies. Say where the change fits into the existing structure. For several projects, write it per project, and say how they depend on each other (for example, SSDisp needs a new API of SSLib). If the change needs no architectural decision, say so in one sentence and name the place it goes into. Never left out. |
-| Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the member, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
+| Detailed design | The level below "Architecture" that makes the implementations converge, in the sections of the next table, in that order. For several projects, write it per project. A small change gets a short detailed design (for a one-line fix: the file, the element, and the behavior that changes), but never none. A section that has nothing for this request says "None" in one line. |
 | Acceptance criteria | A checklist (`- [ ]`) of conditions that can each be checked, so that Verify and Review can tell whether the request is done |
 | How to verify | The tests, scripts, or manual steps that show the criteria are met. Say for each criterion whether it is checked automatically (Verify), naming its tests from "Tests" in "Detailed design", or by hand (Review). |
 | Out of scope | What this request deliberately does not cover |
@@ -127,14 +136,15 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 
 | Section | Content |
 |---------|---------|
-| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed. |
-| Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also each view that is added or changed, and the members that each of its controls binds to. |
+| File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (build or project files, resource files), and the docs that follow the change. A file that is not listed is not changed, with one exception: a doc that describes what a listed change changes is brought in line with it even when it is not listed, and the implementation summary names it under "Not in the detailed design". |
+| Components and interfaces | One table per component that is added, changed, or removed (a type, module, function group, script, document, or message definition: whatever the project's technology calls its units): its name, kind, location (namespace, package, or folder), the file that holds it, what it builds on or implements, and its responsibility in one sentence. Below it, one row per interface element that other parts use and that is added, changed, or removed: name, kind, the inputs in order with their names and types, the result type, and the behavior: what it does, its preconditions, and what it returns or reports on failure. Elements that only the component itself uses are not listed. The skills in `skills` of the project (see "Project skills") say which kinds of units and interface elements its technology has. (Called "Types and public members" before ss-workflow 0.13.0.) |
+| Sections from the project's skills | Every section that a skill in `skills` of the project requires in its design output (see "Project skills"), each under its own heading, in the order the skills are listed. "None" when the project lists no skill that requires one. |
 | Data and state | Every data item that is added or changed and that is stored, passed between components, or shown: its name, type, unit, default value, allowed range, and which component owns and changes it. The exact layout of every file, setting, message, or protocol frame that is read or written. |
-| Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which public member it calls, and on which thread or async context it runs. Say where the flow waits, what it locks, and what happens when it is cancelled. |
-| Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the exception type or the return value, the message text, what the UI shows, what is logged, and the state afterwards. |
+| Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which interface element it calls, and in which execution context it runs where that matters (thread, process, task, or device). Say where the flow waits, what it locks or reserves, and what happens when it is cancelled. |
+| Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the error code, exception, or return value, the message text, what the user sees, what is logged, and the state afterwards. |
 | Configuration and dependencies | New or changed settings with their key, type, default value, and where they are stored. New or changed dependencies with the package name, the exact version, and how the project references them. |
-| Tests | One row per automated test to add or change: the test project and file, the test class, the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
-| Left to the implementation | What the implementation decides on its own: the members that only a type itself uses, local names, how a function body is written, and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
+| Tests | One row per automated test to add or change: the test location (the project and file, and the suite or class in which the project groups its tests), the test name, what it sets up and what it asserts, and the acceptance criterion that it checks. Test names follow the project's existing tests. A project without automated tests says so; its checks are manual and belong in "How to verify". |
+| Left to the implementation | What the implementation decides on its own: the elements that only a component itself uses, local names, how a function body or a script is written (the exact commands, once the behavior that they must show is settled), and whatever else the developer agreed to leave open. Every other decision that the spec does not settle is a gap in the spec. |
 
 For a request with `projects: []`, "File changes" lists the workspace files, and the
 sections that describe code say "None".
@@ -145,6 +155,56 @@ in `## Q&A` with `A: (pending)`.
 A request approved before ss-workflow 0.11.0 may have no "Detailed design".
 `/ss-workflow:check-req` writes it, and the developer confirms it, before the
 implementation starts.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-size -->
+## Request size
+
+A request is small enough when the developer can read its spec in one sitting and
+judge in the Review whether it is right. One request has one purpose. A request that is
+too large is slow to read, hides its most important change among small ones, and
+cannot be merged until all of it is right.
+
+**Signals that a request is too large**: its acceptance criteria fall into groups that
+can be checked on their own; its spec changes several parts, modules, or projects that
+do not have to land together; its detailed design is too long to hold in mind at once;
+or the Review would need more than one sitting. About ten acceptance criteria, or more
+than one theme, is a reason to look again. Neither is a fixed limit.
+
+**How to split.** Split along these three axes, in this order:
+
+| Axis | Rule |
+|------|------|
+| Importance | What must change (a defect, a blocker, a requirement that cannot be dropped) is a request of its own, apart from what is only wanted. A must-fix never waits behind a wish in the same request. |
+| Type | One `type` per request. A fix, a feature, a refactor, and a docs change are separate requests, even when they touch the same file. |
+| Cost | A cheap change (a label, a margin, a one-line fix) is kept apart from one that costs days (a new view, a changed protocol), so that the cheap one is reviewed and merged first. |
+
+Each part is a request that can be implemented, reviewed, and merged alone, and that
+leaves the software working. A part that cannot land without another stays in the same
+request. Order the parts: must-fix first, then by dependency, then the cheaper before
+the more expensive. A part that needs another part names it as the first line of its
+"Scope": `Depends on: REQ-0011`. `/ss-workflow:check-req` reads that line when it
+recommends the next request.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-skills -->
+## Project skills
+
+This workflow does not know any technology. What is specific to a kind of project (how
+to design its code, its screens, or its documents, and how to check them) belongs in
+skills of their own. A project lists the skills that apply to it in the key `skills` of
+its entry in "Workflow settings", as `<plugin>:<skill>` separated by commas, for
+example `ss-design:ood, ss-design:ui-ux`. An empty key means that none applies. The
+stages use them like this:
+
+| Stage | What it does with the listed skills |
+|-------|-------------------------------------|
+| `/ss-workflow:new-req` | When it writes the "Detailed design" of a project, it reads each listed skill and follows its design output. A section that a skill requires is added under "Sections from the project's skills". |
+| `/ss-workflow:check-req` (implementation) | The software engineer follows the rules of each listed skill for what it builds, and keeps the documents that a skill asks for in line with the change. Such a document is listed in "File changes" like any other file. |
+| `/ss-workflow:review` | For each listed skill that has a `references/review-checklist.md`, a specialist reviewer applies the checklist to the changes of that project, and records the findings. |
+
+A listed skill that is not installed is reported, the stage goes on without it, and its
+check is recorded as `did not run` with that reason.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-evidence -->

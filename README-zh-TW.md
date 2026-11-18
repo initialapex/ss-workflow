@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.12.4" src="https://img.shields.io/badge/version-0.12.4-blue">
+  <img alt="Version 0.13.0" src="https://img.shields.io/badge/version-0.13.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.12.4，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.13.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -40,6 +40,7 @@
   - [快速開始](#快速開始)
 - [Skills](#skills)
 - [Request 的流程](#request-的流程)
+- [角色](#角色)
 - [Branching model](#branching-model)
 - [Remote 與 push](#remote-與-push)
 - [Workspace 的檔案結構](#workspace-的檔案結構)
@@ -146,6 +147,20 @@ flowchart LR
 - 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」、寫「repository」不寫「repo」。業界通用的縮寫（API、UI、JSON、SHA、spec、docs）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
+- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
+- workflow 本身與技術無關。每個專案在 `skills` 設定裡列出適用的 skill（例如 `ss-design:ood, ss-design:ui-ux`），各階段會使用它們：`/ss-workflow:new-req` 依它設計並補上它要求的段落，實作遵守它的規則，`/ss-workflow:review` 則由各 skill 對應的專業 Review 角色套用它的 checklist。
+
+## 角色
+
+每個 skill 都以一個角色執行，讓每個階段的觀點都很明確。角色寫在每個 skill 的開頭，也寫在 workspace `AGENTS.md` 的 Working agreement。
+
+| Skill | 角色 |
+|-------|------|
+| `/ss-workflow:init` | 撰寫專案初期規格的軟體工程師 |
+| `/ss-workflow:new-req` | 需求獲取的工程師 |
+| `/ss-workflow:check-req` | 開始前 Review request 的工程師主管，接著是實作的軟體工程師 |
+| `/ss-workflow:review` | Review 結果的工程師主管，加上專案 `skills` 中每個附有 review checklist 的 skill 所對應的專業 Review 角色 |
+| `/ss-workflow:merge`、`/ss-workflow:release` | CI / CD 工程師 |
 
 ## Branching model
 
@@ -215,11 +230,11 @@ SSDisp-workspace/
 init 不會寫入專案的任何檔案。專案的測試、sample 與第三方檔案，都依它的 toolchain 放在原本的位置。
 
 > [!IMPORTANT]
-> ss-workflow 0.5.0 以下建立的 repository 把程式碼與 request 放在同一個 repository。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repository 變成專案的 repository，保留 remote、歷史與 tag，並回到它 toolchain 原本的結構：Visual Studio 是 solution 在根目錄、各專案資料夾都在它旁邊，不再有 `src/`、`tests/`、`samples/`；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
+> ss-workflow 0.5.0 以下建立的 repository 把程式碼與 request 放在同一個 repository。在那裡執行 `/ss-workflow:init` 會進行轉換：舊 repository 變成專案的 repository，保留 remote、歷史與 tag，並回到它 toolchain 為新專案建立的結構，不再有 `src/`、`tests/`、`samples/` 這些外層資料夾；旁邊建立新的 workspace，接收 request、draft 與文件。轉換時不能有進行中的 request、release 或 hotfix。由 0.6.0 到 0.9.0 轉換、專案裡仍留有這些資料夾的 workspace，升級到 0.9.1 時會修正。
 
 ## 專案形式
 
-Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用的版號產生器（見下方）。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
+Plugin 不內建任何 toolchain 的範本、指令或 script。init 時你用自己的話描述每個專案的類型，agent 提出下表各項的建議值讓你確認。這些內容存在 workspace 裡，所有 skill 都從那裡讀取。
 
 | 內容 | 存放位置 |
 |------|----------|
@@ -232,9 +247,9 @@ Plugin 不內建任何 toolchain 的範本或指令，唯一的例外是選用�
 > [!NOTE]
 > 指令可以留空，例如只能在 IDE 裡 build 的專案。這時 skill 會略過該步驟並回報「未設定」，不會自行編造指令。
 
-**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，plugin 附了產生器（`skills/init/scripts/`：`Update-GitVersion.ps1` 與 `GitVersion.targets`），由每個專案檔直接 import，Visual Studio 2010（MSBuild 4.0）以後都能用，需要 Windows PowerShell 3.0 以上。init 和升級不會自己把它複製進專案，而是開一個 request 來做，讓專案在沒有 workspace 時也能一樣 build。專案裡的版本比 plugin 舊時，升級會回報。CMake 尚未支援。
+**版號來自 git tag。** `version-source: git-tag` 的專案檔案裡沒有版號：build 時從 git tag 讀取，去掉 tag 開頭的 `v` 後寫進被 git 忽略的產生檔（在 tag `v1.2.3` 上是 `1.2.3`，tag 之後四個 commit 是 `1.2.3-4-g1a2b3c4`，有未 commit 的變更加上 `-dirty`，沒有 tag 時是 `0.1.0-unknown`）。workflow 只知道這個值的意思；讓專案做到它是對專案的修改，屬於該 toolchain 的 skill。Windows 上以 MSBuild 建置的 C# 與 C++ 專案，可用 [scott-skills](https://github.com/initialapex/scott-skills) marketplace 的 `ss-build` plugin 裡的 `ss-build:git-version`：它附了產生器，並透過 request 把專案轉換過去。
 
-**Release 打包 script。** plugin 也附了 `New-ReleasePackage.ps1`（Windows PowerShell 3.0 以上）。由 request 複製到專案的 `tools/`，搭配 `tools/package.psd1` 列出 release build 要打包的檔案和要出貨的平台，`package-command` 執行它。它把 release build 壓成 `dist/<name>-v<version>.zip`，有多個平台時每個平台一包 `<name>-v<version>-<platform>.zip`；有未 commit 的變更時拒絕打包；沒有 workspace 也能執行。init、加入專案、升級時都會詢問是否製作，和轉換成 `git-tag` 是分開的 request。
+**Release 打包。** `package-command` 在 tag 版本 build 完成後執行。它印出 `Package: <path>` 行時，那些檔案就是 package（每個平台一個 zip），`package-files` 留空；否則 release 把 `package-files` 壓成 `<name>-v<version>.zip`。`ss-build:release-package` 提供 Windows 專案用的打包 script，讓開發者、CI 與 release 做出同一個 zip。
 
 專案不一定是程式碼。文件或分析報告的 repository 可以把 build 與 test 指令留空，或把 `verify-command` 設為檢查報告（連結、數據、格式）的 script；成果在 Review 由你閱讀確認。
 
@@ -268,8 +283,6 @@ skills/
 └─ release/                  SKILL.md、references/
 tests/git-sequences.sh       檢查各 skill 規定的 git 步驟
 tests/migrations.sh          檢查範本有變更時是否附了 migration 檔
-tests/git-version.sh         檢查版號產生器；實際 build SDK-style 與舊式 (MSBuild 4) C# 專案
-tests/release-package.sh     檢查 release 打包 script
 ss-workflow-skill.md         設計規格
 ```
 
@@ -293,18 +306,6 @@ bash tests/git-sequences.sh
 
 ```bash
 bash tests/migrations.sh
-```
-
-`skills/init/scripts/` 的版號產生器用 Windows PowerShell 在暫存的 repository 上測試：tag 上、tag 之後、dirty、哪些 tag 格式會被採用，以及產生的 `.cs` 與 `.h`。有 .NET SDK 時，還會 build 一個 import `GitVersion.targets` 的 SDK-style C# 專案並讀取 assembly 的版本；有 .NET Framework 的 MSBuild（MSBuild 4）時，用舊式專案再做一次，和 Visual Studio 2012 的 build 方式相同：
-
-```bash
-bash tests/git-version.sh
-```
-
-打包 script 也用同樣方式以假的 build 輸出測試：版號、zip 裡的檔案與資料夾、平台，以及會拒絕的情況：
-
-```bash
-bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

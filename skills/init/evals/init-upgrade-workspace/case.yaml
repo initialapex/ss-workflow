@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: init-upgrade-workspace
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario upgrade-old) records ss-workflow-version 0.12.3, and the plugin is 0.12.4. The agent compares the versions, checks that the root checkout is on develop,
+  clean, with the projects at their gitlinks, tells the developer what migration 0.12.4 changes before it changes anything, re-renders only the managed blocks, leaves
+  everything outside them alone, runs the migration's checks, sets ss-workflow-version to 0.12.4, shows the diff and gets approval, then makes one commit
+  'chore(workflow): upgrade ss-workflow to v0.12.4' on develop and pushes develop. No request file changes.

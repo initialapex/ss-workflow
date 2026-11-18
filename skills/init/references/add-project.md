@@ -86,7 +86,13 @@ Ask which one the developer wants.
 - Add the project's row to the project table of each root README.
 - Create `docs/<name>/spec.md` from `templates/project-spec.md`. If the workspace
   already has a spec of this project (from a conversion, or written by hand), keep it
-  and do not create another one.
+  and do not create another one. Write its first content as a software engineer who
+  takes the project over: "Overview", "Goals", "Users and scenarios", and
+  "Architecture" from the developer's answers, the project's README, and a read-only
+  look at the top level of its code (the main folders, entry points, and the way the
+  parts depend on each other). A part that these sources do not answer keeps its
+  comment, and the report lists it as not written yet. Do not guess, and do not copy
+  code into the spec.
 - Add a line for the project to "Projects" in `docs/overview.md`: what it is
   responsible for, and a link to `<name>/spec.md`.
 - Show these changes to the developer before you write them: they are outside the
@@ -123,8 +129,6 @@ The root checkout must be on `develop` and clean.
    project.
 3. Push as the workspace's `push-policy` allows. Pushing the main branch asks first,
    as always.
-4. If the developer chose `git-tag` or the package script for the project, start
-   its requests (Step 9b of `SKILL.md`).
 
 ## 6. Existing tasks and issues
 
