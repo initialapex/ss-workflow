@@ -103,7 +103,7 @@ fi
 entry() { # name [push-policy] [version-source]
   sed -e "s#{{ENTRY_PUSH_POLICY}}#${2:-}#" \
       -e "s#{{ENTRY_NAME}}#$1#g" -e "s#{{ENTRY_MAIN_BRANCH}}#master#" -e "s#{{ENTRY_DEVELOP_BRANCH}}#develop#" \
-      -e "s#{{ENTRY_TYPE}}#Text files joined by a bash script#" -e "s#{{ENTRY_KIND}}#library#" \
+      -e "s#{{ENTRY_TYPE}}#Text files joined by a bash script#" -e "s#{{ENTRY_KIND}}#library#" -e "s#{{ENTRY_HAS_GUI}}#no#" \
       -e "s#{{ENTRY_PROJECT_FILE}}##" -e "s#{{ENTRY_VERSION_SOURCE}}#${3:-version.txt}#" \
       -e "s#{{ENTRY_SETUP_COMMAND}}##" -e "s#{{ENTRY_BUILD_COMMAND}}#bash build.sh#" \
       -e "s#{{ENTRY_TEST_COMMAND}}##" -e "s#{{ENTRY_PACKAGE_COMMAND}}##" -e "s#{{ENTRY_PACKAGE_FILES}}##" \

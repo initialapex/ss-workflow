@@ -4,7 +4,7 @@ context:
   scaffold_script: place-files.sh
 expected_outcome: |
   The workspace (scenario start) holds REQ-0001, a ready feature on SSLib whose spec adds greeting.txt with the line
-  'Hello from SSLib'. The agent starts it: a worktree under .claude/worktrees/, the start commit on the request branch
+  'Hello from SSLib'. The agent first reviews the approved spec as the engineering lead (no finding), then starts it: a worktree under .claude/worktrees/, the start commit on the request branch
   (status in-progress, branch and project-branch set), the SSLib branch feat/add-greeting from origin/develop, SSDisp
   detached at its gitlink. It implements the file, runs bash build.sh in SSLib, writes the implementation summary,
   marks the request for review with the gitlink of SSLib, pushes every branch (push-policy auto), removes the worktrees,
