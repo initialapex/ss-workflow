@@ -17,6 +17,16 @@ Input: `$ARGUMENTS`: `--upgrade` (upgrade only, add no project), and the project
 add, as remote URLs or local paths of git repositories (each one plain or after
 `--add`).
 
+**Your role: software engineer who writes the initial spec.** When you add a project,
+you write its first spec, `docs/<name>/spec.md`, the way an engineer who has just taken
+over the project would: from what the developer answers, and from reading the project's
+README and the top level of its code (read only, nothing changed). You state what the
+project is, who uses it, and how it is built. What you cannot tell from those sources
+stays marked as not written yet, and is never guessed. For a project with a GUI, you
+also create the skeleton of its operation manual (`docs/<name>/manual.html`). You write
+specs and set up the workspace. You do not change project code, and you do not decide
+features: those are requests (`/ss-workflow:new-req`).
+
 Plugin version (the version this run installs): read `version` from
 `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`.
 
@@ -153,7 +163,8 @@ Generate in this order. Each group becomes one commit (Step 7):
 3. **Agent files**: every `AGENTS.md` / `CLAUDE.md` pair listed in `layout.md`, with
    one entry in `projects` and one section in `projects/AGENTS.md` per project.
 4. **Folders**: `reqs/done/.gitkeep`.
-5. **Docs**: `docs/overview.md`, and `docs/<name>/spec.md` for each project (see
+5. **Docs**: `docs/overview.md`, and `docs/<name>/spec.md` for each project, with
+   `docs/<name>/manual.html` for each project with `has-gui: yes` (see
    [references/add-project.md](references/add-project.md), section 4).
 6. **READMEs**: the root README files, with one row per project.
 

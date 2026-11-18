@@ -23,6 +23,19 @@ Supporting files:
 - [references/anomalies.md](references/anomalies.md): inconsistent states and how to repair them
 - [references/implement.md](references/implement.md): how to implement a request and hand it over
 
+## Role
+
+This skill has two roles, one after the other:
+
+- **Engineering lead who reviews the request** (Steps 2 to 4b). You look at the
+  requests from the lead's side: which one is next, whether the approved spec can be
+  built as it is, and whether it is small enough and in the right order. You do not
+  rewrite a spec that fails the review: it goes back to `/ss-workflow:new-req`.
+- **Software engineer** (Step 5 on, and [references/implement.md](references/implement.md)).
+  Once the lead lets the request start, you build exactly what the spec says in its
+  worktrees. You decide only what "Left to the implementation" names, and ask about
+  everything else.
+
 ## Ground rules
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
@@ -162,7 +175,8 @@ it: project branches start from the project's latest develop branch anyway.
 ## Step 4: Choose a request
 
 - `$ARGUMENTS` names a request:
-  - `ready`: use it, without asking again: naming it is the choice.
+  - `ready`: use it, without asking again: naming it is the choice. Review it
+    (Step 4b), then start it (Step 5).
   - `in-progress` with a worktree: ask whether to resume it there. If yes, continue
     with Step 6, using the worktree path.
   - `in-progress` without a worktree: the request was reopened by a review, or its
@@ -176,7 +190,7 @@ it: project branches start from the project's latest develop branch anyway.
     `/ss-workflow:merge` for a pending merge.
   - A draft: say that it needs approval through `/ss-workflow:new-req` first.
 - No `$ARGUMENTS`: the candidates are every request that can be worked on now:
-  - `ready`: start it (Step 5).
+  - `ready`: start it (Step 4b, then Step 5).
   - `in-progress` with a worktree: resume it there (Step 6, with the worktree path).
   - `in-progress` without a worktree: recreate the worktrees ("Recreate the
     worktrees" below), then Step 6.
@@ -192,8 +206,9 @@ Sort the candidates by these rules, the first rule that tells two apart decides:
 
 1. `type: hotfix` first: it fixes a released version.
 2. A request that another candidate depends on comes before it. A dependency is
-   stated in the spec ("Architecture", "Scope", or `## Notes`), for example "SSDisp
-   needs the new API of REQ-0011".
+   the line `Depends on: REQ-0011` at the start of "Scope" ("Request size" in
+   `reqs/AGENTS.md`), or is stated in the spec ("Architecture", "Scope", or
+   `## Notes`) in words, for example "SSDisp needs the new API of REQ-0011".
 3. `priority`: `high` > `normal` > `low`.
 4. `in-progress` before `ready`: finish what was started before something new. Its
    branches already exist and drift further from the develop branches every day.
@@ -221,6 +236,62 @@ it. Continue with the action of the chosen candidate.
 A request whose `projects` names a project that is not in "Workflow settings" cannot
 be started: report it, and point to `/ss-workflow:new-req` to fix the request, or to
 `/ss-workflow:init --add` to add the project.
+
+## Step 4b: Lead review of the spec (a request that is about to start)
+
+Do this for a `ready` request, before Step 5 creates anything. Skip it for an
+`in-progress` request that you resume: its `## Notes` holds the review from its start,
+and `### Lead review` only exists for requests that started after this step was added.
+
+You are the engineering lead. The spec was approved, but you read it as the person who
+will assign it: can it be built as written? Read the request file on its branch without
+checking anything out (`git show <branch>:reqs/<file>`), and check:
+
+1. **Complete**: every part of "Spec" in `reqs/AGENTS.md` is there, "Detailed design"
+   has the sections that the request needs (a section without content says "None"; a
+   missing "UI" section is a finding only for a project with `has-gui: yes`, and a
+   spec approved before ss-workflow 0.13.0 is not faulted for a section that did not
+   exist then), there is no program code, no word that leaves a decision open, and
+   `## Q&A` has no pending entry. A project with `has-gui: yes` has its "UI" section,
+   with the margin and padding as values of the spacing scale, a primary action for
+   each view, and a row for each control. Judge substance, not form: a gap that no
+   implementer could build differently, such as a one-line omission, is noted as a
+   remark under "Result" and does not stop the start.
+2. **Small enough**: compare the spec with "Request size" in `reqs/AGENTS.md`. A spec
+   that mixes a must-fix with wishes, mixes types, or mixes cheap and expensive
+   changes, or whose signals say that the Review would need more than one sitting, is
+   too large.
+3. **Ordered**: a `Depends on:` request is `done` (in `reqs/done/`, merged), or is
+   started first. If a dependency is not done, say so and recommend it first.
+4. **Evidence in order**: no entry that the spec cites is `to trace`; each `inferred`
+   one has its `## Q&A` entry; each `to test` or `developer-stated` one has a check in
+   "How to verify".
+5. **Checkable**: each acceptance criterion can be ticked by a check that "How to
+   verify" names, by Verify or by hand.
+
+Show the result. No finding: record it (below) and go on to Step 5. With findings, ask
+with AskUserQuestion:
+
+| Option | Action |
+|--------|--------|
+| Send it back (Recommended) | Do not start. Say what to fix, and point to `/ss-workflow:new-req REQ-0012`, which reopens a `ready` request as a draft (for a request that is too large: to split it). Go back to Step 4 for another request. |
+| Start anyway | The developer accepts the findings. Record each one as an entry in `## Q&A` (stage `implementation`) with the answer, and continue with Step 5. |
+| Cancel | Stop without changing anything. |
+
+Record the review in `## Notes` in the start commit of Step 5, so that nothing is
+committed before the request starts:
+
+```markdown
+### Lead review (yyyy-MM-dd)
+- Complete: passed
+- Small enough: passed
+- Ordered: passed (Depends on: REQ-0011, done)
+- Evidence in order: passed
+- Checkable: passed
+- Result: started / started anyway (findings accepted in Q4)
+```
+
+A failed check is written as `failed (<reason>)`.
 
 ## Step 5: Start the request and create the worktrees
 
@@ -282,7 +353,8 @@ only.
    - Set `status: in-progress`, `branch: <workspace branch>`, and
      `project-branch: <project branch>` in the request file (add the
      `project-branch:` line after `branch:` if the file has none; leave it empty for
-     `projects: []`).
+     `projects: []`). Add the `### Lead review` entry of Step 4b to `## Notes`, and the
+     `## Q&A` entries of findings that the developer accepted.
    - Commit and push (`git push -u origin <branch>` for a new branch):
 
      ```

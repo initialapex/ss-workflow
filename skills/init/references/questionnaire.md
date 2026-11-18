@@ -60,6 +60,7 @@ and reported as "not configured". The developer can fill it in later in root
 | One-sentence description | `{{ENTRY_DESCRIPTION}}` | From its README if it has one |
 | Project type and toolchain | `{{ENTRY_TYPE}}` | Free text in the developer's own words, specific enough to tell the toolchain, for example "Visual Studio solution, old-style C# projects built with MSBuild", "Keil MDK-ARM, STM32F4", or "ESP32 firmware with ESP-IDF v5". Do not offer a fixed list, and do not assume a type for an empty repository. |
 | Library or application? | `{{ENTRY_KIND}}` | `library` / `application` |
+| Does the project have a GUI (a window, dialog, or page that a person operates)? | `{{ENTRY_HAS_GUI}}` | `yes` / `no`. A library, a service, a command-line tool, and firmware without a display are `no`. `yes` makes the workspace keep an operation manual for the project, `docs/<name>/manual.html`, and makes the UI and UX principles of `reqs/AGENTS.md` apply to its requests. |
 | Main project file: the solution, workspace, or top-level build file | `{{ENTRY_PROJECT_FILE}}` | Relative to the project folder, for example `SSDisp.sln`. Empty for a project that has none yet. |
 | Setup command: what a fresh checkout needs before it can build (restore packages, fetch components, generate files) | `{{ENTRY_SETUP_COMMAND}}` | Runs in the project folder. Often empty. |
 | Build command | `{{ENTRY_BUILD_COMMAND}}` | Runs in the project folder. Empty if the project can only be built inside an IDE. |

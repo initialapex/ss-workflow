@@ -137,7 +137,8 @@ open, such as "for example", "such as", "or similar", "etc.", "as appropriate", 
 | Section | Content |
 |---------|---------|
 | File changes | A table with one row per file to add, change, delete, or rename: the project (or "Workspace"), the path from the project's root, the action, and what the file holds or what changes in it. List the files that the build has to know about too (project files, solution files, resource files), and the docs that follow the change. A file that is not listed is not changed, with one exception: a doc that describes what a listed change changes is brought in line with it even when it is not listed, and the implementation summary names it under "Not in the detailed design". |
-| Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also each view that is added or changed, and the members that each of its controls binds to. |
+| Types and public members | One table per type that is added, changed, or removed: its name, kind (class, interface, struct, record, enum, module), namespace or location, the file that holds it, its base type and the interfaces it implements, and its responsibility in one sentence. Below it, one row per public member that is added, changed, or removed: name, kind (constructor, method, property, field, event, command, constant, enum value), the parameters in order with their names and types, the return type or the property type, and the behavior: what it does, its preconditions, and what it returns or raises on failure. Members that only the type itself uses are not listed. For a UI, also the members that each control binds to (the views and the controls themselves are in "UI"). |
+| UI | For a project with `has-gui: yes` (see "UI and UX"), one table per view that is added or changed: its purpose and how the user gets there; its areas in reading order, with the margin and padding of each as a value of the project's spacing scale (or its resource key), the primary action, and the Tab order; one row per control with its label, type, the state in which it is shown or enabled, what each user action does, the validation and the message text, and its shortcut. The rows are what `manual.html` says. "None" for any other project. |
 | Data and state | Every data item that is added or changed and that is stored, passed between components, or shown: its name, type, unit, default value, allowed range, and which component owns and changes it. The exact layout of every file, setting, message, or protocol frame that is read or written. |
 | Flows | One numbered list per scenario (start-up, each user action, each external event): which component does what, in which order, which public member it calls, and on which thread or async context it runs. Say where the flow waits, what it locks, and what happens when it is cancelled. |
 | Errors and edge cases | A table with one row per condition (invalid input, a missing file, a timeout, an empty list, a limit that is reached, a concurrent call): where it is detected, and exactly what happens: the exception type or the return value, the message text, what the UI shows, what is logged, and the state afterwards. |
@@ -154,6 +155,100 @@ in `## Q&A` with `A: (pending)`.
 A request approved before ss-workflow 0.11.0 may have no "Detailed design".
 `/ss-workflow:check-req` writes it, and the developer confirms it, before the
 implementation starts.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-size -->
+## Request size
+
+A request is small enough when the developer can read its spec in one sitting and
+judge in the Review whether it is right. One request has one purpose. A request that is
+too large is slow to read, hides its most important change among small ones, and
+cannot be merged until all of it is right.
+
+**Signals that a request is too large**: its acceptance criteria fall into groups that
+can be checked on their own; its spec changes several views, modules, or projects that
+do not have to land together; its detailed design is too long to hold in mind at once;
+or the Review would need more than one sitting. About ten acceptance criteria, or more
+than one theme, is a reason to look again. Neither is a fixed limit.
+
+**How to split.** Split along these three axes, in this order:
+
+| Axis | Rule |
+|------|------|
+| Importance | What must change (a defect, a blocker, a requirement that cannot be dropped) is a request of its own, apart from what is only wanted. A must-fix never waits behind a wish in the same request. |
+| Type | One `type` per request. A fix, a feature, a refactor, and a docs change are separate requests, even when they touch the same file. |
+| Cost | A cheap change (a label, a margin, a one-line fix) is kept apart from one that costs days (a new view, a changed protocol), so that the cheap one is reviewed and merged first. |
+
+Each part is a request that can be implemented, reviewed, and merged alone, and that
+leaves the software working. A part that cannot land without another stays in the same
+request. Order the parts: must-fix first, then by dependency, then the cheaper before
+the more expensive. A part that needs another part names it as the first line of its
+"Scope": `Depends on: REQ-0011`. `/ss-workflow:check-req` reads that line when it
+recommends the next request.
+<!-- /ss-workflow:managed -->
+
+<!-- ss-workflow:managed id=reqs-ui -->
+## UI and UX
+
+This section applies to a request whose `projects` names a project with
+`has-gui: yes`. For any other request, the "UI" section of "Detailed design" says
+"None". The spec decides the points below, the implementation builds them, and the UI
+and UX review of `/ss-workflow:review` checks them. If the skill `ss-design:ui-ux` is
+installed, use it for the design of a view (direction, flows, layout, forms,
+accessibility).
+
+**Consistent margin and padding.**
+
+- A project has one spacing scale, based on 4 px (for example 4, 8, 12, 16, 24, 32), or
+  the scale that its existing views already use. It is written in `docs/<name>/spec.md`
+  (or in the project's resource file that the spec names). The spec gives every margin
+  and padding as a value of that scale, or as the key of the style or resource that
+  holds it. No value is off the scale. A new value is added to the scale first.
+- The same kind of element has the same margin and padding in every view: the margin
+  of a window or dialog, the space between a label and its control, between controls
+  of a group, between groups, the padding inside a button, and the row of dialog
+  buttons. Reuse the style or resource that exists. Compare a new view with a view
+  next to it: where they differ, one of them is wrong.
+- The space inside a group is smaller than the space between groups, so that spacing
+  shows the groups before lines or boxes do. Labels and controls of a form share
+  edges, and controls of the same kind have the same size.
+
+**Visual guidance.**
+
+- One primary action per view. It looks different from the secondary actions (filled
+  or accented, against plain), and it is where the eye ends after the task. A
+  destructive action is never the primary one, and is set apart and confirmed.
+- The reading order follows the task: from the top left to the action, with related
+  controls next to each other and grouped under a heading. The Tab order is the reading
+  order, and the first focus is on the first field to fill in, or on the primary action.
+- The hierarchy is made with size, weight, color, and space, in as few levels as the
+  view needs (title, section heading, body, hint).
+- Every state can be seen: enabled and disabled, selected, focused, in progress,
+  empty, and error. An error appears next to its cause and says what to do. A color is
+  never the only cue: an icon or a text goes with it.
+- The user is told the next step: an empty list says how to fill it, and the result of
+  an action is visible after it.
+
+## Operation manual
+
+A project with `has-gui: yes` has an operation manual, `docs/<name>/manual.html`, next
+to its `spec.md`. It tells a person how to operate the program: what each view is for,
+and how each control behaves.
+
+- It is one HTML file in `docs-language`, with its style inline and nothing loaded from
+  the network, so that it opens from a file or an attachment. `/ss-workflow:init`
+  creates it from `templates/project-manual.html` when it adds the project.
+- Per view: its purpose, how the user gets there, and a table with one row per
+  control: the label, the type, the state in which it is shown or enabled, the user
+  action, what happens, and the validation or the message with its text. It also holds
+  the keyboard shortcuts and the messages.
+- It is the form of the "UI" section of "Detailed design" that a user reads: the
+  control names and their behavior are the same in both. `spec.md` keeps the stable
+  functional requirements, and the manual keeps how they are operated.
+- A request that adds, changes, or removes a view, a control, a shortcut, or a message
+  lists `docs/<name>/manual.html` under "Workspace" in "Scope" and in "File changes",
+  and the implementation updates the rows of the views that it touches. The Review
+  reads the diff of the manual.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-evidence -->

@@ -5,6 +5,7 @@
     develop-branch: {{ENTRY_DEVELOP_BRANCH}}
     project-type: {{ENTRY_TYPE}}
     project-kind: {{ENTRY_KIND}}
+    has-gui: {{ENTRY_HAS_GUI}}
     project-file: {{ENTRY_PROJECT_FILE}}
     version-source: {{ENTRY_VERSION_SOURCE}}
     setup-command: {{ENTRY_SETUP_COMMAND}}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ENTRY_NAME}} Operation Manual</title>
+<!-- Write this document in docs-language, in the same language as spec.md.
+     It is the operation manual of the GUI of {{ENTRY_NAME}}: what each view shows
+     and how each control behaves. It is a single file: keep the style inline, and
+     do not load anything from the network. Requests that change the GUI update it
+     on the request's workspace branch, together with spec.md.
+     Keep the structure below. One <section class="view"> per view (window, dialog,
+     page), with one table row per control. -->
+<style>
+  :root { --fg: #1f2933; --muted: #616e7c; --line: #d9dee3; --accent: #1565c0; --bg: #ffffff; --bg-alt: #f5f7fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; font: 15px/1.6 "Segoe UI", system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+  main { max-width: 1000px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: 1.9em; }
+  h2 { margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); font-size: 1.4em; }
+  h3 { margin: 24px 0 8px; font-size: 1.1em; }
+  p, ul { margin: 8px 0; }
+  nav { margin: 16px 0 0; padding: 12px 16px; background: var(--bg-alt); border-radius: 6px; }
+  nav ul { margin: 0; padding-left: 20px; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.93em; }
+  th, td { padding: 8px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--bg-alt); }
+  code, kbd { padding: 1px 5px; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 3px; font-size: 0.92em; }
+  .meta { color: var(--muted); }
+  .view { margin-top: 32px; }
+  .shot { margin: 12px 0; padding: 24px; border: 1px dashed var(--line); color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>{{ENTRY_NAME}} Operation Manual</h1>
+<p class="meta">{{ENTRY_DESCRIPTION}}</p>
+
+<nav aria-label="Contents">
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#views">Views and controls</a></li>
+    <li><a href="#shortcuts">Keyboard shortcuts</a></li>
+    <li><a href="#messages">Messages</a></li>
+  </ul>
+</nav>
+
+<section id="overview">
+  <h2>Overview</h2>
+  <!-- Who uses the program, for which task, and the main flow through its views. -->
+  <p>Not written yet. The first request that changes the GUI fills in this manual.</p>
+</section>
+
+<section id="views">
+  <h2>Views and controls</h2>
+  <!-- Copy the block below once per view. Keep the order of the controls in the order
+       in which a user meets them (top to bottom, left to right). A control has one row
+       for every state and every action that changes what happens: say it in the table,
+       not in a paragraph. -->
+
+  <section class="view" id="view-example">
+    <h3>View name</h3>
+    <p><strong>Purpose:</strong> what the user does here, and how the user gets here.</p>
+    <div class="shot">Screenshot or sketch of the view (optional)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Control</th>
+          <th>Type</th>
+          <th>Shown / enabled when</th>
+          <th>User action</th>
+          <th>Behavior</th>
+          <th>Errors and feedback</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Label as the user sees it</td>
+          <td>Button, text box, list, check box, menu entry, ...</td>
+          <td>The state in which it is visible and enabled, and the state in which it is not</td>
+          <td>Click, type, select, key, drag</td>
+          <td>What happens, in order, and the state of the view afterwards</td>
+          <td>The validation rule, the message, and where it is shown</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>
+
+<section id="shortcuts">
+  <h2>Keyboard shortcuts</h2>
+  <table>
+    <thead><tr><th>Keys</th><th>View</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Key</kbd></td><td>View name</td><td>What it does</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="messages">
+  <h2>Messages</h2>
+  <table>
+    <thead><tr><th>Message text</th><th>Kind</th><th>When it appears</th><th>What the user can do</th></tr></thead>
+    <tbody>
+      <tr><td>Text as the user sees it</td><td>Information, warning, or error</td><td>The condition</td><td>The options</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+</body>
+</html>
