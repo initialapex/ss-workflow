@@ -62,6 +62,7 @@ checkout, and skills merge and release it by the same rules every time.
   - [Quick start](#quick-start)
 - [Skills](#skills)
 - [How a request moves](#how-a-request-moves)
+- [Roles](#roles)
 - [Branching model](#branching-model)
 - [Remote and pushing](#remote-and-pushing)
 - [Workspace layout](#workspace-layout)
@@ -211,6 +212,32 @@ Your original text is kept unchanged in its `## Original` section.
   `.claude/`, a skill, or a path in the `agent-files` setting) is reviewed as a change
   of behavior: the request records what an agent did before and what it does now, and
   you confirm each item in the Review. No build or test shows such a change.
+- A request is kept small enough to read and review in one sitting. When one is too
+  large, `/ss-workflow:new-req` splits it by importance (a must-fix is its own
+  request), then by type, then by cost, and the parts name what they need in a
+  `Depends on:` line. Before `/ss-workflow:check-req` starts a request, an engineering
+  lead checks that its spec is complete, small enough, ordered, and checkable, and can
+  send it back.
+- A project with a GUI (`has-gui: yes`) follows UI and UX rules: the same margin and
+  padding for the same kind of element, from one spacing scale, and visual guidance (a
+  primary action, a reading and Tab order, visible states). The spec gets a "UI"
+  section, `/ss-workflow:review` adds a UI and UX review, and the project keeps an HTML
+  operation manual, `docs/<project>/manual.html`, that defines the behavior of every
+  control. Requests that change the GUI update it.
+
+## Roles
+
+Each skill works as one role, so that every stage has a clear point of view. The role is
+written at the top of each skill and in the "Working agreement" of the workspace's
+`AGENTS.md`.
+
+| Skill | Role |
+|-------|------|
+| `/ss-workflow:init` | Software engineer who writes the initial spec of a project |
+| `/ss-workflow:new-req` | Requirements engineer |
+| `/ss-workflow:check-req` | Engineering lead who reviews the request before it starts, then software engineer who implements it |
+| `/ss-workflow:review` | Engineering lead who reviews the code and the spec, plus a UI and UX reviewer for a GUI project |
+| `/ss-workflow:merge`, `/ss-workflow:release` | CI and CD engineer |
 
 ## Branching model
 
@@ -292,7 +319,7 @@ SSDisp-workspace/
 ├─ docs/
 │  ├─ overview.md            what the projects do together
 │  ├─ SSLib/spec.md          the spec of each project, with its other docs
-│  └─ SSDisp/spec.md
+│  └─ SSDisp/                spec.md, and manual.html (the operation manual of a project with a GUI)
 └─ projects/
    ├─ AGENTS.md              the toolchain and the rules of each project
    ├─ SSLib/                 a submodule: the SSLib repository, in its own layout

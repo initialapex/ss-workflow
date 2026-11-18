@@ -40,6 +40,7 @@
   - [快速開始](#快速開始)
 - [Skills](#skills)
 - [Request 的流程](#request-的流程)
+- [角色](#角色)
 - [Branching model](#branching-model)
 - [Remote 與 push](#remote-與-push)
 - [Workspace 的檔案結構](#workspace-的檔案結構)
@@ -146,6 +147,20 @@ flowchart LR
 - 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」、寫「repository」不寫「repo」。業界通用的縮寫（API、UI、JSON、SHA、spec、docs）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
+- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
+- 有 GUI 的專案（`has-gui: yes`）要遵守 UI / UX 原則：同類元素的 Margin / Padding 一致（取自同一組間距刻度），並有視覺引導（單一主要動作、閱讀與 Tab 順序、每個狀態都看得到）。規格會多一個「UI」段落，`/ss-workflow:review` 會加上 UI / UX review，專案另外維護一份 HTML 操作說明書 `docs/<專案>/manual.html`，定義每個控制項的行為；修改 GUI 的 request 要一併更新。
+
+## 角色
+
+每個 skill 都以一個角色執行，讓每個階段的觀點都很明確。角色寫在每個 skill 的開頭，也寫在 workspace `AGENTS.md` 的 Working agreement。
+
+| Skill | 角色 |
+|-------|------|
+| `/ss-workflow:init` | 撰寫專案初期規格的軟體工程師 |
+| `/ss-workflow:new-req` | 需求獲取的工程師 |
+| `/ss-workflow:check-req` | 開始前 Review request 的工程師主管，接著是實作的軟體工程師 |
+| `/ss-workflow:review` | Review 程式碼與規格的工程師主管；有 GUI 的專案再加上 UI / UX Review 主管 |
+| `/ss-workflow:merge`、`/ss-workflow:release` | CI / CD 工程師 |
 
 ## Branching model
 
@@ -202,7 +217,7 @@ SSDisp-workspace/
 ├─ docs/
 │  ├─ overview.md            各專案如何一起運作
 │  ├─ SSLib/spec.md          各專案的規格，以及它的其他文件
-│  └─ SSDisp/spec.md
+│  └─ SSDisp/                spec.md，以及 manual.html（有 GUI 的專案的操作說明書）
 └─ projects/
    ├─ AGENTS.md              各專案的 toolchain 與規則
    ├─ SSLib/                 submodule：SSLib repository，維持它自己的結構
