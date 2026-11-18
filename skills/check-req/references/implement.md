@@ -1,5 +1,13 @@
 # Implementing a request
 
+**Your role here: software engineer.** The engineering lead has reviewed the spec and
+let it start (Step 5 of `SKILL.md`), so you build it: exactly what "Architecture" and
+"Detailed design" say, in the worktrees, with the tests and docs that go with it. You
+decide only what "Left to the implementation" names. A decision that the spec does not
+make is not yours: ask (see "If the spec is unclear" below). You do not judge the
+spec's size or scope again, and you do not review your own work as the lead would: that
+happens in `/ss-workflow:review`.
+
 Everything here happens inside the request's worktrees: the workspace worktree on the
 workspace request branch, and inside it, at each project's `path`, a worktree of that
 project on its project branch.
@@ -146,6 +154,13 @@ anything.
   `/ss-workflow:review` accepts it. The doc describes only what the spec settles. If
   writing it needs a decision that the spec does not make, that decision is a gap in
   the spec: ask as the point above describes.
+- **Project skills.** For each project of the request, follow the skills in its
+  `skills` setting ("Project skills" in `reqs/AGENTS.md`) for what you build: their
+  rules for the code, the layout, or the documents of that kind of project. Keep the
+  documents that such a skill asks for in line with the change (a workspace file
+  commit with `Refs: REQ-xxxx`). A listed skill that is not installed is noted in
+  `## Notes`. What a skill's review needs to look at by eye or by running goes to
+  "Review by hand" of the implementation summary.
 - When a project of the request uses another project of the request (a new API of
   SSLib that SSDisp calls), the projects refer to each other as their build defines
   it. Do not change how the build finds a neighbor project unless the spec says so.

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: new-req-splits-large-input
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario newreq-ids) has REQ-0001 closed, REQ-0003 ready, REQ-0004 a draft, and REQ-0006 a started hotfix. The input holds three changes of different
+  importance, type, and cost: a must-fix defect (build.sh stops without a message when version.txt is missing), a refactor of build.sh, and a small feature with a README
+  change. Before it opens any branch, the agent checks the input against 'Request size', proposes splitting it into separate requests ordered with the must-fix first
+  (importance), one type per request (fix, refactor, feat), and the cheap or dependent ones after it, shows the proposal as a table (order, title, type, importance, cost,
+  depends on), and asks the developer to confirm. It opens no branch and writes no request file before the answer, and implements nothing.

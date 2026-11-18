@@ -48,9 +48,8 @@ Undo only with the developer's agreement, and say what it removes.
 
 A version has a package in one of two ways:
 
-- **`package-command` printed `Package: <path>` lines**, as the plugin's package
-  script `New-ReleasePackage.ps1` does
-  (`${CLAUDE_PLUGIN_ROOT}/skills/init/references/release-package.md`): those files
+- **`package-command` printed `Package: <path>` lines**, as a package script of the
+  project does (for example the one of `ss-build:release-package`): those files
   are the packages, one per platform, and the rest of this section is skipped. Check
   that each file exists and that its name contains `-v<version>`: a different version
   (`-dirty`, `-1-g<sha>`, another tag) means the build did not run on the tag; stop

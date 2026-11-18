@@ -15,6 +15,17 @@ it itself.
 
 Input: `$ARGUMENTS`
 
+## Role
+
+You are a **requirements engineer**: the engineer who elicits what is needed before
+anyone builds it. You listen for the need behind the developer's words, you read the
+existing code to learn what is true today, and you write a spec from which every
+implementer builds the same thing. You ask the questions whose answers change what is
+built, and you do not ask what the repository already answers. You keep each request
+small enough to read and review (see "Request size" in `reqs/AGENTS.md`). You do not
+design beyond what the spec needs, and you never implement the request: that is the
+role of the software engineer in `/ss-workflow:check-req`.
+
 ## Ground rules
 
 - Read the root `AGENTS.md` ("Workflow settings", "Working agreement", "Workspace and
@@ -86,10 +97,22 @@ Input: `$ARGUMENTS`
 
 Then check the following:
 
-- **Several requests in one input**: if the input describes changes that can be
-  implemented and reviewed independently, propose splitting it, and ask. Handle the
-  resulting requests one after another: finish this skill for the first one, then
-  start again for the next one with its part of the original text.
+- **Size of the request**: check the input against "Request size" in `reqs/AGENTS.md`
+  before you open a branch, and again whenever the spec grows during the discussion
+  (Step 6, Rounds). If the input describes changes that can be implemented and
+  reviewed independently, or its signals say that it is too large, propose a split and
+  ask. Split by importance (a must-fix is its own request), then by type, then by
+  cost, as that section says. Show the proposal as a table, one row per request, in
+  the order they should be done:
+
+  | Order | Title | Type | Importance | Cost | Depends on |
+  |-------|-------|------|------------|------|------------|
+
+  Handle the resulting requests one after another: finish this skill for the first
+  one (the most important, and the ones that others depend on first), then start
+  again for the next one with its part of the original text. Each later request names
+  what it needs in `Depends on:` (see "Request size"). Record the split as an entry in
+  `## Q&A` of the first request, with the table.
 - **Duplicates**: compare with the titles and specs of the requests on the request
   branches (any status) and on the `hotfix/<name>-v<version>` branches of started
   hotfixes, the requests in `reqs/` on `develop` from before 0.8.0, and
@@ -311,6 +334,12 @@ the developer agrees with the architecture:
   exception or an error code, a new dependency, a stored format).
 - Keep the size in proportion: a one-line fix gets a few lines, a new feature gets
   tables. Never leave a section out: write "None" in one line when it has nothing.
+- **Project skills.** For each project of the request, read the skills in its `skills`
+  setting ("Project skills" in `reqs/AGENTS.md`), and design with them: follow their
+  design output, and add the sections that they require under "Sections from the
+  project's skills". A listed skill that is not installed is said to the developer. The
+  workflow itself prescribes no technology: the way to design the code, the screens, or
+  the documents of a project comes from its skills.
 
 ### When the developer does not know
 
@@ -348,8 +377,10 @@ Go through these rounds with the developer:
    the developer pauses or approves (Step 7).
 3. Flag what the developer may not have considered: breaking changes, effects on other
    projects or samples, missing tests, and documentation that would need updating.
-4. If the request turns out to be too large for one branch, propose splitting it
-   (Step 2).
+4. If the request turns out to be too large for one branch (see "Request size" in
+   `reqs/AGENTS.md`), propose splitting it (Step 2) before you go on: keep the part
+   that is most important and cheapest to finish in this request, and move the rest to
+   new requests with their own part of the original text.
 
 `## Q&A` holds the questions and the decisions. Use `## Notes` for what is not an
 answer to a question: assumptions, and facts found in the code that explain a choice,
@@ -384,7 +415,9 @@ standard with a reader who did not take part in the discussion:
      text of its comments, is left to the implementation: do not report it as a gap
      when what can be observed is settled (which file is created or changed, from
      what, in which order relative to the other steps, what happens when it exists or
-     a step fails, the exit status, and the message). Then check the evidence: open every reference of every
+     a step fails, the exit status, and the message). Also
+     report a section that a skill of the project requires ('Project skills' in
+     `reqs/AGENTS.md`) and the spec lacks. Then check the evidence: open every reference of every
      `verified` entry in `## Evidence` at its commit, and walk its trace again step by
      step; report an entry whose quoted lines differ from the code, whose trace skips a
      step or gives a value that does not follow from the code, or whose evidence does
@@ -432,8 +465,9 @@ in, `projects` names at least one project (or is `[]`, and "Scope" changes works
 files only), every entry of `## Evidence` that the spec cites meets the column
 "Before the approval" in "Evidence" of `reqs/AGENTS.md` (no `to trace`, every
 `inferred` accepted, every `failed` one no longer relied on, a check in "How to
-verify" for every `to test` and `developer-stated` one), and the last cold read
-(Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
+verify" for every `to test` and `developer-stated` one), the request is not too large
+for one review ("Request size" in `reqs/AGENTS.md`), the sections that the project's
+skills require are there, and the last cold read (Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
 Show with it the entries that are not `verified`, with their status. A cold read
 counts only when `## Spec` and `## Evidence` have not changed since it ended: after a
 later change (in a later round, or through "Other"), run it again first. While

@@ -16,10 +16,10 @@ that is versioned: source code, firmware, documents, or analysis reports. Its en
   `AGENTS.md`).
 - Paths in a project's settings (`project-file`, `version-source`, `package-files`)
   are relative to the project folder, and its commands run in that folder.
-- A project with the package script (`tools/New-ReleasePackage.ps1`) lists what its
-  release package contains in `tools/package.psd1`: a change that adds an output
-  file or a platform that ships updates that file too. Never edit the script itself;
-  an update request replaces it.
+- A project that makes its release package with a script lists what the package
+  contains in the script's data file: a change that adds an output file or a platform
+  that ships updates that list too. A script that was copied into the project from a
+  plugin is changed by an update, not by hand.
 - A project's version is set only in its `version-source`. Do not set it anywhere
   else. With `git-tag`, the version comes from the git tag: never commit the
   generated files that carry it.

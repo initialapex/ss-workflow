@@ -62,6 +62,7 @@ checkout, and skills merge and release it by the same rules every time.
   - [Quick start](#quick-start)
 - [Skills](#skills)
 - [How a request moves](#how-a-request-moves)
+- [Roles](#roles)
 - [Branching model](#branching-model)
 - [Remote and pushing](#remote-and-pushing)
 - [Workspace layout](#workspace-layout)
@@ -211,6 +212,31 @@ Your original text is kept unchanged in its `## Original` section.
   `.claude/`, a skill, or a path in the `agent-files` setting) is reviewed as a change
   of behavior: the request records what an agent did before and what it does now, and
   you confirm each item in the Review. No build or test shows such a change.
+- A request is kept small enough to read and review in one sitting. When one is too
+  large, `/ss-workflow:new-req` splits it by importance (a must-fix is its own
+  request), then by type, then by cost, and the parts name what they need in a
+  `Depends on:` line. Before `/ss-workflow:check-req` starts a request, an engineering
+  lead checks that its spec is complete, small enough, ordered, and checkable, and can
+  send it back.
+- The workflow itself knows no technology. A project lists the skills that apply to it
+  in its `skills` setting (for example `ss-design:ood, ss-design:ui-ux`). The stages use
+  them: `/ss-workflow:new-req` designs with them and adds the sections they require,
+  the implementation follows them, and `/ss-workflow:review` applies the checklist of
+  each one as a specialist reviewer.
+
+## Roles
+
+Each skill works as one role, so that every stage has a clear point of view. The role is
+written at the top of each skill and in the "Working agreement" of the workspace's
+`AGENTS.md`.
+
+| Skill | Role |
+|-------|------|
+| `/ss-workflow:init` | Software engineer who writes the initial spec of a project |
+| `/ss-workflow:new-req` | Requirements engineer |
+| `/ss-workflow:check-req` | Engineering lead who reviews the request before it starts, then software engineer who implements it |
+| `/ss-workflow:review` | Engineering lead who reviews the result, plus a specialist reviewer for each skill in the project's `skills` that has a review checklist |
+| `/ss-workflow:merge`, `/ss-workflow:release` | CI and CD engineer |
 
 ## Branching model
 
@@ -309,17 +335,16 @@ stay where their toolchain puts them.
 > Repositories set up by ss-workflow 0.5.0 or older kept the code and the requests in
 > one repository. Running `/ss-workflow:init` there converts it: the old repository
 > becomes the project repository, with its remote, history, and tags, and goes back to
-> the layout of its toolchain: for Visual Studio, the solution at the root and every
-> project folder next to it, with no `src/`, `tests/`, or `samples/` left. A new
+> the layout that its toolchain creates for a new project, with no `src/`, `tests/`, or
+> `samples/` wrapper left. A new
 > workspace next to it takes the requests, the drafts, and the docs. No request,
 > release, or hotfix may be in progress. A workspace converted by 0.6.0 to 0.9.0 that
 > still has those folders inside its project is repaired by the upgrade to 0.9.1.
 
 ## Project types
 
-The plugin ships no templates or commands for any toolchain, apart from one optional
-version generator (below). During init you describe
-the type of each project in your own words, and the agent proposes the values below
+The plugin ships no templates, commands, or scripts for any toolchain. During init
+you describe the type of each project in your own words, and the agent proposes the values below
 for you to confirm. They are stored in the workspace, and every skill reads them from
 there.
 
@@ -341,22 +366,17 @@ version number in its files: the build reads it from the git tags and writes it,
 without the tag's leading `v`, into generated files that git ignores (`1.2.3` on the
 tag `v1.2.3`, `1.2.3-4-g1a2b3c4` four commits after it, `-dirty` with uncommitted
 changes, `0.1.0-unknown` without a tag).
-For C# and C++ projects built with MSBuild on Windows, the plugin ships a generator
-(`skills/init/scripts/`: `Update-GitVersion.ps1` and `GitVersion.targets`), which each
-project file imports; it works from Visual Studio 2010 (MSBuild 4.0) on and needs
-Windows PowerShell 3.0 or later. Init and
-the upgrade never copy it into a project themselves: they start a request that does,
-so the project builds the same without the workspace. The upgrade reports when a
-project's copy is older than the plugin's. CMake is not supported yet.
+The workflow only knows what the value means; making a project do it is a change to
+the project, which belongs to a skill of its toolchain. For C# and C++ projects built
+with MSBuild on Windows, `ss-build:git-version` (plugin `ss-build` of the
+[scott-skills](https://github.com/initialapex/scott-skills) marketplace) ships a
+generator and converts a project to it through a request.
 
-**The release package script.** The plugin also ships `New-ReleasePackage.ps1`
-(Windows PowerShell 3.0 or later). A request copies it into the project's `tools/`
-with `tools/package.psd1`, which lists the files of the release build and the
-platforms that ship; `package-command` runs it. It zips the release build into
-`dist/<name>-v<version>.zip`, or one `<name>-v<version>-<platform>.zip` per listed
-platform, refuses uncommitted changes, and runs the same without the workspace. Init,
-adding a project, and the upgrade ask whether to make it, separately from the
-conversion to `git-tag`.
+**The release package.** `package-command` runs after the build of a tagged version.
+When it prints `Package: <path>` lines, those files are the packages (one zip per
+platform) and `package-files` stays empty; otherwise a release zips `package-files`
+into `<name>-v<version>.zip`. `ss-build:release-package` ships a package script for
+Windows projects that makes the same zip for the developer, a CI job, and a release.
 
 A project does not have to be code. For a repository of documents or analysis
 reports, leave the build and test commands empty, or set `verify-command` to a
@@ -403,9 +423,6 @@ skills/
 └─ release/                  SKILL.md, references/
 tests/git-sequences.sh       checks the git steps that the skills prescribe
 tests/migrations.sh          checks that a template change ships a migration file
-tests/git-version.sh         checks the version generator, with real SDK-style and
-                             old-style (MSBuild 4) C# builds
-tests/release-package.sh     checks the release package script
 ss-workflow-skill.md         the design spec (Traditional Chinese)
 ```
 
@@ -441,24 +458,6 @@ changed since the last release tag and no migration file for a newer version exi
 
 ```bash
 bash tests/migrations.sh
-```
-
-The version generator in `skills/init/scripts/` is tested with Windows PowerShell on
-throwaway repositories: the version on a tag, after it, dirty, the tag formats that
-count, and the generated `.cs` and `.h` files. With the .NET SDK, it also builds an
-SDK-style C# project that imports `GitVersion.targets` and reads the version of the
-assembly; with the MSBuild of the .NET Framework (MSBuild 4), it does the same with an
-old-style project, as Visual Studio 2012 builds it:
-
-```bash
-bash tests/git-version.sh
-```
-
-The release package script is tested the same way, with fake build output: the
-version, the files and folders in the zip, the platforms, and what it refuses:
-
-```bash
-bash tests/release-package.sh
 ```
 
 > [!IMPORTANT]

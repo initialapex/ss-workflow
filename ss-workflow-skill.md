@@ -102,35 +102,15 @@ SSDisp-workspace/
 ### 版號來自 git tag
 
 - `version-source: git-tag`: 專案檔案裡沒有版號，build 時由 tag 決定版號並產生版號檔 (加入 gitignore，build 完才不會 dirty)；release 流程變成「打 tag → build → package」
-- plugin 附的產生器 (`skills/init/scripts/`): `Update-GitVersion.ps1` (Windows PowerShell 3.0 以上，Windows 7 要另裝 WMF 3.0+；版本不夠時 script 報錯、build 失敗) 與 `GitVersion.targets` (MSBuild 4.0 / VS2010 以上)
-- 每個產生 binary 的專案檔直接 `<Import Project="..\tools\GitVersion.targets" />` (舊式 `.csproj` 放在 `Microsoft.CSharp.targets` 之後，`.vcxproj` 放在 `Microsoft.Cpp.targets` 之後，SDK-style 放最後)；不用 `Directory.Build.targets`，因為 VS2015 以前 (MSBuild 14 以前) 不會讀它。之後新增的專案檔也要加同一行
-- **tag 帶 `v`，產生的版號不帶 `v`**: 專案的 tag 一律是 `v1.2.3` / `v1.2.3-beta4` / `v1.2.3-rc1` (沒有 `v` 的 tag 不算)；產生器把找到的 tag 去掉開頭的 `v` 再寫進檔案
-- 產生的版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`
-  - HEAD 就是 tag `v1.2.3` 那個 commit: `1.2.3`；有未 commit 的變更 (不含 untracked，含 submodule 的變更): `1.2.3-dirty`
-  - tag `v1.2.3` 之後 4 個 commit: `1.2.3-4-g123dcda`；最長 (tag `v1.2.3-beta4` 之後 5 個 commit 且有變更): `1.2.3-beta4-5-g321aceb-dirty`
-  - 沒有 tag、shallow clone 沒有 tag、沒有 git: `0.1.0-unknown`
-  - 只接受 `vX.Y.Z` / `vX.Y.Z-<stage>R` 格式的 tag (annotated 或 lightweight 都可以)；取 HEAD 所包含的 tag 中**版號最高**的 (不是 `git describe` 的最近 tag，否則 hotfix merge 回 develop 後會蓋過 alpha)
-- 產生的檔案 (依副檔名):
-  - `.cs`: `AssemblyVersion` / `AssemblyFileVersion` = `X.Y.Z.0` (第 4 段固定 0)，`AssemblyInformationalVersion` = 完整版號；寫在 `obj/` 裡，並關掉 SDK 自己產生的版本 attribute
-  - `.h`: `<PREFIX>VERSION_MAJOR/MINOR/PATCH/BUILD`、`_STRING`、`_NUMERIC_STRING`，`.rc` 也可以 include
-  - 內容沒變就不寫檔，避免每次 build 都重新編譯
-- 支援: MSBuild 的 C# (SDK-style 與 old-style) 與 C++；CMake 待辦；其他 toolchain 不支援 (專案自己有產生方式時仍可設 `git-tag`)
-- 專案要能脫離 workspace 獨立 build，所以產生器要 commit 在專案 repo (`tools/`)；init 不寫專案 repo，改由 init / 加入專案 / 升級之後開一個 `chore` request (轉換 request) 來複製檔案、移除舊的版號設定、把 `version-source` 改成 `git-tag`
-- 產生器檔案內有 `ss-workflow-script: <name> <version>` 標記；升級的健康檢查與每次 release 都會比對專案內的版本，比 plugin 舊時建議開 request 更新
+- **tag 帶 `v`，產生的版號不帶 `v`**: 專案的 tag 一律是 `v1.2.3` / `v1.2.3-beta4` / `v1.2.3-rc1` (沒有 `v` 的 tag 不算)
+- 產生的版號格式: `X.Y.Z[-<alpha|beta|rc>R][-<距離>-g<7 碼 sha>][-dirty]`，取 HEAD 所包含的 tag 中**版號最高**的 (不是 `git describe` 的最近 tag，否則 hotfix merge 回 develop 後會蓋過 alpha)；沒有 tag 時 `0.1.0-unknown`
+- workflow 只定義這個值的意思，不附產生器：讓專案做到 `git-tag` 是對專案的修改，屬於該 toolchain 的 skill。MSBuild 的 C# 與 C++ 用 scott-skills marketplace 的 `ss-build:git-version`，由它開 `chore` request 轉換、並負責更新專案內複製的 script
 
-### Release 打包 script
+### Release 打包
 
-- 目的: 打包由 script 決定，不由 agent 決定；同樣的輸入一定得到同樣的 zip，developer、CI、沒有 workspace 時都能執行
-- plugin 附 `skills/init/scripts/New-ReleasePackage.ps1` (Windows PowerShell 3.0 以上、.NET Framework 4.5 以上)；和 `git-tag` 無關，`version-source` 是檔案的專案也能用
-- 由 request 複製到專案 `tools/` (不修改)，檔案清單放在專案自己的 `tools/package.psd1` (屬於專案，更新 script 時不覆寫)；專案 `.gitignore` 加 `dist/`
-- `package.psd1`: `Name`、`Platforms` (選填)、`Files` (`From` 以 repo 根目錄為基準、可用萬用字元，資料夾連子資料夾一起；`To` 是 zip 內的資料夾；`{Platform}` 代表各平台)；只打包 Release 的輸出
-- 平台**明確列出**，不從 `.sln` 自動推算 (`.sln` 常有不出貨的 `Any CPU`、`Mixed Platforms`)；製作 request 會讀 `.sln` 的 `Release|<platform>` 提出建議值讓 developer 確認。沒有或只有一個平台: `<Name>-v<version>.zip`；多個平台: 每個平台一包 `<Name>-v<version>-<platform>.zip`
-- 版號: `-Version` → HEAD 上版號最高的 tag (去掉 `v`) → 旁邊有 `Update-GitVersion.ps1` 時用它的版號 (tag 之後是 `1.2.3-4-g<sha>`)；都沒有就失敗
-- 拒絕: 有未 commit 的變更 (不含 untracked，含 submodule)、沒有版號、某個 `From` 找不到檔案 (該平台沒 build)、未知的 placeholder、zip 裡兩個不同檔案同名；任何一包失敗就一包都不寫
-- 用 .NET `ZipArchive` 寫 zip (路徑用 `/`，不用 `Compress-Archive`)；預設輸出到 repo 的 `dist/`；每包印出 `Package: <完整路徑>`
-- release 的介面: `package-command` 執行 script，`package-files` 留空；`package-command` 印出 `Package:` 行時，那些檔案就是 package，release 檢查檔名含 `-v<version>` 後全部上傳到 platform release；沒有 `Package:` 行時才由 agent 依 `package-files` 打包 (沒有用 script 的專案)
-- init (問答 Round 3)、加入專案、升級 (migration 0.10.0) 都會詢問是否製作；和 `git-tag` 轉換是分開的 request
-- script 內有 `ss-workflow-script: New-ReleasePackage <version>` 標記，與產生器一樣在升級健康檢查和 release 時比對版本
+- `package-command` 在 tag 版本 build 完成後執行，`package-files` 是沒有 script 時由 agent 打包的檔案清單 (glob，相對於專案資料夾)
+- release 的介面: `package-command` 印出 `Package: <完整路徑>` 行時，那些檔案就是 package (每個平台一個 zip)，`package-files` 留空；release 檢查檔名含 `-v<version>` 後全部上傳到 platform release；沒有 `Package:` 行時才由 agent 依 `package-files` 打包成 `<name>-v<version>.zip`
+- 打包 script 不在 workflow 內：Windows 專案用 `ss-build:release-package` (scott-skills marketplace)，由它開 request 把 script 與 `package.psd1` 放進專案
 
 ## 發佈方式 (Claude Code plugin)
 
@@ -172,8 +152,6 @@ ss-workflow/
   - 不改寫 `## Original`，不改已回答的 `## Q&A`；request 檔在各自的 branch 上，migration 不 checkout request branch，格式變更由下一次寫入該檔的 skill 補上
   - 例外: 0.6.0 的 migration 是架構轉換 (見「轉換 0.5.0 以下的 repo」)，舊架構無法「維持舊版行為」，developer 拒絕時升級停止
   - `tests/migrations.sh`: 範本自上一個 release tag 後有變更，卻沒有更新版本的 migration 檔時失敗
-  - `tests/git-version.sh`: 以 Windows PowerShell 測試版號產生器；有 .NET SDK 時實際 build 一個 SDK-style C# 專案，有 .NET Framework 的 MSBuild 4 時再 build 一個舊式 C# 專案 (VS2012 的 build 方式)
-  - `tests/release-package.sh`: 以 Windows PowerShell 與假的 build 輸出測試打包 script
 
 ## skill: `/ss-workflow:init`
 
