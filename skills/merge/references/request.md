@@ -57,7 +57,15 @@ workspace".
    one block per project, one line per command, with `passed`, `failed (<reason>)`,
    `did not run (<reason>)`, or `not configured`. If step 4 merged nothing into the projects, do not run them, and
    do not record a result that you did not produce.
-6. Push the updated project branches, then the workspace branch.
+6. **Changelog**, in each project that is not merged yet: add the changes of the
+   project branch to `## Unreleased` of its `CHANGELOG.md`, as "Add the changes of a
+   branch" in changelog.md says (`${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md`),
+   and commit it on the project branch as `docs: update the changelog`. A project
+   without a `CHANGELOG.md` gets none here: its first release creates it. This
+   commit changes no code, so Verify does not run again for it. If "Merge the
+   projects" aborts a merge and repeats step 4, run this step again: it adds only
+   what the branch's entries do not describe yet.
+7. Push the updated project branches, then the workspace branch.
 
 ## Merge the projects
 

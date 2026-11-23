@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.13.0" src="https://img.shields.io/badge/version-0.13.0-blue">
+  <img alt="Version 0.14.0" src="https://img.shields.io/badge/version-0.14.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -50,7 +50,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.13.0, early.** The six skills are written and the plugin manifest
+> **Status: 0.14.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -123,7 +123,7 @@ In a new, empty folder, for example `SSDisp-workspace`:
 | `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Design check: compares the changes with the detailed design of the spec, and lists every deviation. Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
-| `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, builds and packages each tagged version, and hands the final version over to the release merge. |
+| `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, writes the version into `CHANGELOG.md` (feature, bugfix, misc, contribution), builds and packages each tagged version, and hands the final version over to the release merge. |
 
 > [!NOTE]
 > The root checkout is the workspace's primary working tree. Tests, scripts, and
@@ -269,7 +269,12 @@ Where a project's version tags go:
 - Every version is tagged locally, built from its tag, and packaged: by the
   project's package script (`package-command`, one zip per platform), or by zipping
   `package-files` into `<name>-v<version>.zip`. Only then is everything pushed, and
-  the platform release created with the packages.
+  the platform release created with the packages and the notes of the version.
+- The project's `CHANGELOG.md` lists each version as feature, bugfix, misc, and
+  contribution. Merging a request adds its changes to `## Unreleased`; a release
+  candidate or final version turns that into a version section, and a release or
+  hotfix fills in the released versions that the file lacks from `git log`. The
+  platform release uses the same text, with the contributors' names only.
 - The workspace `master` is the set of the latest released projects: each release
   merges `develop` into it and points every project to its own `master`.
 - A request is merged project by project, and the workspace last.

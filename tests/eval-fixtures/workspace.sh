@@ -31,6 +31,15 @@
 #                   on develop since v0.1.0, and nothing unfinished
 #   release-rc      the same, with version-source version.txt, and REQ-0002 in progress
 #   release-nothing no request, no commit since v0.1.0 (alias: bare)
+#   release-changelog-rc
+#                   SSLib (version-source version.txt) has a CHANGELOG.md with an Unreleased
+#                   section and an old hand-written section, three feat/fix commits since
+#                   v0.1.0 (one by another developer that the changelog does not list)
+#   release-changelog-final
+#                   the same, with release/v0.2.0 open: v0.2.0-rc1 is tagged with its changelog
+#                   section, and a fix was committed after it
+#   merge-review-changelog
+#                   merge-review, with a CHANGELOG.md that has an Unreleased section
 #   review-deviation, review-clean
 #                   REQ-0001 in review without a Verify or Review; the first branch also
 #                   adds a file that the spec does not list
@@ -516,6 +525,22 @@ merge-review)
 ### Review (2026-11-06)
 - Result: passed. The developer ran \`bash build.sh\` in SSLib and found the line in \`bin/out.txt\`. Both acceptance criteria are ticked."
   ;;
+merge-review-changelog)
+  # like merge-review, but SSLib has a CHANGELOG.md with an Unreleased section
+  sslib_develop_commit CHANGELOG.md "$(printf '# CHANGELOG\n\n## Unreleased\n\n### misc\n\n1. Document the build script\n')" "docs: update the changelog"
+  review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
+### Implementation summary (2026-11-05)
+- What changed: SSLib: added \`greeting.txt\` with the line \`Hello from SSLib\`
+- Ran in the worktree: SSLib \`bash build.sh\`: passed
+- Did not run: tests, scripts, and executables (left to Verify)
+
+### Verify (2026-11-06)
+- SSLib: \`bash build.sh\`: passed (build ok: 3 lines). Tests: not configured. Verify script: not configured.
+- Design check: the diff matches \"File changes\"; no deviation.
+
+### Review (2026-11-06)
+- Result: passed. The developer ran \`bash build.sh\` in SSLib and found the line in \`bin/out.txt\`. Both acceptance criteria are ticked."
+  ;;
 merge-unreviewed)
   review_req 0001 add-greeting feat/REQ-0001-add-greeting feat/add-greeting "
 ### Implementation summary (2026-11-05)
@@ -544,6 +569,32 @@ release-beta|release-rc)
     git push -q -u origin feat/REQ-0002-log-level
     project_commit SSLib feat/log-level loglevel.txt "info" "feat: add a log level"
     git checkout -q develop; git submodule update -q
+  fi
+  ;;
+# ================================================================== changelog scenarios
+release-changelog-rc|release-changelog-final)
+  # develop has two commits of the eval developer (a feat and a fix), a CHANGELOG.md that
+  # lists them in `## Unreleased` and has an old hand-written section, and one more feat
+  # commit of another developer that the changelog does not mention.
+  sslib_develop_commit greeting.txt "Hello from SSLib" "feat: add a greeting text file"
+  sslib_develop_commit notes.txt "notes" "fix: keep the notes file in the build output"
+  sslib_develop_commit CHANGELOG.md "$(printf '# CHANGELOG\n\n## Unreleased\n\n### feature\n\n1. Add a greeting text file\n\n### bugfix\n\n1. Keep the notes file in the build output\n\n## 0.0.5 - 2020-01-01\n\n- First public build (written by hand)\n')" "docs: update the changelog"
+  GIT_AUTHOR_NAME="Amy Lin" GIT_AUTHOR_EMAIL="amy@example.com" \
+    sslib_develop_commit farewell.txt "Goodbye from SSLib" "feat: add a farewell text file"
+  closed_req 0001 add-greeting feat SSLib "Add a greeting" greeting.txt "Hello from SSLib"
+  if [ "$SCENARIO" = release-changelog-final ]; then
+    # release/v0.2.0 with release candidate 1 already tagged, and a fix made after it
+    rel="$T/tmp-rel"
+    git -C projects/SSLib fetch -q
+    git -C projects/SSLib worktree add -q -b release/v0.2.0 "$rel" origin/develop
+    ( cd "$rel"
+      printf '0.2.0-rc1\n' > version.txt; git add -A; git commit -q -m "chore(release): bump version to 0.2.0-rc1"
+      printf '# CHANGELOG\n\n## v0.2.0-rc1 (2026-11-02)\n\n### feature\n\n1. Add a greeting text file\n2. Add a farewell text file\n\n### bugfix\n\n1. Keep the notes file in the build output\n\n### contribution\n\n1. Eval Developer (dev@example.invalid)\n2. Amy Lin (amy@example.com)\n\n## v0.1.0 (2026-11-01)\n\n### misc\n\n1. Create the project\n\n### contribution\n\n1. Eval Developer (dev@example.invalid)\n\n## 0.0.5 - 2020-01-01\n\n- First public build (written by hand)\n' > CHANGELOG.md
+      git add -A; git commit -q -m "docs: update the changelog for v0.2.0-rc1"
+      git tag -a v0.2.0-rc1 -m "Release v0.2.0-rc1"
+      printf 'notes\nmore notes\n' > notes.txt; git add -A; git commit -q -m "fix: add the missing second notes line"
+      git push -q -u origin release/v0.2.0 v0.2.0-rc1 )
+    git -C projects/SSLib worktree remove "$rel"
   fi
   ;;
 release-nothing|bare)
