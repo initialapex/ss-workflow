@@ -6,6 +6,6 @@ expected_outcome: |
   The workspace (scenario release-rc) has SSLib (version-source version.txt) with a closed REQ-0001, two commits on develop since v0.1.0, and
   REQ-0002 in progress. The agent opens release/v0.2.0 from SSLib's develop, shows the unfinished REQ-0002 and asks what to
   do, sets version.txt to the release candidate version in its own commit, builds, tags v0.2.0-rc1 on the release branch,
-  asks before pushing the tag, pushes the branch and the tag, puts SSLib back at its gitlink, makes no workspace tag, and
+  writes CHANGELOG.md in its own commit (a section for v0.1.0 filled in from git, and one for 0.2.0-rc1 with feature, bugfix, and contribution) before the tag, asks before pushing the tag, pushes the branch and the tag, puts SSLib back at its gitlink, makes no workspace tag, and
   reports REQ-0002 as not part of this release. When the agent asks the developer anything, the developer chooses 'Release
   without them' and agrees to push the tag.
