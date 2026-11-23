@@ -595,7 +595,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - request 實作都開在 worktree 實作；merge 時 worktree 已刪除，全程在根目錄 checkout request branch 進行
   - 只 merge 有效狀態為 `review` 的 request
   - 順序: 先各專案，最後 workspace
-    1. 每個專案: 把專案 develop 的新 commit merge 進專案 branch 並解衝突 (有新 commit 時重新跑 build + test + `verify-command`)，再 `--no-ff` merge 到專案 develop 並 push (或發 merge-request)
+    1. 每個專案: 把專案 develop 的新 commit merge 進專案 branch 並解衝突 (有新 commit 時重新跑 build + test + `verify-command`)，在專案 branch 上多一個 commit `docs: update the changelog`，把這次變更依 feature / bugfix / misc 加進 `CHANGELOG.md` 的 `## Unreleased` (專案沒有 `CHANGELOG.md` 就略過，第一次 release 時才建立；不重跑 Verify，不帶 request 編號)，再 `--no-ff` merge 到專案 develop 並 push (或發 merge-request)
     2. workspace: 關閉 request (status 改為 `done`、`git mv` 到 `reqs/done/`，gitlink 設為各專案 develop 的 merge commit) 是 workspace request branch 上的最後一個 commit，隨著 merge 一起進 develop
     - `projects: []` 的 request 沒有專案 branch，只做第 2 步
   - 任何一步中斷 (merge-request 等待中、受保護的 branch)，下一次執行時以 `merge-base --is-ancestor` (專案 branch 是否已在專案 develop、workspace branch 是否已在 workspace develop) 判斷做到哪裡再接續
@@ -684,7 +684,14 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - workspace 以外的變更: request 不再以 `Refs:` 標示，改由已關閉 request 的 `Merged into develop` 紀錄找出它們的 merge commit；專案 develop 的 first-parent 歷史中其他的 commit 都來自 workspace 以外 (例如別人自己的 workspace)
   - workspace 的 `docs/<P>/` 與 `docs/overview.md` 內標示該專案目前版本的地方: workspace 沒有 release branch，由 release merge 在 workspace develop merge 到 master **之前**修改 (master 才會顯示新版本)；hotfix 在 workspace hotfix branch 上修改
   - 版本號的寫法依專案形式而定，沿用該欄位原本的格式 (e.g. 只能放四段數字的欄位寫成 `X.Y.Z.0`)
-  - `version-source` 為 `git-tag` 或 `none` 時不改檔案，版本只以 git tag 表示；alpha / beta 不改任何檔案；README / docs / CHANGELOG 只在正式版更新
+  - `version-source` 為 `git-tag` 或 `none` 時不改檔案，版本只以 git tag 表示；alpha / beta 不改任何檔案；README / docs 只在正式版更新
+  - CHANGELOG (格式與規則見 `skills/release/references/changelog.md`)
+    - 專案根目錄的 `CHANGELOG.md`: `# CHANGELOG`，其下是 `## Unreleased` 與各版本區段 `## v1.0.0 (yyyy-MM-dd)`，新的在上；每個版本依序有 `### feature`、`### bugfix`、`### misc`、`### contribution` (沒有項目的小節省略)，項目為編號清單，contribution 為 `<名字> (<email>)`
+    - commit 分類: `feat` 為 feature、`fix` 為 bugfix，其他 (`perf`、`refactor`、`docs`、`style`、`test`、`build`、`ci`、`chore`) 為 misc；沒有 type 前綴的舊 commit 看 subject 與 diff 判斷；merge commit 與 release 自己的 commit (`chore(release)`、`docs: update the changelog …`) 不列；同一個變更的多個 commit 合成一行
+    - 寫入時機: request merge 時加進 `## Unreleased` (專案 branch 上多一個 commit)；alpha / beta 無 commit，不寫檔案；rc 時 `## Unreleased` 改為 `## v1.0.0-rc1`，並用 git log (前一個 tag 到 branch tip) 補上沒有項目描述到的變更 (例如 workspace 以外的 commit、release branch 上的修正)；正式版把 `## Unreleased` 與該 X.Y.Z 的所有 prerelease 區段合併成一個 `## v1.0.0`，再與上一個 final 到 branch tip 的 git log 比對補漏，contribution 重新計算；hotfix 在 hotfix branch 上新增 `## v1.0.1`；各自是獨立的 commit `docs: update the changelog for v<version>`
+    - 補缺: 寫入版本區段前，檢查專案所有 final tag 是否都有區段；沒有 `CHANGELOG.md` 或缺版本時，用 git log 依 final tag 逐版補寫 (前一個 final 到該 tag)，既有區段不動，補寫的新區段用新格式
+    - 平台 release 內容 = 該版本區段 (alpha / beta 即時由 git log 產生，不寫檔案)，contribution 只列名字不列 email；GitHub 用 `gh release create --notes-file`、GitLab 用 `glab release create --notes-file`
+    - back-merge 時 `## Unreleased` 只保留 release / hotfix 沒有包含的項目；release branch 合併 develop 時，已列在 rc 區段的項目從 `## Unreleased` 移除
 - release branch 上只做 release 相關的變更 (版本號、release notes、rc 發現問題的小修正)，新功能與較大的修改一律走 request 進 develop
 
 ## Remote 與 push

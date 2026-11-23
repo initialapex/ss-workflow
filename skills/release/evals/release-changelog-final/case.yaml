@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: release-changelog-final
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario release-changelog-final) has SSLib with release/v0.2.0 open: v0.2.0-rc1 is tagged, its CHANGELOG.md has a
+  '## v0.2.0-rc1' section (greeting and farewell features, a notes bugfix, a contribution list) above '## v0.1.0' and a hand-written
+  '## 0.0.5 - 2020-01-01' section, and a 'fix: add the missing second notes line' was committed after the tag. The agent continues
+  the release branch, sets version.txt to 0.2.0, folds the rc1 section into one '## v0.2.0' section that also lists the new fix, with
+  the contribution computed again, in its own commit before the tag, merges the release into master with the tag v0.2.0, merges master
+  back into develop (develop's CHANGELOG.md has the section and no duplicate Unreleased entries), records the release in the workspace
+  master with the tag SSLib/v0.2.0, and pushes. When the agent asks the developer anything, the developer chooses the final version
+  0.2.0, and agrees to the merge and to pushing the branches and the tags.

@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: release-changelog-rc
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario release-changelog-rc) has SSLib (version-source version.txt) with a CHANGELOG.md whose '## Unreleased'
+  lists a greeting feature and a notes bugfix, plus an old hand-written section '## 0.0.5 - 2020-01-01'. Since v0.1.0 there are
+  three commits on develop: the two that the changelog lists, and a 'feat: add a farewell text file' by Amy Lin that it does not
+  list. The agent opens release/v0.2.0, sets version.txt in its own commit, writes the changelog in its own commit
+  ('docs: update the changelog for v0.2.0-rc1') before it tags v0.2.0-rc1: '## Unreleased' becomes '## v0.2.0-rc1' with the
+  farewell feature added from git log and a contribution list of both authors, v0.1.0 is filled in from git, and the old section
+  stays as it was. When the agent asks the developer anything, the developer chooses the release candidate (there is no
+  unfinished request) and agrees to push the tag.

@@ -43,6 +43,13 @@ hotfix tag is reachable from there (see "Merging a release").
 7. If step 4 or step 6 changed anything, run the project's `build-command` and
    `test-command`, plus `verify-command` if it is set. They must pass. If they fail,
    stop, and point to `/ss-workflow:review`.
+8. **Changelog**, on the project hotfix branch, after everything above: write the
+   section `## v<version>` as "Write the section of a version" in changelog.md says
+   (`${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md`; it also fills in
+   the final versions that `CHANGELOG.md` lacks, and creates the file when the project
+   has none). Show the developer the section, and the versions that were filled in.
+   Commit it as `docs: update the changelog for v<version>`. This commit changes no
+   code, so the build and the tests do not run again for it.
 
 ## Merge the project
 
@@ -76,6 +83,10 @@ By the project's merge method (Step 3 of the skill).
      normally has the higher one.
    - Code: keep the fix, and adapt it to the current code. If the right resolution is
      not obvious, ask the developer.
+   - `CHANGELOG.md`: keep every section of both sides, in version order: `## Unreleased`
+     and the sections of newer versions on top, the section `## v<version>` of the
+     hotfix below them and above the previous final version. A change that both
+     sides list is listed once.
    - After you resolve a conflict, run the build and the tests before you commit the
      merge.
 
@@ -180,7 +191,7 @@ merged back into its develop branch (locally at least), and the project tag exis
 - The workspace: `git push --atomic origin <main branch> develop
   hotfix/<name>-v<version> <name>/v<version>`.
 
-The platform release is a final release, with the package as its asset.
+The platform release is a final release, with the package as its asset and the notes of "Notes for the platform release" in changelog.md (`${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md`).
 
 If the remote refuses a push because a branch is protected, do not work around it.
 Nothing of the workspace is pushed when the project push fails, because of the order.

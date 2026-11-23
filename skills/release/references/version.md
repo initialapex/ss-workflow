@@ -151,7 +151,8 @@ places in its docs that state the project's current version are listed now and
 changed by the release merge (section 3).
 
 An alpha or beta version has no branch of its own and gets no commit: skip this whole
-section for it.
+section for it. Its changelog is the `## Unreleased` section that the merges of the
+requests keep up to date ([changelog.md](changelog.md)).
 
 ### 1. The version source
 
@@ -216,16 +217,17 @@ merge skill's `references/release.md`).
 
 ### 4. Changelog
 
-Only for a final version. If the project has a `CHANGELOG.md`, add a section for this
-version at the top, with the date and the changes of this version grouped by type:
-the closed requests of this project and the changes made outside this workspace (Step
-2 of the skill), one line each. Describe each change in the project's terms, in the
-language of the existing entries. The changelog is a file of the project, so it names
-no request id and no workspace (see "Workspace and projects" in the root `AGENTS.md`).
-Follow the format of the existing entries. Do not create a changelog if there is
-none.
+For a release candidate and for a final version, also when the project has no
+`CHANGELOG.md` yet. Follow "Write the section of a version" in
+[changelog.md](changelog.md): it fills in the versions that the file lacks, writes the
+section of this version (feature, bugfix, misc, and contribution), and commits it on
+its own as `docs: update the changelog for v<version>`. The closed requests and the
+changes made outside this workspace (Step 2 of the skill) are among its commits: the
+changelog describes them in the project's terms, with no request id and no workspace
+(see "Workspace and projects" in the root `AGENTS.md`).
 
 ### 5. Check
 
 Search the project for the previous version string once more, outside the git
-history. Report the hits that remain, and say why each one was left.
+history and outside `CHANGELOG.md`, whose headings keep every version on purpose.
+Report the hits that remain, and say why each one was left.

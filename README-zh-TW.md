@@ -97,7 +97,7 @@
 | `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Design check：比對實作與規格的 detailed design，列出每一個偏離。Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
 | `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch。Release / hotfix 時：在專案 `master` 打 tag、從 tag build 並打包、把 `master` merge 回 `develop`，最後才一起發佈。刪除 branch。 |
-| `/ss-workflow:release` | 要釋出某個專案的新版本、prerelease 或 release candidate | 根目錄 | 推薦該專案的版本號。在專案 `develop` 打 alpha / beta，或開 release branch 並在上面打 release candidate。檢查它未完成的工作、在有檔案帶版號時設定版本號、每個打 tag 的版本都 build 並打包，正式版交給 release merge。 |
+| `/ss-workflow:release` | 要釋出某個專案的新版本、prerelease 或 release candidate | 根目錄 | 推薦該專案的版本號。在專案 `develop` 打 alpha / beta，或開 release branch 並在上面打 release candidate。檢查它未完成的工作、在有檔案帶版號時設定版本號、把該版本寫進 `CHANGELOG.md`（feature、bugfix、misc、contribution）、每個打 tag 的版本都 build 並打包，正式版交給 release merge。 |
 
 > [!NOTE]
 > 根目錄指的是 workspace 的主要 checkout。測試、script 和執行檔只在根目錄執行。在 worktree 裡執行程式的限制比較多，所以 agent 在 worktree 裡只寫程式並嘗試編譯。
@@ -183,7 +183,8 @@ workspace 與每個專案都走 gitflow，各自有自己的 `master`（或 `mai
 - 專案的 `master` 只接收它自己的 release 和 hotfix。它的 v1.0.0 之前，也允許把 `develop` 直接 merge 進來。
 - 正式版打完 tag 後，`master` 會 merge 回 `develop`，讓 `develop` 上從最近的 tag 讀版號的 build 也找得到它。
 - Alpha / Beta 版需要版號來自 tag（`version-source: git-tag` 或 `none`）：`develop` 上的 tag 前面不能有改版號的 commit。Release branch 在各個 release candidate 期間都保持開啟：小修正直接改在上面，較大的修改走 request 進 `develop`，再把 `develop` merge 進 release branch。正式版不一定要先出 release candidate。
-- 每個版本都先在本地打 tag，從 tag build 並打包：由專案的打包 script 產生（`package-command`，每個平台一包），或把 `package-files` 壓成 `<name>-v<version>.zip`。全部成功之後才一起 push，並建立附上 package 的平台 release。
+- 每個版本都先在本地打 tag，從 tag build 並打包：由專案的打包 script 產生（`package-command`，每個平台一包），或把 `package-files` 壓成 `<name>-v<version>.zip`。全部成功之後才一起 push，並建立附上 package 與版本說明的平台 release。
+- 專案的 `CHANGELOG.md` 依版本列出 feature、bugfix、misc 與 contribution。Merge request 時把變更加進 `## Unreleased`；release candidate 或正式版把它轉成版本區段，release 與 hotfix 也會用 `git log` 補上檔案缺少的已發佈版本。平台 release 使用相同內容，contribution 只列名字。
 - workspace 的 `master` 是各專案最新 release 的組合：每次 release 都把 `develop` merge 進來，並把每個專案指向它自己的 `master`。
 - Request 先逐一 merge 各專案，最後才是 workspace。
 - Request 和 hotfix branch 都在 `.claude/worktrees/` 底下的 git worktree 實作，裡面有各專案的 worktree，所以多個 session 可以平行實作多個 request。worktree 只在實作期間存在。

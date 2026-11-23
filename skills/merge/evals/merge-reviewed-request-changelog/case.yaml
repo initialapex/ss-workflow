@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: merge-reviewed-request-changelog
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario merge-review-changelog) holds REQ-0001, in review, with a passed Verify and Review; SSLib's develop has a
+  CHANGELOG.md whose '## Unreleased' lists one misc entry; SSLib's feat/add-greeting adds greeting.txt. The agent merges SSLib
+  first, after adding the change to the changelog in a commit 'docs: update the changelog' on feat/add-greeting (a feature entry
+  for the greeting in '## Unreleased', the misc entry kept), then closes the request, merges the workspace branch into develop,
+  pushes both, deletes the branches, and leaves the root checkout on develop. When the agent asks the developer anything, the
+  developer accepts the recommended option.
