@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.14.1 (2026-11-23)
+
+### feature
+
+1. Run the cold read of `new-req` with a spec reader and evidence readers (one per 6 `verified` entries, at most 4) at the same time, and from the second run on read only the changed parts of the spec and the new, changed, or downgraded evidence entries
+2. Look for the same kind of gap in the rest of the spec before the next cold read run
+
+### misc
+
+1. Add an eval grader for the parallel readers of the cold read in `new-req`
+
+### contribution
+
+1. Scott Chang (initialapex@gmail.com)
+
 ## v0.14.0 (2026-11-23)
 
 ### feature
