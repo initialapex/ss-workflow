@@ -17,7 +17,10 @@ on its release branch.
 `/ss-workflow:release` prepares the release branch (the version number, the
 open-request check). This guide merges it, builds and packages the tagged version as
 `${CLAUDE_PLUGIN_ROOT}/skills/release/references/package.md` describes (called
-"package.md" below), and publishes everything at the end.
+"package.md" below), and publishes everything at the end. The changelog of the version
+is written on the release branch by `/ss-workflow:release`, as
+`${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md` describes (called
+"changelog.md" below).
 
 Why the main branch merges back into the develop branch: the tag sits on the merge
 commit of the main branch. Merged that way, it is an ancestor of the develop branch,
@@ -38,7 +41,11 @@ candidate.
    release/v<version>`, then `git -C <path> pull --ff-only` with a remote). `git -C <path> status --porcelain` is
    empty, and so is the workspace's status apart from ` M <path>` for this project.
 3. When `version-source` is a file, it contains exactly this version. If it does not,
-   stop and point to `/ss-workflow:release`. Skip this step for `git-tag` and `none`.
+   stop and point to `/ss-workflow:release`. Skip this check for `git-tag` and `none`.
+   Whatever the `version-source`, `CHANGELOG.md` has the section `## v<version>`, and
+   no `## Unreleased` or `## v<version>-…` section whose entries should have joined
+   it: if it does not, stop and point to `/ss-workflow:release`, which writes it
+   ("Write the section of a version" in changelog.md).
 4. Neither tag exists yet: check `git -C <path> tag -l v<version>` and `git tag -l
    <name>/v<version>`, and with a remote `git ls-remote --tags origin <tag>` in each
    repository. If one exists, stop and report it.
@@ -88,7 +95,11 @@ By the project's merge method (Step 3 of the skill).
    ```
 
    If this merge has conflicts, resolve them. For `version-source`, keep the higher
-   version. Then run the build and the tests again. The first merge of this kind in a
+   version. In `CHANGELOG.md`, keep the section `## v<version>` as the release has it,
+   and keep in `## Unreleased` only the entries of changes that the release does not
+   contain (made on the develop branch after the release branch was opened); remove
+   the others, because the release lists them already. Then run the build and the
+   tests again. The first merge of this kind in a
    project that was released before ss-workflow 0.10.0 also brings the old merge
    commits of the main branch: their content is already on the develop branch, so a
    conflict there is usually on the version alone.
@@ -170,7 +181,7 @@ merged back into its develop branch (locally at least), and the project tag exis
   v<version>` (after a merge request: only the tag and the develop branch).
 - The workspace: `git push --atomic origin <main branch> develop <name>/v<version>`.
 
-The platform release is a final release, with the package as its asset.
+The platform release is a final release, with the package as its asset and the notes of "Notes for the platform release" in changelog.md (`${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md`).
 
 If the remote refuses a push because a branch is protected, do not work around it.
 Nothing of the workspace is pushed when the project push fails, because of the order.
@@ -223,7 +234,11 @@ below `1.0.0` and the developer asks for it. The current version is the value in
    point to `/ss-workflow:release <name>`. With `git-tag` or `none`, recommend the
    version as "Choosing the target" in the release skill's `references/version.md`
    does, and ask.
-3. Note the starting point, as package.md says. Merge in the project:
+3. Note the starting point, as package.md says. With a tag, write the changelog on the
+   project's develop branch before the merge: "Write the section of a version" in
+   changelog.md, for this version (a final version, with the last final tag as its
+   base), committed as `docs: update the changelog for v<version>`. Without a tag,
+   `## Unreleased` stays as it is. Merge in the project:
 
    ```bash
    git -C <path> checkout <main-branch>

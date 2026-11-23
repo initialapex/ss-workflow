@@ -107,6 +107,11 @@ implementation is not finished.
   workspace (see "Workspace and projects" in the root `AGENTS.md`). Write the
   description from the request's spec in the project's terms: the request title may
   be in another language, or name things that only the workspace knows.
+- A project's `CHANGELOG.md` follows `${CLAUDE_PLUGIN_ROOT}/skills/release/references/changelog.md`
+  (called "changelog.md" below). The merge of a request adds its changes to
+  `## Unreleased` on the project branch, before the merge; a hotfix writes its version
+  section on the hotfix branch. Both are commits of the project like any other, with
+  no request id and no workspace name.
 - A project's `setup-command`, `build-command`, `test-command`, and `verify-command`
   come from its entry in `projects`, run in its folder, and depend on its toolchain.
   Where a guide says to run them, a command that is empty is skipped: say that it is

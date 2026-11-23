@@ -1,6 +1,6 @@
 ---
 name: release
-description: Release a new version of one project of an ss-workflow workspace. On the workspace develop it recommends the project's next version, then either tags an alpha or beta version on the project's develop branch, or opens the release branch release/vX.Y.Z in the project repository. On a release branch it tags release candidates, or hands the final version over to the release merge (the project's main branch with the tag, back into develop, then the workspace main branch and tag). Every tagged version is built from its tag and packaged before anything is pushed. It checks for unfinished requests and worktrees of that project, and sets the version where a file carries it. Use when the developer asks to release, publish, or cut a new version, prerelease, or release candidate of a project.
+description: Release a new version of one project of an ss-workflow workspace. On the workspace develop it recommends the project's next version, then either tags an alpha or beta version on the project's develop branch, or opens the release branch release/vX.Y.Z in the project repository. On a release branch it tags release candidates, or hands the final version over to the release merge (the project's main branch with the tag, back into develop, then the workspace main branch and tag). Every tagged version is built from its tag and packaged before anything is pushed. It checks for unfinished requests and worktrees of that project, sets the version where a file carries it, and writes the version into the project's CHANGELOG.md (feature, bugfix, misc, contribution), which also gives the notes of the platform release. Use when the developer asks to release, publish, or cut a new version, prerelease, or release candidate of a project.
 argument-hint: "[project] [version, e.g. 1.2.0, 1.2.0-rc1 or 1.3.0-beta2]"
 ---
 
@@ -37,6 +37,9 @@ Supporting files:
   how to recommend and validate it, and where to set it
 - [references/package.md](references/package.md): building the tagged version, the
   package, and publishing
+- [references/changelog.md](references/changelog.md): the format of `CHANGELOG.md`,
+  how a version section is written, how missing versions are filled in from git, and
+  the notes of the platform release
 
 ## Ground rules
 
@@ -53,7 +56,7 @@ Supporting files:
 - Only one release branch per project at a time. If the project already has one,
   continue it. Do not open a second one. While it is open, the project gets no alpha
   or beta tag. Two projects can be released one after the other.
-- A release branch takes only release work: the version number, release notes, and
+- A release branch takes only release work: the version number, the changelog, and
   small fixes for problems found in the release candidates. A larger change goes
   through a request into the project's develop branch, and Step B2 then merges the
   develop branch into the release branch for the next release candidate.
@@ -167,6 +170,14 @@ the release branch, a release candidate, or a final version continues with Part 
   allows alpha and beta versions.
 - The project has no `release/*` branch.
 
+An alpha or beta version makes no commit, so it does not write `CHANGELOG.md`: the
+merges of the requests keep its `## Unreleased` section up to date, and the first
+release candidate or final version turns it into a version. If the project has no
+`CHANGELOG.md`, or the file lacks released versions, say so in the report: the next
+release candidate or final version fills them in. The notes of the platform release
+are made from git ("Notes for the platform release" in
+[references/changelog.md](references/changelog.md)).
+
 ### Step A2: Check for unfinished work
 
 As Step B3. For an alpha or beta version, "Release without them" is the usual answer:
@@ -201,7 +212,7 @@ On `develop` in the root checkout:
 "Publish" in [references/package.md](references/package.md): the project pushes only
 its tag (`git -C <path> push origin v<version>`), and the workspace pushes `develop`
 and its tag (`git push --atomic origin develop <name>/v<version>`). The platform
-release is a prerelease.
+release is a prerelease, with the notes of "Notes for the platform release".
 
 If the remote refuses the push of the workspace's `develop` (a protected branch),
 delete the workspace tag, move the gitlink commit to a short-lived branch
@@ -240,8 +251,12 @@ Step B1, there is nothing to do here.
    include them in this release. If yes, run `git -C <path> merge --no-ff <project
    develop-ref> -m "Merge <develop-branch> into release/vX.Y.Z"`, and resolve
    conflicts if there are any (for `version-source`, keep the release branch's
-   version). A final version after such a merge is possible, but recommend a
-   release candidate first.
+   version). In `CHANGELOG.md`, the version sections of the release branch stay as
+   they are, and the `## Unreleased` section of the develop branch comes in as the
+   release branch's `## Unreleased`, without the entries that a section of the
+   release branch (a release candidate) already lists: those commits are on the
+   develop branch too. A final version after such a merge is possible, but recommend
+   a release candidate first.
 3. Small fixes for a problem found in a release candidate are committed here, on the
    release branch, as normal `fix:` commits, after the developer agrees to each one.
 
@@ -278,23 +293,31 @@ Otherwise, show both groups and ask the developer with AskUserQuestion:
 An open hotfix of the project must be merged before the release: point to
 `/ss-workflow:merge`, and treat it like "Finish them first".
 
-### Step B4: Set the version
+### Step B4: Set the version and write the changelog
 
 Follow "Setting the version" in [references/version.md](references/version.md), for
 the version of this run (a release candidate or the final version).
 
 When `version-source` is a file, the version source and the other places that carry
 the version change; with `git-tag` or `none`, no file carries the version, and only
-the docs and the changelog of a final version may change. If something had to
-change, commit everything in the project, on the release branch, and push:
+the docs of a final version may change. If something had to change, commit everything
+in the project, on the release branch, and push:
 
 ```
 chore(release): bump version to <version>
 ```
 
-or, for the docs and the changelog alone, `docs: update the docs for v<version>`. If
-nothing had to change, say that the version numbers already match. `git -C <path>
-status --porcelain` is empty afterwards: the tag is created on this commit.
+or, for the docs alone, `docs: update the docs for v<version>`. If nothing had to
+change, say that the version numbers already match.
+
+Then the changelog, for a release candidate and for the final version: "Write the
+section of a version" in [references/changelog.md](references/changelog.md). It fills in
+the released versions that `CHANGELOG.md` lacks (and creates the file when the project
+has none), turns `## Unreleased` into the section of this version (a final version
+joins its release candidate sections too), and adds the contribution. Show the
+developer the section, and the versions that were filled in. It is a commit of its own,
+`docs: update the changelog for v<version>`, which is pushed with the rest. `git -C
+<path> status --porcelain` is empty afterwards: the tag is created on this commit.
 
 ### Step B5: Verify
 
@@ -315,7 +338,8 @@ changes only when the workspace records the release.
 
 If they fail, stop and report the failure. A fix for it is committed on the release
 branch as a normal `fix:` commit, and only after the developer agrees. Then run this
-step again.
+step again, and the changelog of Step B4 again: the section of the version adds the
+fix.
 
 ### Step B6: A release candidate
 
@@ -329,7 +353,9 @@ For an `rc` version:
 4. "Publish": the project pushes the release branch and the tag (`git -C <path> push
    --atomic origin release/vX.Y.Z v<version>`). The workspace has nothing to push: a
    release candidate has no workspace tag, because `develop` records the project's
-   develop branch, not its release branch. The platform release is a prerelease.
+   develop branch, not its release branch. The platform release is a prerelease, with
+   the notes of "Notes for the platform release" in
+   [references/changelog.md](references/changelog.md).
 5. Put the project back at its gitlink: `git submodule update <path>`. The release
    branch stays open.
 
@@ -361,6 +387,9 @@ After the last step (or after the merge skill finishes), add to the report, in
 - The requests in this release, grouped by type
 - The requests of this project that are not part of this release (from Step B3)
 - Project commits without a request, if Step 2 found any
+- The changelog: the section that was written (or that no file was written for an
+  alpha or beta version), the versions that were filled in from git with their ranges,
+  and the file that was created if the project had none
 - The checks that were not configured, and that the developer confirmed the release
   build themselves
 - The package: the zips and their files, and where they were uploaded, or that the

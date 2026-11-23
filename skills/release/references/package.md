@@ -94,10 +94,14 @@ tags, the build of the tagged version, and the package.
    folder, with every package of the version as its assets (`<zips>`: one or one per
    platform):
    - GitHub: `gh release create v<version> <zips> --verify-tag --title v<version>
-     --generate-notes`, with `--prerelease` for an alpha, beta, or release candidate
+     --notes-file <notes>`, with `--prerelease` for an alpha, beta, or release candidate
      version
-   - GitLab: `glab release create v<version> <zips> --name v<version> --notes
-     "<notes>"`, where the notes list the changes of this version grouped by type
-   Without a package, create the release without an asset. The title and the
+   - GitLab: `glab release create v<version> <zips> --name v<version> --notes-file
+     <notes>`
+
+   `<notes>` is the file that "Notes for the platform release" in
+   [changelog.md](changelog.md) makes: the changes of this version as feature, bugfix,
+   misc, and contribution (names only). Make it before the command, from the tagged
+   version. Without a package, create the release without an asset. The title and the
    notes describe the project's changes, with no request id and no workspace name.
    Without a remote platform, report the zips' paths: the developer publishes them.
