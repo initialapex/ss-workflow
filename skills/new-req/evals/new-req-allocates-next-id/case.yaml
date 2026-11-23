@@ -6,5 +6,5 @@ expected_outcome: |
   The workspace (scenario newreq-ids) has a closed REQ-0001, a ready REQ-0003, a draft REQ-0004, and a started hotfix REQ-0006 whose branch hotfix/SSDisp-v0.1.1
   carries the id only in its request file. The agent must find that the highest id in use is REQ-0006 and open feat/REQ-0007-<slug> from develop, commit and push the
   draft (reserving the id), read SSLib's build.sh at the latest develop commit and record it as verified evidence, write a complete spec (all parts, no program
-  code), run the cold read (or the self-check), and, when the developer approves, commit 'docs(reqs): approve REQ-0007' and leave the request ready on its
+  code), run the cold read (a spec reader and an evidence reader started at the same time, or the self-check), and, when the developer approves, commit 'docs(reqs): approve REQ-0007' and leave the request ready on its
   branch with the root checkout back on develop. Nothing is implemented.

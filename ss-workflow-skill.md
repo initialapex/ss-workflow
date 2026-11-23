@@ -449,12 +449,12 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 開工前要講定的範圍: developer 或使用者看得到、用得到的東西 (UI、指令、檔案格式、對外 API，寫在 Scope)、軟體架構 (寫在 Architecture: 新增或修改的模組 / 元件、各自的責任、呼叫關係、資料流、重要的資料結構與狀態、新的相依)，以及架構之下所有兩個工程師可能做法不同的決定 (寫在 Detailed design)；只有 "Left to the implementation" 列出的部分留給實作
   - Architecture 不可省略: 不需要架構決定的變更也要用一句話寫明，並指出放在既有結構的哪裡；由 AI 依現有程式碼提出，有多種合理結構時列出取捨並推薦，由 developer 確認
   - Detailed design: developer 同意架構後由 AI 依既有程式碼的慣例撰寫，逐一對照每個 acceptance criterion；不逐一詢問名稱，由 developer 跟其他部分一起看過再修改；只有程式碼無法決定且會改變行為、或選項差異 developer 會在意的地方 (例外或錯誤碼、新的相依、儲存格式) 才發問
-  - Cold read (核准前): `## Q&A` 沒有 pending、各部分都寫完後，以 Agent tool 開一個全新的 subagent (不是 fork，不知道討論內容)，只讀 `## Spec` 與 `## Evidence` (不讀 Original / Q&A / Notes) 與各專案最新的程式碼，列出實作時必須猜測、可能做出不同結果、spec 前後矛盾或與程式碼不符、缺小節、含程式碼的地方
-    - 同時複查事證: 打開每個 `verified` 條目在其 commit 的每個引用、重走一次 trace，回報引用的程式碼不符、trace 跳步或變數值推不出來、事證證明不了敘述的條目；也回報 spec 裡描述現況卻沒有引用條目的句子，以及狀態不允許核准的引用條目
+  - Cold read (核准前): `## Q&A` 沒有 pending、各部分都寫完後，以 Agent tool 在同一則訊息一次開多個全新的 subagent 並行執行 (不是 fork，不知道討論內容)：一個 spec reader，加上 evidence reader (每 6 個 `verified` 條目一個，最多 4 個)；每個 reader 只做自己的任務，只讀 `## Spec` 與 `## Evidence` (不讀 Original / Q&A / Notes) 與各專案最新的程式碼，列出實作時必須猜測、可能做出不同結果、spec 前後矛盾或與程式碼不符、缺小節、含程式碼的地方
+    - evidence reader 複查事證 (spec reader 不重走 trace): 打開每個 `verified` 條目在其 commit 的每個引用、重走一次 trace，回報引用的程式碼不符、trace 跳步或變數值推不出來、事證證明不了敘述的條目；也回報 spec 裡描述現況卻沒有引用條目的句子，以及狀態不允許核准的引用條目
     - 每一項: 程式碼能回答的直接修 spec；事證的問題自己對照程式碼確認後重新 trace 並修正條目 (加 History，狀態可能降級)，再修改引用它的 spec；需要 developer 決定的在下一輪發問並記入 `## Q&A`；不是缺漏的說明原因；developer 想保留彈性的加入 "Left to the implementation"
-    - spec 有修改就再開新的 subagent 重讀 (告知已處理的項目)，直到沒有真正的缺漏；第三次仍有缺漏時，剩下的逐項由 developer 決定後結束
+    - 每項處理完先在 spec 其他地方找同類缺漏一併修掉；spec 或事證有修改就再開新的 subagent 只重讀有變動的部分 (spec reader 讀變動的與引用變動條目的部分，evidence reader 只查新增、修改或降級的條目，沒有東西可查的 reader 不開；告知已處理的項目)，直到沒有真正的缺漏；第三次仍有缺漏時，剩下的逐項由 developer 決定後結束
     - 結果寫入 `## Notes` 的 `### Cold read`；無法開 subagent 時由 AI 依同樣的清單自檢，並註明 cold read 未執行
-    - 核准前最後一次 cold read 之後 spec 與 `## Evidence` 不可再有修改，有修改要重跑
+    - 核准前，spec 的每個部分與每個 `verified` 條目在最後一次修改之後都要被讀過，有修改要對變動的部分重跑
   - 接續 0.11.0 以前的 draft 時: 補上 Detailed design；spec 內有程式碼時改寫成表格與文字
   - 接續 0.12.0 以前的 draft 時: 補上 `## Evidence`，spec 描述現況的句子都要 trace 並引用，或記為 `to trace`
   - `## Original` 只有需求或困擾、沒有做法時先探索: 先問問題本身 (誰需要、現在怎麼做、哪裡不好、有什麼限制)，再提出兩到三個做法 (對使用者如何運作、架構概要、影響範圍、代價與風險) 並推薦一個，developer 選定後才起草 Spec
