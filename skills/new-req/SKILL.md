@@ -392,8 +392,16 @@ When `## Q&A` has no pending entry and every part of the spec is written, check 
 standard with a reader who did not take part in the discussion:
 
 1. Save the request file in the working tree (it is not committed yet).
-2. Start a new subagent with the Agent tool: a fresh agent (general-purpose), not a
-   fork, so that it knows nothing of this discussion. Give it:
+2. Start the readers with the Agent tool, all in one message so that they run at the
+   same time: fresh agents (general-purpose), not forks, so that they know nothing of
+   this discussion. Use two kinds of reader, and give each only its own task, so that
+   neither waits for the other:
+   - one **spec reader**, with the spec task below
+   - **evidence readers**, with the evidence task below: one reader for up to 6
+     `verified` entries, one more for each further 6 (at most 4). A reader that has no
+     entries is not started.
+
+   Give every reader:
    - the path of the request file, with the instruction to read `## Spec` and
      `## Evidence` only, and not `## Original`, `## Q&A`, or `## Notes`: the spec has
      to stand on its own
@@ -402,8 +410,8 @@ standard with a reader who did not take part in the discussion:
      origin/<develop-branch>:<file>`, `git -C projects/<name> grep <pattern>
      origin/<develop-branch>`), and the path of `reqs/AGENTS.md`, whose sections
      "Spec" and "Evidence" are the standard
-   - the task: "Read the spec as the engineer who has to implement it, and do not
-     implement anything or change any file. List every place where you would have to
+   - its task. The spec reader gets: "Read the spec as the engineer who has to
+     implement it, and do not implement anything or change any file. List every place where you would have to
      guess or choose, or where two engineers could build different things: a missing
      or vague file, type, member, parameter, type of a value, data layout, step of a
      flow, thread, error behavior, setting, dependency, or test; a word that leaves a
@@ -417,15 +425,19 @@ standard with a reader who did not take part in the discussion:
      what, in which order relative to the other steps, what happens when it exists or
      a step fails, the exit status, and the message). Also
      report a section that a skill of the project requires ('Project skills' in
-     `reqs/AGENTS.md`) and the spec lacks. Then check the evidence: open every reference of every
-     `verified` entry in `## Evidence` at its commit, and walk its trace again step by
-     step; report an entry whose quoted lines differ from the code, whose trace skips a
-     step or gives a value that does not follow from the code, or whose evidence does
-     not show its statement. Also report every statement in the spec about the
+     `reqs/AGENTS.md`) and the spec lacks, every statement in the spec about the
      existing code or system that cites no entry, and every cited entry whose status
-     does not allow the approval ('Before the approval' in 'Evidence'). For each
-     finding, give the part of the spec or the entry, what is unclear or wrong, and
-     the options that you see. Report 'No findings' if there are none."
+     does not allow the approval ('Before the approval' in 'Evidence'). Do not
+     re-trace the entries: the evidence readers do that. For each finding, give the
+     part of the spec, what is unclear or wrong, and the options that you see. Report
+     'No findings' if there are none."
+     Each evidence reader gets: "Check the evidence entries <ids>. Open every
+     reference of each entry at its commit, and walk its trace again step by step;
+     report an entry whose quoted lines differ from the code, whose trace skips a step
+     or gives a value that does not follow from the code, or whose evidence does not
+     show its statement. Read only what the entry needs, and do not read the rest of
+     the spec. For each finding, give the entry, what is wrong, and what the code
+     shows. Report 'No findings' if there are none."
 3. Go through the findings yourself. For each one:
    - The code or the existing conventions answer it: fix the spec.
    - An evidence finding: check the entry against the code yourself. If the reader is
@@ -438,24 +450,36 @@ standard with a reader who did not take part in the discussion:
    - It is not a real gap (the spec answers it, and the reader missed it): say why
      when you show the findings.
    - The developer wants to leave it open: add it to "Left to the implementation".
-4. Show the developer the findings and what you did with each.
-5. If the spec changed, run the cold read again with a new subagent. List for it the
-   findings that are already settled, so that it does not report them again. Stop
-   when a run brings no finding that is a real gap. After the third run with real
-   gaps, show the ones that are left, let the developer decide on each of them, and
-   write the decisions into the spec. The cold read ends there.
+4. Show the developer the findings and what you did with each. Before the next run,
+   look for the same kind of gap in the other parts of the spec and fix it there too,
+   so that the next run does not find it again one place at a time.
+5. If the spec or the evidence changed, run the cold read again, with new readers, on
+   what changed only:
+   - the spec reader gets the changed or new parts of `## Spec`, and the parts that
+     cite a changed entry or depend on a changed part; it reads the rest only to find
+     a contradiction with them
+   - the evidence readers get the entries that are new, changed, or went down in
+     status; an entry that no reader has checked since its last change is checked,
+     and an entry that is unchanged and was already checked is not checked again
+   - a reader that would have nothing to check is not started
+
+   List for the readers the findings that are already settled, so that they do not
+   report them again. Stop when a run brings no finding that is a real gap. After the
+   third run with real gaps, show the ones that are left, let the developer decide on
+   each of them, and write the decisions into the spec. The cold read ends there.
 6. Record the result in `## Notes`:
 
    ```markdown
    ### Cold read (yyyy-MM-dd)
-   - Runs: 2
+   - Runs: 2 (1: spec reader, 2 evidence readers; 2: spec reader on Q3, Q5, and the
+     changed parts)
    - Findings: 7 (spec fixed: 4; asked: Q5, Q6; not a gap: 1, <why>)
    - Evidence: 5 verified entries re-checked; findings: 1 (E3 corrected, still verified)
    - Left open by the developer: <findings added to "Left to the implementation", or "none">
    ```
 
-If no subagent can be started, check the spec yourself against the task above, item
-by item, and record `- Did not run (<reason>); self-check instead`, with the
+If no subagent can be started, check the spec and the evidence yourself against the
+tasks above, item by item, and record `- Did not run (<reason>); self-check instead`, with the
 findings, in the same entry. Say so to the developer before the approval.
 
 ## Step 7: Approval
@@ -469,8 +493,9 @@ verify" for every `to test` and `developer-stated` one), the request is not too 
 for one review ("Request size" in `reqs/AGENTS.md`), the sections that the project's
 skills require are there, and the last cold read (Step 6) left no real gap open, show the final spec and ask with AskUserQuestion.
 Show with it the entries that are not `verified`, with their status. A cold read
-counts only when `## Spec` and `## Evidence` have not changed since it ended: after a
-later change (in a later round, or through "Other"), run it again first. While
+counts only when every part of `## Spec` and every `verified` entry was read after its
+last change: after a later change (in a later round, or through "Other"), run it
+again first, on the changed parts (Step 6, item 5). While
 `## Q&A` entries are pending, or a cited evidence entry does not allow the approval,
 list them, and offer only "Keep as draft" and "Discard". The developer can ask for
 more changes through "Other": then go back to Step 6.
