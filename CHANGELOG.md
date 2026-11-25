@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.15.1 (2026-11-25)
+
+### bugfix
+
+1. Leave a `ready` request that waits for a request that is not done out of the options of the question in `check-req`: it stays in the table with what it waits for, and can still be named through Other
+2. Describe an overlap of two requests by what both change and say that the merge may need conflict resolution, without saying that a conflict is certain and without advising to postpone, reorder, or combine the requests
+
+### misc
+
+1. Add two eval graders for these rules to `overview-parallel-groups`
+
+### contribution
+
+1. Scott Chang (initialapex@gmail.com)
+
 ## v0.15.0 (2026-11-25)
 
 ### feature
