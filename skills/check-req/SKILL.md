@@ -225,16 +225,52 @@ what choosing it does, and the reason for its place), and say in one sentence wh
 first one is recommended. Mark a candidate whose worktree has uncommitted changes as
 "may be in use by another session": choosing it anyway is the developer's decision.
 
+### Parallel start
+
+With two or more `ready` candidates, also tell which of them can be implemented at the
+same time, each in its own session. One session implements one request: the request
+has its own branches and worktrees, so nothing is shared while it is built. Judge it
+like this, without checking anything out (`git show <branch>:reqs/<file>`):
+
+1. **Startable now**: every `Depends on:` request of the candidate (and every request
+   that its spec names as needed, see rule 2 above) is `done`. A candidate that waits
+   for a request that is not `done` is not part of any set: say "waits for REQ-0011".
+   It builds on the code of that request, so it starts after the merge.
+2. **Overlap** of two startable candidates, and of a startable candidate with every
+   request that is `in-progress` or in `review` (their branches are not merged yet):
+   - Different projects (their `projects` lists share no project) and no file of the
+     workspace in common: independent.
+   - Otherwise compare the paths in "File changes" of "Detailed design", per project
+     and for workspace files. A path that both change is an overlap: name the
+     requests, the project, and the paths.
+   - A spec without a readable "File changes" gives "overlap unknown": say so, and do
+     not call the pair independent.
+3. **The set to start together**: go through the startable candidates in the order of
+   "Recommend one", and take each one that overlaps with none already taken. The
+   others stay candidates, with the overlap named.
+
+Show it as a table below the candidates (id, startable or waiting for, overlaps with,
+in the recommended set), and add one sentence: Verify, Review, and the merge run in the
+root checkout one request at a time, so the finished requests queue up there.
+
+An overlap is a warning, never a block: it may be harmless, and the developer knows the
+code. The developer may start overlapping requests together.
+
 - No candidates: report this and mention the next useful action, such as drafts to
   finish, requests waiting for `/ss-workflow:review`, or `/ss-workflow:new-req`.
 - One candidate: confirm it with the developer.
 - Several candidates: ask with AskUserQuestion. Show the top three as options, the
   recommended one first with "(Recommended)" in its label. Each description says what
   choosing it does (start, resume, or recreate the worktrees) and why it has its
-  place. The developer can name any other request through "Other".
+  place. When the recommended set has two or more requests, add the option "Start
+  together: REQ-0011, REQ-0013" (naming them) after the first option. The developer
+  can name any other request, or any other set of requests, through "Other".
 
 The choice is the developer's answer: do not ask again whether to resume or to start
-it. Continue with the action of the chosen candidate.
+it. Continue with the action of the chosen candidate. For "Start together" or a set
+that the developer named, this session takes the first request of the set, and the
+others get a session of their own once this session has created the worktrees (end of
+Step 5): see "Start the other requests of a set" there.
 
 A request whose `projects` names a project that is not in "Workflow settings" cannot
 be started: report it, and point to `/ss-workflow:new-req` to fix the request, or to
@@ -269,6 +305,12 @@ checking anything out (`git show <branch>:reqs/<file>`), and check:
    "How to verify".
 5. **Checkable**: each acceptance criterion can be ticked by a check that "How to
    verify" names, by Verify or by hand.
+6. **Overlap** (a remark, never a finding): compare "File changes" of the spec with
+   the one of every other request that is `in-progress` or in `review`, as "Parallel
+   start" in Step 4 describes (same project and path, or workspace file). Name each
+   overlap with its request and paths in the result. It never fails the review, never
+   stops the start, and never leads to a question: the developer sees it, and the
+   merge resolves what really conflicts.
 
 Show the result. No finding: record it (below) and go on to Step 5. With findings, ask
 with AskUserQuestion:
@@ -289,6 +331,7 @@ committed before the request starts:
 - Ordered: passed (Depends on: REQ-0011, done)
 - Evidence in order: passed
 - Checkable: passed
+- Overlap: none / REQ-0013 also changes SSLib `build.sh` (remark)
 - Result: started / started anyway (findings accepted in Q4)
 ```
 
@@ -406,6 +449,21 @@ only.
      apply the repair from [references/anomalies.md](references/anomalies.md).
 5. Tell the developer the worktree path, the branches, and whether the start commit
    and the project branches are on the remotes.
+6. **Start the other requests of a set** (only after "Start together" or a set that
+   the developer named in Step 4). One session implements one request, so each other
+   request of the set gets a session of its own, started in the root checkout of the
+   workspace (not in this worktree) with the prompt `/ss-workflow:check-req REQ-0013`:
+   - If you can start a new session for the developer (for example through a tool of
+     the app that you run in), start one for each other request, one after another,
+     a few seconds apart.
+   - Otherwise, give the developer the exact line `/ss-workflow:check-req REQ-0013`
+     for each of them, and say to run each one in a new session in the root checkout.
+   - Name the overlaps of the set again (Step 4, "Parallel start"), so that the
+     developer knows where the merge may conflict.
+
+   Two sessions may create branches or worktrees in the same repository at the same
+   moment. When git reports a lock (`index.lock`, or "Unable to create ... .lock"),
+   wait a few seconds and run the command again once. Never delete a lock file.
 
 From here on, every file path and every command belongs to the worktree. Continue with
 [references/implement.md](references/implement.md).
