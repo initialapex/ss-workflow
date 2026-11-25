@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v0.16.0 (2026-11-26)
+
+### feature
+
+1. Guide the manual check of `review` one item at a time: show the plan once, then for each item capture the logs and outputs that the agent can observe itself (a serial port, a log file, the output of a program or a command), ask the developer only for the actions and observations that it cannot make, judge the item from both, and record and commit the result before the next item
+2. Never hold a port, file, or device that the developer's step needs; start a capture that waits for its source before the developer's action only when the event happens during that action
+3. Ask on each failed item whether to diagnose and fix it now, to record it and decide at the end, or to stop the review
+4. Go through the decisions of the Review (behavior changes, workspace files, deviations, findings, assumptions) one at a time after the checks
+5. Keep the Review result in one `### Review (yyyy-MM-dd, in progress)` block, with what the agent observed (`Observed:`) apart from what the developer reported (`Developer:`), and a `Left:` line, so that a paused review continues with the first item that has no result
+6. Make each check by hand say how its result is observed: "How to verify" in the spec (`new-req`, with a check in the cold read) and "Review by hand" in the implementation summary (`check-req`) name the steps, the expected result, what the agent observes with the source and the expected lines, and what only the developer sees or does
+
+### misc
+
+1. Add the migration to 0.16.0 for the changed managed block `reqs-spec`, which changes no request file
+2. Update the review eval graders for the one-item flow and the record per item
+
+### contribution
+
+1. Scott Chang (initialapex@gmail.com)
+
 ## v0.15.1 (2026-11-25)
 
 ### bugfix

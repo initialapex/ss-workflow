@@ -311,7 +311,10 @@ checking anything out (`git show <branch>:reqs/<file>`), and check:
    one has its `## Q&A` entry; each `to test` or `developer-stated` one has a check in
    "How to verify".
 5. **Checkable**: each acceptance criterion can be ticked by a check that "How to
-   verify" names, by Verify or by hand.
+   verify" names, by Verify or by hand. A check by hand says its steps, its expected
+   result, and how the result is observed (what the agent observes, and what only the
+   developer sees or does). A missing observation is a remark under "Result", not a
+   finding: the implementation summary adds it under "Review by hand".
 6. **Overlap** (a remark, never a finding): compare "File changes" of the spec with
    the one of every other request that is `in-progress` or in `review`, as "Parallel
    start" in Step 4 describes (same project and path, or workspace file). Name each

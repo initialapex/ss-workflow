@@ -442,7 +442,8 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 變更的位置: 要動到的成員、檔案、流程，各自有條目
   - 提出的做法要引用依據的條目；決定依賴 `to trace` 的條目時先 trace；只能在執行時確認的記為 `to test`，並在 How to verify 列出檢查
 - 與 developer 討論細部的需求規格，寫入 `## Spec`；每一輪討論不 commit，只在暫停與核准時 commit
-  - Spec 依「Spec 的標準」撰寫: Goal / Scope / Architecture / Detailed design / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查 (列出 Tests 的測試) 或 Review 人工檢查) / Out of scope；不寫程式碼
+  - Spec 依「Spec 的標準」撰寫: Goal / Scope / Architecture / Detailed design / Acceptance criteria / How to verify (每項標明由 Verify 自動檢查 (列出 Tests 的測試) 或 Review 人工檢查；人工檢查寫明步驟、預期結果，以及怎麼觀察: agent 自己觀察什麼 (來源如 serial port、log 檔、程式或指令的輸出，與預期的 log 行或數值) 和只有 developer 能看或能做的 (畫面、LED、按鍵、插拔線或斷電)) / Out of scope；不寫程式碼
+  - Cold read 的 spec reader 會回報沒寫步驟、預期結果或觀察方式的人工檢查
   - `projects` 在 Spec 討論時決定；修改多個專案時，Scope 與 Architecture 依專案分別寫，並寫明專案之間的相依 (e.g. SSDisp 需要 SSLib 的新 API)
   - workspace 檔案的修改 (含要跟著更新的 `docs/<name>/spec.md`) 在 Scope 的「Workspace」小節列出；只改 workspace 檔案時 `projects: []`，How to verify 全部標為 Review
   - 每一輪問過的問題與回答寫入 `## Q&A`；還沒有答案的寫 `A: (pending)`，不另外放 Open questions；有 pending 時不能 Approve
@@ -514,6 +515,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - workspace 的 commit 帶 `Refs: REQ-xxxx`；source repo 的 commit 只描述變更內容，不提 request、編號或 workspace，沒有 `Refs:`；每個 commit 都 push；測試程式照寫但不執行；acceptance criteria 不在這裡打勾 (Verify / Review 實際檢查後才打勾)
   - 交付前: 把各專案 develop 的新 commit merge 進來 (不 rebase)、自己讀一次 diff、在 `## Notes` 寫 implementation summary
     - 固定欄位: What changed (依專案) / Architecture and detailed design / Not in the detailed design / Evidence (複查、新增、變更的條目，以及留給 Verify 與 Review 的 `to test` / `developer-stated`) / Ran in the worktree (實際跑過的指令與結果) / Did not run (沒跑的與原因) / Not done (沒做完的 criteria 或規格) / Verify / Review by hand / Follow-ups
+    - Review by hand 每一點各自獨立，讓 Review 能一項一項帶: 要啟動什麼 (確切指令或專案)、步驟、預期結果、`Agent observes:` (來源與程式實際會印出的 log 行或數值，從程式碼取得) 與 `Developer observes:` (只有 developer 能看或能做的)
     - 每一行都依實際發生的事寫，不依預期寫；沒有的欄位寫 "none"，不省略
     - 動到 agent 行為檔時另外寫 `### Behavior changes` (見「如實回報與 agent 行為檔」)
   - 交付: status 改為 `review`，連同各專案的 gitlink 一起 commit 並 push → 確認兩層沒有未 commit / 未 push 的內容 → 依「worktree 的結構」的順序刪除 worktree、保留 branch → 提示 `/ss-workflow:review REQ-xxxx`
@@ -543,12 +545,21 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
      - 結果 (含 skipped / not available) 寫入 `## Notes`；不打勾 acceptance criteria；不帶 `--fix` / `--comment`
      - 無法呼叫時不以自行讀 diff 代替；雲端的 `ultra` 只能由 developer 自己輸入，skill 只列出指令
      - Review 期間 developer 也可以隨時要求執行
-  6. Review: 列出需要人工確認的項目 (含 design check 尚未決定的偏離、workspace 檔案的每一個 diff、行為改了但 `docs/<name>/` 沒跟著改的專案，以及還是 `to test` / `developer-stated` 的事證條目 (結果寫回條目；無法檢查時由 developer 決定是否接受不測，記入 `## Q&A`))，以及每一項怎麼檢查 (要啟動哪個 sample / 執行檔、操作步驟、預期結果)；developer 要求時可代為啟動程式
+  6. Review: 一項一項引導 developer 人工驗證 (`references/manual-check.md`)，不一次丟出全部項目讓 developer 驗完再一次回報
+     - 項目分兩段: 先做要執行或觀察的檢查 (Review 的 acceptance criteria、Review by hand、還是 `to test` / `developer-stated` 的事證條目、skill 要看或要跑的)，再做決定類 (behavior changes、workspace 檔案的每一個 diff (含行為改了但 `docs/<name>/` 沒跟著改的專案)、design check 與 skill check 尚未決定的偏離與 finding、Assumption、引用中的 `failed` 條目、Verify 中 `failed` 或 `did not run` 的檢查、驗證中留到最後決定的失敗項目)
+     - 開始前先列一次計畫 (編號表: 項目、developer 做什麼、agent 觀察什麼來源、developer 觀察什麼)；順序依專案測試文件的建議順序，沒有時以最少的設定變動排序
+     - 觀察來源依序找: spec 的 How to verify 與 Review by hand、How to verify 指定的測試文件、`projects/AGENTS.md` 的 Toolchain 與 Project rules、程式碼裡的 log 字串
+     - 每一項: 準備 (自己能做的先做，開始抓 log；不佔用 developer 這一步要用的 port、檔案或裝置，事件發生在 developer 操作當下 (e.g. 斷電重開的開機 log) 時先開好等待來源出現的抓取並說明，否則等 developer 說準備好才開始抓) → 只講這一項的操作、要看什麼、預期結果，等 developer 回覆 → 讀抓到的輸出，只用 AskUserQuestion 問 agent 看不到的 (畫面、LED) → 判定 `passed` / `failed` / `did not run`，操作和步驟不同、有部分沒人觀察到、只靠 developer 的回報時加註 → 立刻寫入 `## Notes` 並 commit (只 stage request 檔與 gitlink；push 留到暫停或結束) → 回報這一項並接著給下一項
+     - 某一項失敗: 列出證據 (原因沒有證據時標明推測)，用 AskUserQuestion 問: 現在診斷並修 (小修當場修、重跑 Verify 後重測，並重測可能受影響的已通過項目；需要大改則退回) / 記為 failed 繼續、最後一起決定 / 停止 review
+     - 紀錄: `## Notes` 一個 `### Review (yyyy-MM-dd, in progress)` 區塊，每項一筆 (`Observed:` agent 自己觀察到的，含來源與時間；`Developer:` developer 回報的；`Remark:`、`Cause:`、`Decision:`)，以及 `Left:` 列出還沒有結果的項目；結果決定後把標題的 `, in progress` 拿掉
+     - 決定類一樣一項一項: 列出 diff 或證據、說明建議、AskUserQuestion 問決定、立刻記錄並 commit
+     - 暫停後接續: 從 `Left:` 的第一項繼續；已通過的項目在之後沒有專案 commit 改到它涵蓋的程式碼時仍然算數，否則重測
+     - developer 要求時可代為啟動程式或執行指令，Review 是允許執行的地方
   7. 詢問結果
      - Review 通過: design check 不可留有未決定的偏離 (design check 之後有修改到 Detailed design 涵蓋的程式碼時重新比對)；spec 引用的事證條目不可是 `to trace`、`failed`，也不可是未經 developer 接受不測的 `to test` / `developer-stated`；其餘 criteria 打勾、記錄結果 (連同 gitlink)、根目錄切回 develop，提示 `/ss-workflow:merge REQ-xxxx` 結案
      - 小修: 直接在根目錄修正，程式碼 commit 在專案的 request branch，workspace 更新 gitlink，重跑 Verify
      - 需要大改: feedback 寫入 `## Notes`、status 退回 `in-progress`、根目錄切回 develop，提示 `/ss-workflow:check-req REQ-xxxx` 在 worktree 繼續
-     - 還在 review: 保留根目錄在 request branch 上，之後再下一次 `/ss-workflow:review` 接續
+     - 還在 review: 保留根目錄在 request branch 上，Review 區塊保留 `, in progress` 與 `Left:`，之後再下一次 `/ss-workflow:review` 接續
 - 原則
   - 失敗或跳過的檢查不會記成通過；Review 是否通過只由 developer 決定
   - 每一項檢查只記為 `passed` / `failed (原因)` / `did not run (原因)` / `not configured` / `not applicable (原因，這個 request 沒有這項檢查，e.g. 只改 workspace 檔案的 request 沒有 build)` 其中之一；這次 review 實際跑過並看到通過才算 `passed`，不沿用 implementation summary 或先前的結果
