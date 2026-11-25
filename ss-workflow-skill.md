@@ -485,7 +485,7 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 若發現異常 (e.g. worktree 已建立但沒有 start commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再開始
   - 不帶編號時，候選為 `ready` (開始) 與 `in-progress` (回到 worktree 接續，或重建 worktree 後接續) 的 request；在別台機器開始的 `in-progress` 只列在總覽，不列為候選
   - 推薦順序 (依序比較): hotfix → 被其他候選依賴的 request → `priority` → 先完成 `in-progress` 再開始 `ready` → `in-progress` 中先處理 review 退回重做的、再來是 worktree 還在的 → 編號較小的
-  - 有兩個以上 `ready` 時，另外判斷哪些可以同時開始 (Parallel start)，各用一個 session 實作 (一個 session 只做一個 request)：`Depends on:` 的 request 還沒 `done` 的標示「等待 REQ-xxxx」，不列入；兩個 request 在同一專案改到同一個檔案路徑 (依「File changes」比對，或同一個 workspace 檔案) 標示為重疊，只提醒不阻擋；沒有可讀的「File changes」時標示「重疊未知」；依推薦順序挑出彼此沒有重疊的組合，加一個「一起開始」選項
+  - 有兩個以上 `ready` 時，另外判斷哪些可以同時開始 (Parallel start)，各用一個 session 實作 (一個 session 只做一個 request)：`Depends on:` 的 request 還沒 `done` 的標示「等待 REQ-xxxx」，不列入；兩個 request 在同一專案改到同一個檔案路徑 (依「File changes」比對，或同一個 workspace 檔案) 標示為重疊，只提醒不阻擋；沒有可讀的「File changes」時標示「重疊未知」；重疊只描述兩邊各改了什麼並說明合併時可能要解衝突，不斷言一定衝突，也不建議延後、重排或合併 request；等待中的 `ready` request 留在表格但不放進 AskUserQuestion 的選項 (developer 仍可用 Other 指定)；依推薦順序挑出彼此沒有重疊的組合，加一個「一起開始」選項
   - 選「一起開始」或自訂組合: 本 session 開始第一個，其他的在 worktree 建好後各開一個 session (能開 session 就代為開，一個接一個；否則給 developer `/ss-workflow:check-req REQ-xxxx` 讓他在根目錄各開一個 session 執行)；git 回報 lock 時等幾秒重試一次，不刪 lock 檔。Verify、Review、merge 仍在根目錄一次一個
   - 開始一個 request 時，主管檢查多一項「Overlap」：與 `in-progress` / `review` 的 request 比對 File changes，只在 `### Lead review` 記錄與提醒，不算 finding
   - 以表格列出候選、排序理由與選擇後的動作，前三個以 AskUserQuestion 詢問 (推薦的放第一個)；選定即為同意，不再重複確認；worktree 有未 commit 變更的候選標示「可能有其他 session 在使用」

@@ -254,13 +254,20 @@ in the recommended set), and add one sentence: Verify, Review, and the merge run
 root checkout one request at a time, so the finished requests queue up there.
 
 An overlap is a warning, never a block: it may be harmless, and the developer knows the
-code. The developer may start overlapping requests together.
+code. The developer may start overlapping requests together. Describe an overlap by
+what both requests change (the project and the paths, and for a new file that both add,
+that both add it), and say that the merge may need conflict resolution. Do not say that
+a conflict is certain, and do not advise to postpone, reorder, or combine the requests:
+that is the developer's decision.
 
 - No candidates: report this and mention the next useful action, such as drafts to
   finish, requests waiting for `/ss-workflow:review`, or `/ss-workflow:new-req`.
 - One candidate: confirm it with the developer.
 - Several candidates: ask with AskUserQuestion. Show the top three as options, the
-  recommended one first with "(Recommended)" in its label. Each description says what
+  recommended one first with "(Recommended)" in its label. A `ready` request that
+  waits for a request that is not `done` (see "Parallel start") is not an option: it
+  stays in the table with what it waits for, and the developer can still name it
+  through "Other". Each description says what
   choosing it does (start, resume, or recreate the worktrees) and why it has its
   place. When the recommended set has two or more requests, add the option "Start
   together: REQ-0011, REQ-0013" (naming them) after the first option. The developer
