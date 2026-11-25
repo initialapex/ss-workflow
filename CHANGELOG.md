@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v0.15.0 (2026-11-25)
+
+### feature
+
+1. Keep every part of a split request as a draft at once: when the developer confirms a split, `new-req` reserves one id per part and creates a draft branch for each, with the part's own words of the original text (`Split from:`), a `Depends on:` line, and the same split entry in `## Q&A`; only the first part is discussed, and `/ss-workflow:new-req REQ-<id>` continues any of the others without describing the requirement again
+2. Create the drafts of parts that move out of a request during the discussion in the same way, and mark such drafts as "not discussed yet" in `new-req` and in the `check-req` overview
+3. Show which `ready` requests can be implemented at the same time, each in its own session: a request that waits for one that is not done is left out, and two requests that change the same file in the same project, or the same workspace file, are named as an overlap, which is a warning and never a block
+4. Add the option "Start together" for the recommended set of requests: the session takes the first one, and the others get a session of their own, started by the agent when it can, and otherwise with a line for the developer to run
+5. Name an overlap with requests that are in progress or in review in the lead review, as a remark
+
+### misc
+
+1. Add the migration to 0.15.0 for the two new managed rules (`reqs-size` and `reqs-lifecycle`), which changes no request file
+2. Add a git sequence test for the branches of a split, the scenario `overview-parallel`, and eval cases for the split drafts (`new-req`) and the parallel start (`check-req`)
+
+### contribution
+
+1. Scott Chang (initialapex@gmail.com)
+
 ## v0.14.1 (2026-11-23)
 
 ### feature
