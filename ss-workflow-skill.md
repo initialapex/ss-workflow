@@ -467,6 +467,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 保留 draft: commit + push 後根目錄切回 develop，branch 留著；之後用 `/ss-workflow:new-req REQ-xxxx` 接續
   - 捨棄: 刪除 branch (local 與 remote)，develop 上不留任何痕跡
 - 一個 request branch 只處理一個 request；輸入包含多個可獨立實作的需求時，提議拆開並依序處理；與既有 request 重複時先提醒
+  - 拆分確認後，依拆分表一次保留連號的 id，每個部分立刻各開一條 request branch 並 commit 一份 draft (Step 4a)，只先討論第一個；沒討論的 draft 只有 `Split from: REQ-<id>, part <n> of <count>` 加上它那段原文 (`## Original`)、必要時一行 `Depends on:` (`## Spec`)，以及與其他部分相同的拆分紀錄 (`## Q&A` 的 `Q1`，含所有部分與 id 的表)
+  - 討論中才發現要拆時，先在目前的 request 記錄拆分並 commit，再同樣建立移出部分的 draft
+  - 不帶參數執行 `/ss-workflow:new-req` 與 `/ss-workflow:check-req` 的總覽會把這種 draft 標為「not discussed yet」
 - 此 skill 只寫 request，不自己實作；source repo 不會有任何 commit
 - 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow:merge`，只能有一個專案)，draft 放在從 develop 開的 `hotfix/REQ-<id>-<slug>`，開始實作時改到從 workspace master 開的 `hotfix/<P>-v<version>`
 
@@ -482,6 +485,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 若發現異常 (e.g. worktree 已建立但沒有 start commit、`review` 狀態卻還留著 worktree、有 commit 沒 push、只有一層有 branch (`projects: []` 只有 workspace branch 是正常的)、內層 worktree 殘留)，先排除異常再開始
   - 不帶編號時，候選為 `ready` (開始) 與 `in-progress` (回到 worktree 接續，或重建 worktree 後接續) 的 request；在別台機器開始的 `in-progress` 只列在總覽，不列為候選
   - 推薦順序 (依序比較): hotfix → 被其他候選依賴的 request → `priority` → 先完成 `in-progress` 再開始 `ready` → `in-progress` 中先處理 review 退回重做的、再來是 worktree 還在的 → 編號較小的
+  - 有兩個以上 `ready` 時，另外判斷哪些可以同時開始 (Parallel start)，各用一個 session 實作 (一個 session 只做一個 request)：`Depends on:` 的 request 還沒 `done` 的標示「等待 REQ-xxxx」，不列入；兩個 request 在同一專案改到同一個檔案路徑 (依「File changes」比對，或同一個 workspace 檔案) 標示為重疊，只提醒不阻擋；沒有可讀的「File changes」時標示「重疊未知」；依推薦順序挑出彼此沒有重疊的組合，加一個「一起開始」選項
+  - 選「一起開始」或自訂組合: 本 session 開始第一個，其他的在 worktree 建好後各開一個 session (能開 session 就代為開，一個接一個；否則給 developer `/ss-workflow:check-req REQ-xxxx` 讓他在根目錄各開一個 session 執行)；git 回報 lock 時等幾秒重試一次，不刪 lock 檔。Verify、Review、merge 仍在根目錄一次一個
+  - 開始一個 request 時，主管檢查多一項「Overlap」：與 `in-progress` / `review` 的 request 比對 File changes，只在 `### Lead review` 記錄與提醒，不算 finding
   - 以表格列出候選、排序理由與選擇後的動作，前三個以 AskUserQuestion 詢問 (推薦的放第一個)；選定即為同意，不再重複確認；worktree 有未 commit 變更的候選標示「可能有其他 session 在使用」
   - 開始: `git worktree add <path> <branch>` 用既有的 request branch 建立 worktree，做 start commit (見 reqs 章節) 並 push；再為每個 request 的專案建立 branch 與內層 worktree 並 push，其他專案 detached 在 gitlink；之後在 worktree 上實作 (為了多 session 平行實作多個 request)
   - worktree 路徑: `.claude/worktrees/<branch 名稱，"/" 換成 "-">`，e.g. `.claude/worktrees/feat-REQ-0012-gui-button`，各專案在其中的 `projects/<P>`

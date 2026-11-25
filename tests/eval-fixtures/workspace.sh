@@ -21,6 +21,11 @@
 #                   a ready fix (high) that depends on a ready feature (normal), a
 #                   ready chore (low), and an in-progress feature that was started on
 #                   another machine (its branches exist only on the remotes)
+#   overview-parallel
+#                   four ready requests: a feature on SSLib (greeting.txt), a feature on
+#                   SSDisp (title.txt), a low-priority chore on SSLib that adds the same
+#                   greeting.txt as the first one (an overlap), and a high-priority fix on
+#                   SSDisp that needs the first one (it waits)
 #   start-push-never
 #                   the start scenario, with push-policy never for SSLib
 #   merge-review    REQ-0001 (SSLib) in review, with a passed Verify and Review
@@ -503,6 +508,21 @@ overview-dependency)
   git checkout -q develop; git submodule update -q
   git branch -q -D feat/REQ-0003-add-farewell
   for p in SSLib SSDisp; do git -C "projects/$p" branch -q -D feat/add-farewell; git -C "projects/$p" fetch -q; done
+  ;;
+# ================================================================== overview-parallel
+overview-parallel)
+  f1=$(draft feat/REQ-0001-add-greeting reqfile 0001 add-greeting feat SSLib normal "Add a greeting" "$(simple_spec SSLib greeting.txt 'Hello from SSLib' 'SSLib provides a greeting for SSDisp.')")
+  approve "$f1" REQ-0001; git push -q -u origin feat/REQ-0001-add-greeting
+  f2=$(draft feat/REQ-0002-add-title reqfile 0002 add-title feat SSDisp normal "Add a window title" "$(simple_spec SSDisp title.txt 'SSDisp Viewer' 'The window of SSDisp gets a title.')")
+  approve "$f2" REQ-0002; git push -q -u origin feat/REQ-0002-add-title
+  f3=$(draft chore/REQ-0003-greeting-text reqfile 0003 greeting-text chore SSLib low "Rewrite the greeting" "$(simple_spec SSLib greeting.txt 'Hello, world' 'The greeting of SSLib is reworded.')")
+  approve "$f3" REQ-0003; git push -q -u origin chore/REQ-0003-greeting-text
+  dep="$(simple_spec SSDisp subtitle.txt 'SSDisp Viewer - Hello from SSLib' 'The window shows the SSLib greeting.' | sed 's#^No architectural decision:.*#SSDisp needs the greeting of SSLib that REQ-0001 adds (`greeting.txt`); this request can only be built after REQ-0001. Otherwise no architectural decision: a new text file in the root of SSDisp, which the build picks up (E1).#')"
+  dep="$(printf '%s
+' "$dep" | awk '{print} /^### Scope$/{getline; print; print "Depends on: REQ-0001"; print ""}')"
+  f4=$(draft fix/REQ-0004-fix-subtitle reqfile 0004 fix-subtitle fix SSDisp high "Fix the window subtitle" "$dep")
+  approve "$f4" REQ-0004; git push -q -u origin fix/REQ-0004-fix-subtitle
+  git checkout -q develop; git submodule update -q
   ;;
 # ================================================================== start-push-never
 start-push-never)

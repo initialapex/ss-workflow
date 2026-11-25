@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: new-req-creates-split-drafts
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario newreq-ids) has REQ-0001 closed, REQ-0003 ready, REQ-0004 a draft, and REQ-0006 a started hotfix, so the next free id is REQ-0007. The input holds
+  three changes (a must-fix defect in build.sh, a refactor of build.sh, and a small feature with a README change), and the developer already agrees to split them into three
+  requests and wants all of them kept as drafts without discussing any of them now. The agent reserves REQ-0007, REQ-0008, and REQ-0009 in the order of the split table (the
+  fix first), opens one request branch per part from develop, and commits and pushes one draft per branch. The first part keeps the whole input in '## Original'; each other
+  part starts '## Original' with 'Split from: REQ-0007, part <n> of 3' followed by its own words of the input, verbatim. Every part has the same split entry in '## Q&A' with
+  the table of all three parts and their ids, and a part that needs the fix has only 'Depends on: REQ-0007' in its spec. The first part is kept as a draft, the root checkout is
+  back on develop, and nothing is implemented.

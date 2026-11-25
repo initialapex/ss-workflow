@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.14.1" src="https://img.shields.io/badge/version-0.14.1-blue">
+  <img alt="Version 0.15.0" src="https://img.shields.io/badge/version-0.15.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -29,7 +29,7 @@
 - 每個 request 都保留問過的問題和你的回答；每一份結果都會寫明什麼有跑、什麼失敗、什麼沒跑。
 
 > [!WARNING]
-> **狀態：0.14.1，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
+> **狀態：0.15.0，早期版本。** 六個 skill 都已寫完，plugin manifest 也通過驗證，但整套流程還沒有在實際專案上完整跑過一次。
 
 <details>
 <summary>目錄</summary>
@@ -94,7 +94,7 @@
 |-------|----------|------------|--------|
 | `/ss-workflow:init` | 每個 workspace 一次、加入專案時，以及 plugin 更新後 | 根目錄 | 建立 workspace：git branch、`AGENTS.md` / `CLAUDE.md` 和 README，並以 URL 或 local 路徑把專案加入為 submodule。也能轉換 0.5.0 以下的 repository，或升級由舊版建立的 workspace。 |
 | `/ss-workflow:new-req` | 有新功能、修正或其他變更 | 根目錄，request branch | 建立 request branch 與 request 檔，決定它修改哪些專案，逐條 trace 既有程式碼並把每個事實連同事證記錄下來，跟你討論規格，一直寫到任何人照著實作都會一樣的 detailed design；再由一個全新的 agent 冷讀規格、對照程式碼複查事證，列出實作時必須猜測的地方。你確認後可以直接開始實作，或以 `ready` 狀態留待之後再做。 |
-| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
+| `/ss-workflow:check-req` | 想看有哪些待辦，或要開始、繼續實作 | 總覽和開始在根目錄；實作在 worktree | 列出所有 request、修復異常狀態，並推薦接下來處理哪一個；有多個 `ready` 時，也會判斷哪些可以同時開始、各用一個 session 實作（等待別的 request 的不列入；改到同一個檔案的標示為重疊，只提醒不阻擋）；開始 `ready` 的 request（建立 worktree 與各專案的 branch），或回到 `in-progress` request 的 worktree 繼續實作。完成後標為待 review 並刪除 worktree。 |
 | `/ss-workflow:review` | 有實作完成的 request 在等你 | 根目錄，request branch | Design check：比對實作與規格的 detailed design，列出每一個偏離。Verify：執行各專案的 build、測試和驗證 script。Code review（可選）：檢查這個 request 的變更有沒有 bug。Review：引導你人工驗證。小問題當場修正，需要大改則退回重做。 |
 | `/ss-workflow:merge` | 你驗收了一個 request，或 release / hotfix 準備好了 | 根目錄 | 先 merge 各專案的 branch，再關閉 request 並 merge workspace 的 branch。Release / hotfix 時：在專案 `master` 打 tag、從 tag build 並打包、把 `master` merge 回 `develop`，最後才一起發佈。刪除 branch。 |
 | `/ss-workflow:release` | 要釋出某個專案的新版本、prerelease 或 release candidate | 根目錄 | 推薦該專案的版本號。在專案 `develop` 打 alpha / beta，或開 release branch 並在上面打 release candidate。檢查它未完成的工作、在有檔案帶版號時設定版本號、把該版本寫進 `CHANGELOG.md`（feature、bugfix、misc、contribution）、每個打 tag 的版本都 build 並打包，正式版交給 release merge。 |
@@ -147,7 +147,7 @@ flowchart LR
 - 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」、寫「repository」不寫「repo」。業界通用的縮寫（API、UI、JSON、SHA、spec、docs）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
-- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
+- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。拆分確認後，每個部分會立刻建成 draft，各有自己的 id 和你那段原文，只先討論第一個；其他的留在 draft 清單裡，之後用 `/ss-workflow:new-req REQ-<id>` 接著討論，不用再輸入一次需求。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
 - workflow 本身與技術無關。每個專案在 `skills` 設定裡列出適用的 skill（例如 `ss-design:ood, ss-design:ui-ux`），各階段會使用它們：`/ss-workflow:new-req` 依它設計並補上它要求的段落，實作遵守它的規則，`/ss-workflow:review` 則由各 skill 對應的專業 Review 角色套用它的 checklist。
 
 ## 角色

@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: overview-parallel-groups
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario overview-parallel) holds four ready requests: REQ-0001 feat normal (SSLib, adds greeting.txt), REQ-0002 feat normal (SSDisp, adds title.txt), REQ-0003 chore low (SSLib,
+  adds the same greeting.txt as REQ-0001), and REQ-0004 fix high (SSDisp, Depends on: REQ-0001). The developer says that several requests are ready and asks to work on several at the same time.
+  The agent reads the requests without checking anything out and shows which of them can be implemented at the same time: REQ-0004 waits for REQ-0001 (not done) and is in no set; REQ-0001 and
+  REQ-0003 overlap (SSLib greeting.txt), which is a warning and not a block; REQ-0001 and REQ-0002 are independent (different projects). The recommended set to start together is REQ-0001 and
+  REQ-0002. It explains that one session implements one request, so the other request of the set gets its own session, and that Verify, Review, and the merge run one at a time in the root
+  checkout. It asks the developer to choose (including starting together) and stops: it creates no branch, worktree, or commit, and starts no session in this test. Nobody answers its question.

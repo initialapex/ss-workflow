@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.14.1" src="https://img.shields.io/badge/version-0.14.1-blue">
+  <img alt="Version 0.15.0" src="https://img.shields.io/badge/version-0.15.0-blue">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <a href="https://code.claude.com/docs"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
   <img alt="Project type: any" src="https://img.shields.io/badge/project%20type-any-lightgrey">
@@ -50,7 +50,7 @@ checkout, and skills merge and release it by the same rules every time.
   result says what ran, what failed, and what did not run.
 
 > [!WARNING]
-> **Status: 0.14.1, early.** The six skills are written and the plugin manifest
+> **Status: 0.15.0, early.** The six skills are written and the plugin manifest
 > validates, but the workflow has not yet been run end to end on a real project.
 
 <details>
@@ -120,7 +120,7 @@ In a new, empty folder, for example `SSDisp-workspace`:
 |-------|----------------|---------------|--------------|
 | `/ss-workflow:init` | Once per workspace, to add a project, and again after a plugin update | Root checkout | Creates the workspace: the git branches, `AGENTS.md` / `CLAUDE.md`, and the README files, and adds projects as submodules from a URL or a local path. Converts a repository of version 0.5.0 or older, or upgrades a workspace made by an older version. |
 | `/ss-workflow:new-req` | You have a new feature, fix, or other change | Root checkout, on the request branch | Creates the request branch and the request file, settles which projects it changes, traces the existing code and records every fact with its evidence, and discusses the spec with you, down to a detailed design that any implementer would follow the same way. A fresh agent reads the spec cold, re-checks the evidence against the code, and lists every place where it would have to guess. When you approve, it starts the implementation right away, or keeps the request `ready` for later. |
-| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
+| `/ss-workflow:check-req` | You want to see what is pending, or start or continue an implementation | Root checkout for the overview and the start; worktrees for the implementation | Lists all requests, repairs inconsistent ones, and recommends what to work on next. With several `ready` requests it also tells which of them can be implemented at the same time, each in its own session (a request that waits for another one is left out, and two requests that change the same file are named as an overlap, which is a warning only). Starts a `ready` request (worktrees and project branches) or resumes an `in-progress` one in its worktree, and implements it. Then it marks the request for review and removes the worktrees. |
 | `/ss-workflow:review` | An implemented request waits for you | Root checkout, on the request branches | Design check: compares the changes with the detailed design of the spec, and lists every deviation. Verify: runs each project's build, tests, and verification scripts. Code review (optional): reads the request's changes for bugs. Review: guides you through the manual check. Applies small fixes, or sends the request back for rework. |
 | `/ss-workflow:merge` | You accept a reviewed request, or a release or hotfix is ready | Root checkout | Merges the project branches, then closes the request and merges the workspace branch. For a release or hotfix: tags the project's `master`, builds and packages the tagged version, merges `master` back into `develop`, and publishes everything at the end. Deletes the branches. |
 | `/ss-workflow:release` | You want to release a new version, a prerelease, or a release candidate of a project | Root checkout | Recommends the project's version. Tags an alpha or beta version on the project's `develop`, or opens its release branch and tags release candidates there. Checks for its unfinished work, sets the version number where a file carries it, writes the version into `CHANGELOG.md` (feature, bugfix, misc, contribution), builds and packages each tagged version, and hands the final version over to the release merge. |
@@ -215,7 +215,10 @@ Your original text is kept unchanged in its `## Original` section.
 - A request is kept small enough to read and review in one sitting. When one is too
   large, `/ss-workflow:new-req` splits it by importance (a must-fix is its own
   request), then by type, then by cost, and the parts name what they need in a
-  `Depends on:` line. Before `/ss-workflow:check-req` starts a request, an engineering
+  `Depends on:` line. Every part becomes a draft with its own id and its part of your
+  text at once, and only the first one is discussed: the others wait in the list of
+  drafts, and `/ss-workflow:new-req REQ-<id>` continues one without asking you for the
+  requirement again. Before `/ss-workflow:check-req` starts a request, an engineering
   lead checks that its spec is complete, small enough, ordered, and checkable, and can
   send it back.
 - The workflow itself knows no technology. A project lists the skills that apply to it
