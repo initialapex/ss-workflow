@@ -467,6 +467,9 @@ Decision: Scope 只列選單項目，toolbar 移到 Out of scope
   - 保留 draft: commit + push 後根目錄切回 develop，branch 留著；之後用 `/ss-workflow:new-req REQ-xxxx` 接續
   - 捨棄: 刪除 branch (local 與 remote)，develop 上不留任何痕跡
 - 一個 request branch 只處理一個 request；輸入包含多個可獨立實作的需求時，提議拆開並依序處理；與既有 request 重複時先提醒
+  - 拆分確認後，依拆分表一次保留連號的 id，每個部分立刻各開一條 request branch 並 commit 一份 draft (Step 4a)，只先討論第一個；沒討論的 draft 只有 `Split from: REQ-<id>, part <n> of <count>` 加上它那段原文 (`## Original`)、必要時一行 `Depends on:` (`## Spec`)，以及與其他部分相同的拆分紀錄 (`## Q&A` 的 `Q1`，含所有部分與 id 的表)
+  - 討論中才發現要拆時，先在目前的 request 記錄拆分並 commit，再同樣建立移出部分的 draft
+  - 不帶參數執行 `/ss-workflow:new-req` 與 `/ss-workflow:check-req` 的總覽會把這種 draft 標為「not discussed yet」
 - 此 skill 只寫 request，不自己實作；source repo 不會有任何 commit
 - 支援 `type: hotfix` 作為 hotfix 的入口 (hotfix branch 規則見 `/ss-workflow:merge`，只能有一個專案)，draft 放在從 develop 開的 `hotfix/REQ-<id>-<slug>`，開始實作時改到從 workspace master 開的 `hotfix/<P>-v<version>`
 

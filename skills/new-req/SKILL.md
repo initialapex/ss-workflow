@@ -54,7 +54,8 @@ role of the software engineer in `/ss-workflow:check-req`.
 - Never edit the `## Original` section after it is written.
 - A request is approved only after the developer explicitly approves the spec.
 - Commit the request file only at these points: when the draft is created (this
-  reserves the id), each time the developer pauses the draft, when a `ready` request
+  reserves the id), when a split moves parts of the request to drafts of their own
+  (Step 4a), each time the developer pauses the draft, when a `ready` request
   goes back to `draft` to be changed, and when the developer approves it. Between
   those, the discussion only changes the file in the working tree, and so does a
   rename of the branch (Step 5 or Step 8), which needs no commit.
@@ -93,7 +94,7 @@ role of the software engineer in `/ss-workflow:check-req`.
 | A `REQ-xxxx` id | Find its request branch (a local or remote branch whose name contains `REQ-xxxx-`), the `hotfix/<name>-v<version>` branch whose file in `reqs/` has that id (a started hotfix), or a `req/REQ-xxxx-…` branch from before ss-workflow 0.8.0. Read the status in its request file. `draft`: check it out, pull it, and resume at Step 5. `ready`: say so, and ask what the developer wants to change; to change it, check out the branch, set `status: draft`, and continue at Step 5, so that it is approved again. Any later status: the spec is approved and the work has started; point to `/ss-workflow:check-req` (`in-progress`) or `/ss-workflow:review` (`review`). A `ready` request in `reqs/` on `develop` without a branch (from before 0.8.0) is changed on a new request branch with the same id. |
 | A path to a `.md` / text file | Read it. Its full content becomes `## Original`, verbatim. |
 | Free text | That text becomes `## Original`, verbatim. |
-| Empty | List the open drafts: the request branches, local and remote, whose request file says `draft` (and `req/*` branches from before 0.8.0), each with its title. Ask whether to continue one of them or to create a new one. For a new one, ask the developer to describe what they need. Their answer becomes `## Original`. |
+| Empty | List the open drafts: the request branches, local and remote, whose request file says `draft` (and `req/*` branches from before 0.8.0), each with its title. Mark a draft that a split created and that has no spec yet (its `## Original` starts with `Split from:` and its `## Spec` is empty apart from a `Depends on:` line) as "not discussed yet", with the request it depends on. Ask whether to continue one of them or to create a new one. For a new one, ask the developer to describe what they need. Their answer becomes `## Original`. |
 
 Then check the following:
 
@@ -108,17 +109,25 @@ Then check the following:
   | Order | Title | Type | Importance | Cost | Depends on |
   |-------|-------|------|------------|------|------------|
 
-  Handle the resulting requests one after another: finish this skill for the first
-  one (the most important, and the ones that others depend on first), then start
-  again for the next one with its part of the original text. Each later request names
-  what it needs in `Depends on:` (see "Request size"). Record the split as an entry in
-  `## Q&A` of the first request, with the table.
+  A part whose type would be `hotfix` is marked "hotfix, to confirm" in the table, and
+  the developer confirms it with the split (Step 3, item 2).
+
+  When the developer confirms the split, every part becomes a draft at once, before
+  the discussion of the first one starts, so that no part lives only in this
+  conversation: the first part (the most important, and the ones that others depend
+  on first) gets Step 3 and Step 4, and the other parts get their drafts in Step 4a.
+  Then discuss the first part from Step 5 on. The other parts wait as drafts, each
+  with its own id and branch, until the developer continues one with
+  `/ss-workflow:new-req REQ-xxxx`. A part that needs another one names it in
+  `Depends on:` (see "Request size"). Record the split in `## Q&A` of every part, as
+  the same entry with the table and the ids (Step 4a). When the developer declines
+  the split, go on with one request, and record that answer in `## Q&A` of it.
 - **Duplicates**: compare with the titles and specs of the requests on the request
   branches (any status) and on the `hotfix/<name>-v<version>` branches of started
   hotfixes, the requests in `reqs/` on `develop` from before 0.8.0, and
   the titles in `reqs/done/`. If one overlaps, show it and ask whether to extend that
   request (only if it is still a draft, or `ready` and not started), create a
-  follow-up, or continue.
+  follow-up, or continue. For a split, compare every part.
 
 ## Step 3: Open the request branch
 
@@ -130,6 +139,9 @@ Then check the following:
      its name, so read the request file on each `hotfix/*` branch whose name has no
      `REQ-` (`git branch -a --list "hotfix/*"`, then `git ls-tree --name-only
      <branch> reqs/`).
+
+   For a split, reserve one id per part, in the order of the split table: the first
+   part takes the next free id, and each further part the id after it.
 2. **type**: infer it from the content (`feat`, `fix`, `docs`, `refactor`, `perf`,
    `test`, `chore`). Use `hotfix` only when the problem affects a released version and
    cannot wait for the next release. Confirm `hotfix` with the developer.
@@ -149,7 +161,10 @@ Then check the following:
 
    If the remote now has another branch with the same id (fetch and list again),
    another session took the id at the same time. Rename your branch to the next free
-   id (`git branch -m`, delete the wrong remote branch, and push again).
+   id (`git branch -m`, delete the wrong remote branch, and push again). For a split,
+   move every part that is not pushed yet to the next free ids, and correct the ids in
+   the split entry and in the `Depends on:` lines of all parts before they are
+   committed.
 
    If the branch is not pushed, the id is reserved in this repository only. Another
    machine may take the same id in the meantime. This shows at the next fetch, or when
@@ -167,7 +182,8 @@ Then check the following:
    discussion settles it.
 2. Put the original input into `## Original`, byte for byte. If the input came from a
    file, add one line above it: `Source: <original path>`. `## Q&A` and `## Evidence`
-   start empty, apart from their comments.
+   start empty, apart from their comments. For a split, the first part keeps the whole
+   input in `## Original`, and its `## Q&A` starts with the split entry (Step 4a).
 3. If the source file is inside the repository (for example, the developer dropped it
    into `reqs/`), ask whether to delete it on this branch now that its content is
    preserved in `## Original`. Leave files outside the repository alone.
@@ -179,6 +195,68 @@ Then check the following:
 
    Refs: REQ-0012
    ```
+
+## Step 4a: Drafts of the other parts of a split
+
+Only after a split: at the start (Step 2), or during the discussion (Step 6, Rounds,
+item 4). Every part that is not discussed now gets a draft of its own right away, so
+that it is kept in the repository and the developer does not have to describe it
+again.
+
+1. **The split entry.** The split is one entry in `## Q&A` (stage `spec`), the same in
+   every part: `Q:` the proposal as it was asked, `A:` the developer's answer, and
+   `Decision:` the table with the ids that Step 3 reserved, one row per part:
+
+   | Order | Id | Title | Type | Importance | Cost | Depends on |
+   |-------|----|-------|------|------------|------|------------|
+
+   In the draft that is discussed now, it is the next entry of its `## Q&A`; in every
+   other part, it is `Q1`.
+2. **A split during the discussion.** The request that is discussed now already has a
+   branch and a file. Write the split entry into its `## Q&A`, take the parts that move
+   out of its `## Spec` (they are in "Out of scope" now, with their ids), and commit,
+   so that the root checkout can switch branches:
+
+   ```
+   docs(reqs): split REQ-0014 out of REQ-0012
+
+   Refs: REQ-0012, REQ-0014
+   ```
+
+   The new parts take their ids from Step 3, item 1 (the next free ids), and are
+   created from its `## Original`.
+3. **One draft per other part**, in the order of the table. From the branch of the
+   request that is discussed now, with its file committed:
+   1. `git checkout -b <type>/REQ-<id>-<slug> develop`, with the type, title, slug,
+      and priority of the part (Step 3, items 2 to 4).
+   2. Write `reqs/REQ-<id>-<yyyyMMdd>-<slug>.md` as in Step 4, item 1, with
+      `status: draft` and the projects that the part names or clearly means.
+   3. `## Original`: one line `Split from: REQ-<id of the request whose ## Original
+      holds the whole input>, part <n> of <count>`, then the developer's words that
+      belong to this part, byte for byte, in their order. Sentences that two parts
+      share go into each of them. Never write your own summary here.
+   4. `## Spec`: only the part "Scope" with the line `Depends on: REQ-xxxx`, when the
+      part needs another one. Otherwise `## Spec` keeps only its comment. The rest of
+      the spec is written when the part is discussed.
+   5. `## Q&A`: the split entry as `Q1`. For a split during the discussion, add to
+      its `Decision:` line the entries of the source request's `## Q&A` and
+      `## Evidence` that concern this part (`see REQ-0012 Q4, E2`). Copy none of them:
+      they are re-checked when the part is discussed. `## Evidence` and `## Notes`
+      keep only their comments.
+   6. Commit, and push the branch when pushing is allowed:
+
+      ```
+      docs(reqs): add draft REQ-0013 export csv
+
+      Split from REQ-0012.
+
+      Refs: REQ-0013
+      ```
+4. Check out the branch of the request that is discussed now again, and go on.
+
+A draft that a split created reaches `develop` like any other request, with its
+merge. Until then, `/ss-workflow:new-req` without arguments lists it as "not
+discussed yet", and `/ss-workflow:check-req` lists it among the drafts.
 
 ## Step 5: Understand the context
 
@@ -208,7 +286,18 @@ numbers from the same commit, for example with `git -C projects/<name> grep -n
 did not read yet is `to trace`, not a guess.
 
 When you continue a draft, read its `## Q&A` first, and start with the entries that
-are still pending. A draft from an older ss-workflow version may lack the section, and
+are still pending. A draft that a split created (Step 4a) holds only its part of the
+original text, the split entry, and maybe a `Depends on:` line: discuss it like a new
+draft from this step on, and do not ask the split again. Read the split entry for the
+other parts and what each one covers, so that this spec does not take their scope. For
+the request that it depends on, read its file on its branch (`git show
+<branch>:reqs/<file>`) or in `reqs/done/`, for what that request provides. For a split
+during the discussion, read the entries of the source request that the split entry
+names, and trace them again before the spec relies on them. A split entry from before
+ss-workflow 0.15.0 lists parts without ids: name the parts that have no request yet,
+and offer to create their drafts now (Step 4a).
+
+A draft from an older ss-workflow version may lack `## Q&A`, and
 may have an "Open questions" part in its spec:
 
 - Add `## Q&A` between `## Original` and `## Notes`.
@@ -380,7 +469,8 @@ Go through these rounds with the developer:
 4. If the request turns out to be too large for one branch (see "Request size" in
    `reqs/AGENTS.md`), propose splitting it (Step 2) before you go on: keep the part
    that is most important and cheapest to finish in this request, and move the rest to
-   new requests with their own part of the original text.
+   new requests with their own part of the original text. When the developer confirms
+   it, create their drafts at once (Step 4a), then go on with this request.
 
 `## Q&A` holds the questions and the decisions. Use `## Notes` for what is not an
 answer to a question: assumptions, and facts found in the code that explain a choice,
@@ -505,7 +595,7 @@ more changes through "Other": then go back to Step 6.
 | Approve and start now (Recommended) | Step 8, then Step 9. |
 | Approve, start later | Step 8, then Step 10. |
 | Keep as draft | Commit the file (`docs(reqs): update draft REQ-0012`, with `Refs: REQ-0012`) and push. Switch the root checkout back to `develop` (`git submodule update`). The branch keeps the draft, and the developer continues later with `/ss-workflow:new-req REQ-0012`. Then go to Step 10. |
-| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and go to Step 10. Nothing reaches `develop`. |
+| Discard | Confirm once more, because the draft and its original text are deleted. Then switch to `develop`, delete the branch (`git branch -D`, and `git push origin --delete` if it is on the remote and pushing is allowed), and go to Step 10. Nothing reaches `develop`. Drafts of the same split keep their own part of the original text: name those whose `Split from:` or `Depends on:` line names this request, and say that such a `Depends on:` line is corrected when that draft is discussed. |
 
 ## Step 8: Approve
 
@@ -543,6 +633,8 @@ Tell the developer, in `discussion-language`:
 - Its branch, and whether the implementation started, waits as `ready`, is a draft,
   or was discarded
 - The questions that are still pending in `## Q&A`, for a draft
+- For a split: every part with its id, title, branch, status, and `Depends on:`, and
+  which drafts wait to be discussed
 - The cold read: how many runs, and what was left open, or that it did not run and why
 - The evidence: how many entries per status, and the `to test` and
   `developer-stated` entries that Verify or Review has to check

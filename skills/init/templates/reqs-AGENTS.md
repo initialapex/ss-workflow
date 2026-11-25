@@ -185,6 +185,20 @@ request. Order the parts: must-fix first, then by dependency, then the cheaper b
 the more expensive. A part that needs another part names it as the first line of its
 "Scope": `Depends on: REQ-0011`. `/ss-workflow:check-req` reads that line when it
 recommends the next request.
+
+**Every part is kept at once.** When the developer confirms a split,
+`/ss-workflow:new-req` creates a draft for every part right away, each on its own
+request branch with its own id, and discusses only the first one. No part waits only
+in the conversation. A draft of a part that is not discussed yet holds:
+
+- in `## Original`: the line `Split from: REQ-<id>, part <n> of <count>`, naming the
+  request whose `## Original` holds the whole input, then the developer's words that
+  belong to this part, verbatim
+- in `## Spec`: only the `Depends on:` line, when the part needs another one
+- in `## Q&A`: the split, as the same entry in every part, with the table of all parts
+  and their ids
+
+`/ss-workflow:new-req REQ-<id>` continues such a draft like any other.
 <!-- /ss-workflow:managed -->
 
 <!-- ss-workflow:managed id=reqs-skills -->
@@ -402,7 +416,7 @@ summary, the Verify result, the design check, the code review, and the Review.
 
 | Status | Meaning | Where the work happens | The file with this status is on | Set by |
 |--------|---------|------------------------|---------------------------------|--------|
-| `draft` | The spec is under discussion | Root checkout, on the request branch | The workspace request branch | `/ss-workflow:new-req` |
+| `draft` | The spec is under discussion, or waits to be discussed (a part of a split, see "Request size") | Root checkout, on the request branch | The workspace request branch | `/ss-workflow:new-req` |
 | `ready` | The developer approved the spec, and chose to start it later | (nothing) | The workspace request branch | `/ss-workflow:new-req`; `/ss-workflow:check-req` when an `in-progress` request goes back to wait |
 | `in-progress` | Started; being implemented | A worktree of the workspace with a worktree of each project inside, on the request branches | The workspace request branch | `/ss-workflow:check-req`; `/ss-workflow:review` when it sends the request back for rework |
 | `review` | Implemented; the worktrees are removed and the branches are kept; waiting for or under Verify and Review | Root checkout, on the request branches | The workspace request branch | `/ss-workflow:check-req` sets it; `/ss-workflow:review` works on it, and sets it again when it reopens a request that was `done` |

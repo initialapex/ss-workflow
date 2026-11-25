@@ -212,6 +212,21 @@ git checkout -q -- reqs; git checkout -q develop
 yes_ "discard: delete the draft branch, locally and on the remote" sh -c "git branch -q -D fix/REQ-0006-typo && git push -q origin --delete fix/REQ-0006-typo"
 eq_ "nothing of the discarded draft is left" "$(git branch -a --list '*REQ-0006-*' | count)$(git ls-tree -r --name-only develop reqs/ | grep -c 'REQ-0006')" "00"
 
+sec "new-req: a split keeps every part as a draft on its own branch (Step 4a)"
+git checkout -q -b fix/REQ-0090-first-part develop; mkreq 0090 first-part fix SSLib
+git add -A 2>/dev/null; git commit -q -m "docs(reqs): add draft REQ-0090 first-part"
+yes_ "from the committed first part, the next part branches off develop" git checkout -q -b feat/REQ-0091-second-part develop
+eq_ "the next part does not carry the first part's file" "$(git ls-files reqs/ | grep -c 'REQ-0090')" "0"
+mkreq 0091 second-part feat SSLib; git add -A 2>/dev/null; git commit -q -m "docs(reqs): add draft REQ-0091 second-part" -m "Split from REQ-0090."
+yes_ "back on the branch of the part that is discussed now" git checkout -q fix/REQ-0090-first-part
+eq_ "each part branch holds only its own request file" "$(git ls-tree --name-only fix/REQ-0090-first-part reqs/ | grep -c 'REQ-')$(git ls-tree --name-only feat/REQ-0091-second-part reqs/ | grep -c 'REQ-')" "11"
+echo "- [ ] a round not committed yet" >> reqs/REQ-0090-20261007-first-part.md
+no_ "a split during the discussion: git refuses to switch while the file has uncommitted changes" git checkout -q -b feat/REQ-0092-third-part develop
+git add -A 2>/dev/null; git commit -q -m "docs(reqs): split REQ-0092 out of REQ-0090"
+yes_ "after the split commit, the moved part branches off develop" git checkout -q -b feat/REQ-0092-third-part develop
+git checkout -q develop
+git branch -q -D fix/REQ-0090-first-part feat/REQ-0091-second-part feat/REQ-0092-third-part
+
 sec "leave the root checkout busy on a draft (REQ-0003), with a discussion round not committed yet"
 git checkout -q -b feat/REQ-0003-draft-only develop
 mkreq 0003 draft-only feat SSDisp; git add -A 2>/dev/null; git commit -q -m "docs(reqs): add draft REQ-0003 draft-only"; git push -q -u origin feat/REQ-0003-draft-only 2>/dev/null

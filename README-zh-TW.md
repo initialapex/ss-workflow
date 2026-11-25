@@ -147,7 +147,7 @@ flowchart LR
 - 盡量不用縮寫。request 檔、docs、commit message 和回覆都寫出全名，例如寫「Layer 1」不寫「L1」、寫「repository」不寫「repo」。業界通用的縮寫（API、UI、JSON、SHA、spec、docs）與程式碼裡的名稱、編號（`REQ-0012`）照寫；其他縮寫第一次出現時要寫出全名。
 - 結果如實回報。每一項檢查都記為 `passed`、`failed`、`did not run` 或 `not configured`，implementation summary 會列出沒做完的部分。沒跑的檢查不會記成通過。
 - 改到會影響 agent 行為的檔案（`AGENTS.md`、`CLAUDE.md`、`.claude/`、skill，或 `agent-files` 設定列出的路徑）時，會當成行為變更來 review：request 會記錄 agent 之前怎麼做、現在怎麼做，由你在 Review 逐項確認。這類變更 build 和測試都看不出來。
-- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
+- 一個 request 的範圍要小到可以一次讀完、一次 review 完。太大時，`/ss-workflow:new-req` 會依重要性（必改的自己成為一個 request）、類型、修改成本拆開，被拆出來的部分用 `Depends on:` 一行寫明依賴誰。拆分確認後，每個部分會立刻建成 draft，各有自己的 id 和你那段原文，只先討論第一個；其他的留在 draft 清單裡，之後用 `/ss-workflow:new-req REQ-<id>` 接著討論，不用再輸入一次需求。`/ss-workflow:check-req` 在開始 request 之前，會由工程師主管檢查規格是否完整、夠小、順序正確、可驗證，不通過就退回。
 - workflow 本身與技術無關。每個專案在 `skills` 設定裡列出適用的 skill（例如 `ss-design:ood, ss-design:ui-ux`），各階段會使用它們：`/ss-workflow:new-req` 依它設計並補上它要求的段落，實作遵守它的規則，`/ss-workflow:review` 則由各 skill 對應的專業 Review 角色套用它的 checklist。
 
 ## 角色
