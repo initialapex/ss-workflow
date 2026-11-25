@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: init-upgrade-no-migration
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The workspace (scenario upgrade-0.13) records ss-workflow-version 0.13.0, and the plugin is 0.14.1. skills/init/migrations/ holds no file above 0.13.0, because the templates did not
+  change in 0.14.0 and 0.14.1. The agent compares the versions, checks that the root checkout is on develop, clean, with the projects at their gitlinks, finds that no migration file
+  applies and says so (that is not an error and not a reason to stop), applies none, re-renders the managed blocks (nothing differs), leaves everything outside them alone, sets
+  ss-workflow-version to 0.14.1, shows the diff and gets approval, then makes one commit 'chore(workflow): upgrade ss-workflow to v0.14.1' on develop and pushes develop. It does not
+  apply migration 0.13.0, which the workspace already has. No request file changes.

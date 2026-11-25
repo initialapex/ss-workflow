@@ -47,6 +47,8 @@
 #                   REQ-0006 whose branch name carries no id
 #   init-new        two project remotes and an empty folder for the workspace
 #   upgrade-old     a workspace rendered from the templates of 0.12.3, with a closed request
+#   upgrade-0.13    a workspace rendered from the templates of 0.13.0, with a closed request;
+#                   no migration file lies between 0.13.0 and the plugin version
 #
 # Usage:  bash tests/eval-fixtures/workspace.sh <scenario> [target folder]
 set -eu
@@ -60,6 +62,12 @@ if [ "$SCENARIO" = upgrade-old ]; then
   OLD_TPL="$(mktemp -d)"
   git -C "$HERE/../.." archive 59f4ee1^ skills/init/templates | tar -x -C "$OLD_TPL"
   TPL="$OLD_TPL/skills/init/templates"; SSW_VERSION=0.12.3
+elif [ "$SCENARIO" = upgrade-0.13 ]; then
+  # A workspace of 0.13.0 (commit 6a7d543, tag v0.13.0). The templates did not change up to 0.14.1,
+  # and migrations/ holds no file above 0.13.0.
+  OLD_TPL="$(mktemp -d)"
+  git -C "$HERE/../.." archive 6a7d543 skills/init/templates | tar -x -C "$OLD_TPL"
+  TPL="$OLD_TPL/skills/init/templates"; SSW_VERSION=0.13.0
 fi
 mkdir -p "$TARGET"; cd "$TARGET"
 T="$(pwd -W 2>/dev/null || pwd)"
@@ -643,7 +651,7 @@ newreq-ids)
   git checkout -q develop; git submodule update -q
   ;;
 # ================================================================== upgrade-old
-upgrade-old)
+upgrade-old|upgrade-0.13)
   closed_req 0001 add-greeting feat SSLib "Add a greeting" greeting.txt "Hello from SSLib"
   ;;
 *) echo "unknown scenario: $SCENARIO" >&2; exit 1 ;;
