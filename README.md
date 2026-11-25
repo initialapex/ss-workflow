@@ -215,7 +215,10 @@ Your original text is kept unchanged in its `## Original` section.
 - A request is kept small enough to read and review in one sitting. When one is too
   large, `/ss-workflow:new-req` splits it by importance (a must-fix is its own
   request), then by type, then by cost, and the parts name what they need in a
-  `Depends on:` line. Before `/ss-workflow:check-req` starts a request, an engineering
+  `Depends on:` line. Every part becomes a draft with its own id and its part of your
+  text at once, and only the first one is discussed: the others wait in the list of
+  drafts, and `/ss-workflow:new-req REQ-<id>` continues one without asking you for the
+  requirement again. Before `/ss-workflow:check-req` starts a request, an engineering
   lead checks that its spec is complete, small enough, ordered, and checkable, and can
   send it back.
 - The workflow itself knows no technology. A project lists the skills that apply to it

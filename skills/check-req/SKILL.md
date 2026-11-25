@@ -156,7 +156,10 @@ Step 3.
    |----|-------|------|----------|----------|--------|---------------------|-------|
 
    Put anomalies in the Notes column. For `review` requests, note that they wait for
-   `/ss-workflow:review`. Below the table, list the projects whose gitlink is behind,
+   `/ss-workflow:review`. For a draft that a split created and that is not discussed
+   yet (its `## Original` starts with `Split from:`, and its `## Spec` holds at most a
+   `Depends on:` line), note "not discussed yet", the request it was split from, and
+   its `Depends on:`; `/ss-workflow:new-req REQ-<id>` continues it. Below the table, list the projects whose gitlink is behind,
    with the number of commits.
 
 ## Step 3: Repair anomalies
