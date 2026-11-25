@@ -452,6 +452,13 @@ Rules:
   the root `AGENTS.md`). The request branch already exists since the draft, so
   starting needs no lock: a request whose worktree exists, or whose status is
   `in-progress`, is being worked on; do not take it over without asking.
+- **Several requests can be implemented at the same time**, one session each: every
+  request has its own branches and worktrees. `/ss-workflow:check-req` tells which
+  `ready` requests can start together: a request whose `Depends on:` request is not
+  `done` waits, and two requests that change the same file in the same project (or the
+  same workspace file) are named as an overlap. An overlap is a warning, never a
+  block. Verify, Review, and the merge run in the root checkout, one request at a
+  time, so finished requests queue there.
 - If the type changes during the discussion, rename the branch to the new type
   before the approval (`git branch -m`, then push the new name and delete the old one
   on the remote).
