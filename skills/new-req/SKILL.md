@@ -416,6 +416,13 @@ the developer agrees with the architecture:
 - Fill in every section that "Spec" in `reqs/AGENTS.md` lists, in its order. Walk
   through every acceptance criterion, and check that "File changes", "Types and public
   members", "Flows", "Errors and edge cases", and "Tests" together show how it is met.
+- For each check by hand in "How to verify", write how its result is observed, as
+  "Spec" in `reqs/AGENTS.md` describes: what the agent observes itself in the Review
+  (the source, and the log lines or values to expect, taken from the code or from the
+  spec's own messages and data), and what only the developer can see or do. Find the
+  source in the code and in "Toolchain" of the project's section in
+  `projects/AGENTS.md`. A log line that exists today is a fact, and cites its entry;
+  a new one is defined by the spec.
 - Do not ask the developer about each name or row. The developer reads the detailed
   design with the rest of the spec, and changes what they want. Ask a question only
   where the code does not decide and the choice changes behavior, or where the
@@ -514,7 +521,10 @@ standard with a reader who did not take part in the discussion:
      when what can be observed is settled (which file is created or changed, from
      what, in which order relative to the other steps, what happens when it exists or
      a step fails, the exit status, and the message). Also
-     report a section that a skill of the project requires ('Project skills' in
+     report a check by hand in 'How to verify' that does not say its steps, its
+     expected result, and how the result is observed (what the agent observes, with
+     the source and the expected lines or values, and what only the developer sees or
+     does), and a section that a skill of the project requires ('Project skills' in
      `reqs/AGENTS.md`) and the spec lacks, every statement in the spec about the
      existing code or system that cites no entry, and every cited entry whose status
      does not allow the approval ('Before the approval' in 'Evidence'). Do not
