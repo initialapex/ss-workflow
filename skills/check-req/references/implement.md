@@ -219,8 +219,24 @@ a new request.
    - Did not run: tests, scripts, and executables (left to Verify); <the build of a project, if it did not run: `not configured` / `did not run (<reason>)`>
    - Not done: <acceptance criteria or parts of the spec that are not implemented, with the reason; or "none">
    - Verify: <commands, test projects, and scripts to run in the root checkout, per project>
-   - Review by hand: <what the developer needs to look at or try, and how to start it>
+   - Review by hand: <one item per point, see below>
    - Follow-ups: <out-of-scope findings, if any>
+   ```
+
+   Write each point of "Review by hand" so that the Review can go through it on its
+   own, one at a time: what to start and how (the exact command or project), the steps,
+   the expected result, `Agent observes:` the source (a serial port, a log file, the
+   output of a program or a command) with the exact lines or values that the code you
+   wrote produces, and `Developer observes:` what only the developer can see or do (a
+   screen, an LED, a button, a cable or power cycle). Take the lines from the code,
+   not from memory. For example:
+
+   ```markdown
+   - Review by hand:
+     - Restart the Client with the Server running (AC3, E4): unplug the Client's USB for about 5 s, then plug it in
+       - Expected: the Client rejoins the same network without searching
+       - Agent observes: COM4 at 115200, `rejoined the network: pan_id=<the Server's PAN>` after the boot banner, and no `no network data`
+       - Developer observes: the Client card in Host AP stays green
    ```
 
    Write every line from what happened in these worktrees, not from what you expect.
